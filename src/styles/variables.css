@@ -1,0 +1,77 @@
+:root {
+  color-scheme: light;
+
+  /* ---- Shell (the toy body) ---- */
+  --shell-base: #e9e4f6;
+  --shell-base-2: #d9d1ef;
+  --shell-shadow: #b3a8d6;
+  --shell-highlight: #ffffff;
+  --shell-radius: 46px;
+
+  /* ---- Screen bezel ---- */
+  --bezel-color: #241f2e;
+  --bezel-color-2: #34293f;
+  --screen-radius: 22px;
+
+  /* ---- LCD screen (default: sage/green digivice tint) ---- */
+  --lcd-bg: #c7d9ab;
+  --lcd-bg-2: #b9cf9a;
+  --lcd-ink: #3c4a35;
+  --lcd-ink-dim: #6b7a5f;
+  --lcd-ink-faint: #8b9a7c;
+  --lcd-accent: #d1495b;
+  --lcd-accent-2: #2f8f9e;
+  --lcd-glow: rgba(60, 74, 53, 0.18);
+  --lcd-line: rgba(60, 74, 53, 0.14);
+
+  /* ---- Buttons ---- */
+  --btn-face: #f4f1fb;
+  --btn-face-shadow: #a89bce;
+  --btn-accent: #ff7a6f;
+  --btn-accent-shadow: #c74f45;
+  --btn-accent-2: #5ec2d6;
+  --btn-accent-2-shadow: #3891a3;
+
+  /* ---- Type ---- */
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-mono: 'VT323', monospace;
+
+  /* ---- Motion ---- */
+  --ease-pip: cubic-bezier(0.22, 0.9, 0.32, 1.1);
+}
+
+[data-theme='amber'] {
+  --lcd-bg: #e8d9a8;
+  --lcd-bg-2: #ddc98d;
+  --lcd-ink: #4a3418;
+  --lcd-ink-dim: #7a6440;
+  --lcd-ink-faint: #9c8760;
+  --lcd-accent: #c9502e;
+  --lcd-accent-2: #4e6b8a;
+}
+
+[data-theme='mono'] {
+  --lcd-bg: #cfd6cf;
+  --lcd-bg-2: #c1c9c1;
+  --lcd-ink: #24291f;
+  --lcd-ink-dim: #545c4c;
+  --lcd-ink-faint: #7c8676;
+  --lcd-accent: #b34747;
+  --lcd-accent-2: #3e6b6b;
+}
+
+[data-theme='night'] {
+  --shell-base: #24202f;
+  --shell-base-2: #191521;
+  --shell-shadow: #0d0b13;
+  --shell-highlight: #3a3448;
+  --lcd-bg: #182a1e;
+  --lcd-bg-2: #0f2015;
+  --lcd-ink: #7fe0a0;
+  --lcd-ink-dim: #4c9c68;
+  --lcd-ink-faint: #34724a;
+  --lcd-accent: #ff8a7a;
+  --lcd-accent-2: #7fd8e8;
+  --lcd-glow: rgba(127, 224, 160, 0.14);
+  --lcd-line: rgba(127, 224, 160, 0.1);
+}

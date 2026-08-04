@@ -1,0 +1,367 @@
+/* ===== shared screen typography ===== */
+.pip-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-mono);
+}
+
+.pip-view-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 8px;
+  border-bottom: 1px dashed var(--lcd-line);
+  margin-bottom: 8px;
+}
+
+.pip-view-title {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.pip-view-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.pip-back {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--lcd-ink-dim);
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.pip-back:active {
+  background: var(--lcd-line);
+}
+
+/* ===== dashboard grid ===== */
+.pip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.pip-tile {
+  position: relative;
+  text-align: left;
+  border-radius: 12px;
+  padding: 12px 10px 10px;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--lcd-ink);
+}
+
+.pip-tile[data-disabled='true'] {
+  opacity: 0.5;
+}
+
+.pip-tile-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.pip-tile-label {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+}
+
+.pip-tile-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--lcd-accent);
+  color: #fff8f4;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-pixel);
+}
+
+.pip-tile-sub {
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+}
+
+.pip-clock {
+  text-align: center;
+  padding: 10px 0 2px;
+}
+.pip-clock-time {
+  font-family: var(--font-pixel);
+  font-size: 22px;
+}
+.pip-clock-date {
+  font-size: 13px;
+  color: var(--lcd-ink-dim);
+  margin-top: 2px;
+}
+
+/* ===== toolbar (sort/filter) ===== */
+.pip-toolbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.pip-chip-select,
+.pip-search {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--lcd-line);
+  border-radius: 8px;
+  padding: 4px 6px;
+  color: var(--lcd-ink);
+}
+
+.pip-search {
+  flex: 1 1 auto;
+  min-width: 60px;
+}
+
+/* ===== cards (inbox / tasks) ===== */
+.pip-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pip-card {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 9px 10px;
+}
+
+.pip-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pip-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.pip-stage {
+  flex: 0 0 auto;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  color: #fff;
+}
+.pip-stage[data-stage='new'] { background: var(--lcd-accent-2); }
+.pip-stage[data-stage='active'] { background: var(--lcd-accent); }
+.pip-stage[data-stage='resolved'] { background: #6a9f5a; }
+.pip-stage[data-stage='archived'] { background: var(--lcd-ink-faint); }
+
+.pip-card-body {
+  font-size: 13px;
+  color: var(--lcd-ink);
+  margin-top: 4px;
+  line-height: 1.35;
+}
+.pip-card-body p { margin: 0 0 6px; }
+.pip-card-body code {
+  background: var(--lcd-line);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+.pip-card-body ul, .pip-card-body ol {
+  margin: 4px 0 6px 16px;
+  padding: 0;
+}
+
+.pip-tag-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.pip-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--lcd-line);
+  color: var(--lcd-ink-dim);
+}
+
+.pip-card-meta {
+  font-size: 11px;
+  color: var(--lcd-ink-faint);
+  margin-top: 6px;
+}
+
+.pip-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.pip-action-btn {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--lcd-ink);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.pip-action-btn:active { transform: translateY(1px); }
+.pip-action-btn--primary {
+  background: var(--lcd-accent);
+  color: #fff;
+}
+.pip-action-btn--ghost {
+  background: transparent;
+  border: 1px dashed var(--lcd-line);
+}
+
+.pip-empty {
+  text-align: center;
+  padding: 24px 8px;
+  color: var(--lcd-ink-faint);
+  font-size: 13px;
+}
+.pip-empty-glyph {
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+
+/* ===== inbox unread badge on tile handled via .pip-tile-badge ===== */
+
+.pip-fab {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--lcd-accent);
+  color: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  z-index: 5;
+}
+.pip-fab:active { transform: translateY(1px) scale(0.96); }
+
+/* ===== modal sheet (compose / outcome / import) ===== */
+.pip-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 18, 12, 0.35);
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+}
+
+.pip-sheet {
+  width: 100%;
+  max-height: 88%;
+  background: var(--lcd-bg);
+  border-radius: 16px 16px 0 0;
+  padding: 12px 12px 14px;
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+.pip-sheet-title {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  margin-bottom: 8px;
+}
+
+.pip-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.pip-field label {
+  font-size: 11px;
+  color: var(--lcd-ink-dim);
+  font-family: var(--font-pixel);
+  letter-spacing: 0.3px;
+}
+
+.pip-field input,
+.pip-field textarea {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--lcd-line);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--lcd-ink);
+  resize: vertical;
+}
+
+.pip-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ===== stub / placeholder widget ===== */
+.pip-stub {
+  text-align: center;
+  padding: 30px 10px;
+  color: var(--lcd-ink-dim);
+}
+.pip-stub-glyph {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+.pip-stub-note {
+  font-size: 12px;
+  margin-top: 6px;
+  color: var(--lcd-ink-faint);
+}
+
+/* ===== db toolbar (export/import/reset), bottom of dashboard ===== */
+.pip-dbbar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 6px;
+}
+.pip-dbbar button {
+  font-size: 10px;
+  font-family: var(--font-pixel);
+  color: var(--lcd-ink-faint);
+}
+.pip-dbbar button:active { color: var(--lcd-ink); }
