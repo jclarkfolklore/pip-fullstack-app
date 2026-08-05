@@ -478,6 +478,12 @@
     margin-top: auto;
   }
 
+  /* Stays horizontal on mobile — stacking made the panel tall enough to
+     squeeze the work area, and the work area is the point of the screen.
+     But the scene was a 56px thumbnail, which made the one genuinely
+     expressive thing on screen the smallest: it's ~2x that now, which reads
+     properly while keeping the panel short. The stage is 144x88, so width
+     alone sets the height. */
   .pip-clu3-widget {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -499,8 +505,39 @@
     grid-area: speech;
   }
   .pip-clu3-face svg {
-    width: 56px;
-    height: 56px;
+    width: 124px;
+    height: auto;
+  }
+
+  /* The next two days were hidden outright on mobile, which is what left the
+     forecast panel looking half-empty — it's a 3-day forecast showing one
+     day. They're back, in a compact single-line form: day, art, temperatures.
+     The condition word drops; the icon already says it. */
+  .pip-wx-rest {
+    display: grid;
+  }
+  .pip-wx-day {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 2px 6px;
+    padding: 6px 8px;
+  }
+  .pip-wx-day .pip-wx-dayname {
+    grid-column: 1 / -1;
+  }
+  .pip-wx-daylabel {
+    display: none;
+  }
+  .pip-wx-day .pip-wx-art {
+    width: 26px;
+    height: 26px;
+  }
+  .pip-wx-high {
+    font-size: 21px;
+  }
+  .pip-wx-low {
+    font-size: 14px;
   }
 }
 
@@ -863,9 +900,6 @@
 @media (max-width: 859px) {
   .pip-wx-widget {
     padding: 8px 10px 9px;
-  }
-  .pip-wx-rest {
-    display: none;
   }
   .pip-wx-today {
     padding: 7px 9px;

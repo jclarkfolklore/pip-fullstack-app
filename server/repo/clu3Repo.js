@@ -93,11 +93,34 @@ function deleteMessage(id) {
   db.prepare('DELETE FROM clu3_messages WHERE id = ?').run(id);
 }
 
+// Lines Clu3 has used recently, newest first. The engine is pure, so the
+// memory of what's already been said lives out here with the other stateful
+// bits. Small on purpose: enough to stop immediate repetition, not so much
+// that it runs out of things it's allowed to say.
+const RECENT_LINES_KEPT = 6;
+const recentLines = [];
+
+function rememberLine(line) {
+  if (!line) return;
+  recentLines.unshift(line);
+  while (recentLines.length > RECENT_LINES_KEPT) recentLines.pop();
+}
+
 // The one endpoint the panel actually polls.
 function currentState() {
   const facts = signals.collect();
   const tone = getTone();
-  const state = expression(facts, { tone, pendingMessage: pendingMessage() });
+  // A fresh seed per call is what makes re-polling produce a different
+  // observation even when nothing in the workspace has changed — the engine
+  // stays deterministic for a given seed, the variation is requested here.
+  const seed = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) | 0;
+  const state = expression(facts, {
+    tone,
+    pendingMessage: pendingMessage(),
+    seed,
+    avoid: [...recentLines]
+  });
+  if (state.source === 'rule') rememberLine(state.line);
   // Unlike weather, there's no upstream fetch to timestamp — this is always
   // computed fresh from the live local DB. computedAt exists so the panel can
   // show a "last updated" readout with the same shape as weather's fetchedAt.
