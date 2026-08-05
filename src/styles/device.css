@@ -592,15 +592,17 @@
 
 /* Today: full width, the headline of the panel. Three columns spread edge to
    edge so the card is actually used rather than hugging the left. */
+/* Today: three stacked rows (title / reading / stats) rather than three
+   columns. See todayCard() in weatherPanel.js for why. */
 .pip-wx-today {
   position: relative;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
   width: 100%;
   text-align: left;
-  padding: 10px 12px;
+  padding: 9px 12px 10px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.26);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -614,50 +616,59 @@
   background: var(--lcd-line);
 }
 
-.pip-wx-today-left {
+.pip-wx-today-head {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 3px;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pip-wx-today-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pip-wx-today-temp {
+  font-size: 40px;
+  line-height: 0.9;
   flex: 0 0 auto;
 }
 
-.pip-wx-today-temps {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  flex: 0 0 auto;
-}
-
-.pip-wx-today-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
+/* Pushed to the far edge so it never collides with the temperature. */
+.pip-wx-today-cond {
+  margin-left: auto;
   text-align: right;
+  font-size: 16px;
+  line-height: 1.15;
+  color: var(--lcd-ink);
   min-width: 0;
 }
 
-.pip-wx-today-high {
-  font-size: 38px;
-  line-height: 0.9;
-}
-
-/* Mono rather than the pixel face: at glance sizes the pixel font's 8px is
-   unreadable, and going bigger in it would crowd the card. Mono carries the
-   same LCD character while staying legible small. */
-.pip-wx-today-low {
+/* Stats strip. Mono rather than the pixel face: at glance sizes the pixel
+   font's 8px is unreadable, and going bigger in it would crowd the card. */
+.pip-wx-today-stats {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--lcd-line);
   font-family: var(--font-mono);
-  font-size: 15px;
-  letter-spacing: 0.3px;
-  color: var(--lcd-ink-dim);
 }
 
-.pip-wx-today-label {
-  font-size: 15px;
-  line-height: 1.15;
+.pip-wx-today-hl {
+  font-size: 17px;
+  letter-spacing: 0.3px;
   color: var(--lcd-ink);
+  white-space: nowrap;
+}
+
+/* The H/L letters are labels, not values — dimmed so the numbers read first. */
+.pip-wx-hl-key {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--lcd-ink-faint);
 }
 
 .pip-wx-daylabel {
@@ -671,21 +682,19 @@
    tappable — this states the count, reads as a control, and pulses so it
    catches a glance. Corner-pinned so it never reflows the temperatures. */
 .pip-wx-alert-badge {
-  position: absolute;
-  top: -6px;
-  right: -4px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 6px;
+  padding: 3px 7px;
   border-radius: 999px;
   font-family: var(--font-pixel);
-  font-size: 7px;
+  font-size: 8px;
   letter-spacing: 0.5px;
   color: #fff;
   background: var(--lcd-accent);
   box-shadow: 0 0 8px var(--lcd-accent);
   animation: pip-wx-alert-pulse 2.4s ease-in-out infinite;
+  flex: 0 0 auto;
 }
 
 @keyframes pip-wx-alert-pulse {
@@ -709,22 +718,22 @@
 .pip-wx-aqi {
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
-  margin-top: 3px;
+  gap: 5px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 15px;
   color: var(--lcd-ink-dim);
+  white-space: nowrap;
 }
 
 .pip-wx-aqi-label {
   font-family: var(--font-pixel);
-  font-size: 7px;
+  font-size: 8px;
   letter-spacing: 0.5px;
   color: var(--lcd-ink-faint);
 }
 
 .pip-wx-aqi-value {
-  font-size: 14px;
+  font-size: 17px;
   color: var(--lcd-ink);
 }
 
@@ -865,11 +874,14 @@
     width: 40px;
     height: 40px;
   }
-  .pip-wx-today-high {
-    font-size: 26px;
+  .pip-wx-today-temp {
+    font-size: 30px;
   }
-  .pip-wx-today-label {
-    font-size: 13px;
+  .pip-wx-today-cond {
+    font-size: 14px;
+  }
+  .pip-wx-today-hl {
+    font-size: 15px;
   }
 }
 
@@ -947,6 +959,29 @@
   animation: pip-wx-drift 8s ease-in-out infinite;
   animation-delay: -2s;
 }
+.pip-wx-drift-late {
+  animation: pip-wx-drift 5s ease-in-out infinite;
+  animation-delay: -2.5s;
+}
+
+/* The sun disc. Scaling from the shape's own centre, not the SVG origin —
+   without transform-box the disc would swing across the viewBox instead of
+   swelling in place. */
+.pip-wx-breathe {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pip-wx-breathe 4s ease-in-out infinite;
+}
+
+@keyframes pip-wx-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
 .pip-wx-pulse {
   animation: pip-wx-pulse 3s ease-in-out infinite;
 }
@@ -967,6 +1002,8 @@
   .pip-wx-fall-slow-late,
   .pip-wx-drift,
   .pip-wx-drift-slow,
+  .pip-wx-drift-late,
+  .pip-wx-breathe,
   .pip-wx-pulse,
   .pip-wx-pulse-late,
   .pip-wx-flash {

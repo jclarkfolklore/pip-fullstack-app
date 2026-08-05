@@ -97,48 +97,59 @@ export function mountWeatherPanel(container) {
     const label = current ? current.label : day.label;
     const bigTemp = current ? current.temp : day.high;
 
-    // Three columns spread across the full card width: art, temperature,
-    // then the condition — so nothing is crammed and nothing is wasted.
-    const children = [
-      h('div', { class: 'pip-wx-today-left' }, [
-        h('div', { class: 'pip-wx-dayname' }, dayName(day.date, 0)),
-        renderWeatherArt(kind, { className: 'pip-wx-art--lg' })
-      ]),
-      h('div', { class: 'pip-wx-today-temps' }, [
-        h('div', { class: 'pip-wx-today-high', title: current ? 'current temperature' : "today's forecast high" }, `${bigTemp}°`),
-        h('div', { class: 'pip-wx-today-low' }, `H ${day.high}° · L ${day.low}°`)
-      ]),
-      h('div', { class: 'pip-wx-today-right' }, [
-        h('div', { class: 'pip-wx-today-label' }, label),
-        // Air quality rides in the space the condition label already occupies
-        // rather than claiming a row of its own — the band word carries the
-        // meaning, the number is there if you want it.
-        air
-          ? h('div', { class: 'pip-wx-aqi', dataset: { band: air.label.toLowerCase().replace(/\s+/g, '-') } }, [
-              h('span', { class: 'pip-wx-aqi-label' }, 'AQI'),
-              h('span', { class: 'pip-wx-aqi-value' }, String(air.aqi)),
-              h('span', { class: 'pip-wx-aqi-band' }, air.label)
-            ])
-          : null
-      ].filter(Boolean))
-    ];
+    // Three stacked rows rather than three columns. Columns forced the
+    // condition and air quality to share a narrow gutter, which is what made
+    // this hard to read — in a ~276px panel there simply isn't width for
+    // three independent things plus a 38px number.
+    //
+    //   head   TODAY .................... [alert]
+    //   main   [art]  79° ............ Clear
+    //   stats  H 80°  L 58° ..... AQI 54 Moderate
+    //
+    // Each row has one job, and the eye lands on the temperature first.
+    const head = h('div', { class: 'pip-wx-today-head' }, [
+      h('span', { class: 'pip-wx-dayname' }, dayName(day.date, 0)),
+      // An alert is the one thing worth interrupting a glance for, so it gets
+      // a counted badge on the title row — not a bare dot you have to already
+      // know is clickable.
+      hasAlerts
+        ? h('span', { class: 'pip-wx-alert-badge', title: `${alerts.length} active alert(s) — tap to read` }, [
+            icon('alert', { size: 9 }),
+            h('span', {}, `${alerts.length} ALERT${alerts.length === 1 ? '' : 'S'}`)
+          ])
+        : null
+    ].filter(Boolean));
 
-    const card = hasAlerts
+    const main = h('div', { class: 'pip-wx-today-main' }, [
+      renderWeatherArt(kind, { className: 'pip-wx-art--lg' }),
+      h(
+        'div',
+        { class: 'pip-wx-today-temp', title: current ? 'current temperature' : "today's forecast high" },
+        `${bigTemp}°`
+      ),
+      h('div', { class: 'pip-wx-today-cond' }, label)
+    ]);
+
+    const stats = h('div', { class: 'pip-wx-today-stats' }, [
+      h('span', { class: 'pip-wx-today-hl' }, [
+        h('span', { class: 'pip-wx-hl-key' }, 'H'),
+        ` ${day.high}°  `,
+        h('span', { class: 'pip-wx-hl-key' }, 'L'),
+        ` ${day.low}°`
+      ]),
+      air
+        ? h('span', { class: 'pip-wx-aqi', dataset: { band: air.label.toLowerCase().replace(/\s+/g, '-') } }, [
+            h('span', { class: 'pip-wx-aqi-label' }, 'AQI'),
+            h('span', { class: 'pip-wx-aqi-value' }, String(air.aqi)),
+            h('span', { class: 'pip-wx-aqi-band' }, air.label)
+          ])
+        : null
+    ].filter(Boolean));
+
+    const children = [head, main, stats];
+    return hasAlerts
       ? h('button', { class: 'pip-wx-today has-alert', onClick: () => alertModal(alerts, place) }, children)
       : h('div', { class: 'pip-wx-today' }, children);
-
-    // An alert is the one thing here worth interrupting a glance for, so it
-    // gets a real badge with a count and an affordance — not a bare dot you
-    // have to already know is clickable.
-    if (hasAlerts) {
-      card.appendChild(
-        h('span', { class: 'pip-wx-alert-badge', title: `${alerts.length} active alert(s) — tap to read` }, [
-          icon('alert', { size: 9 }),
-          h('span', {}, `${alerts.length} ALERT${alerts.length === 1 ? '' : 'S'}`)
-        ])
-      );
-    }
-    return card;
   }
 
   function smallCard(day, index) {

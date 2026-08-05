@@ -32,19 +32,21 @@ const SUN_DISC = [
   '............'
 ];
 
+// Cardinal rays. Two pixels thick — at one pixel they read as stray specks
+// rather than light, especially once the disc is animating.
 // prettier-ignore
 const SUN_RAYS = [
   '.....##.....',
-  '............',
-  '#..........#',
-  '............',
+  '.....##.....',
   '............',
   '............',
   '............',
+  '##........##',
+  '##........##',
   '............',
   '............',
-  '#..........#',
   '............',
+  '.....##.....',
   '.....##.....'
 ];
 
@@ -102,16 +104,16 @@ const SUN_CORNER = [
 // prettier-ignore
 const SUN_RAYS_DIAG = [
   '............',
-  '.#........#.',
+  '.##......##.',
+  '.##......##.',
   '............',
   '............',
   '............',
   '............',
   '............',
   '............',
-  '............',
-  '............',
-  '.#........#.',
+  '.##......##.',
+  '.##......##.',
   '............'
 ];
 
@@ -267,11 +269,18 @@ const FOG_BARS = [
 // Each kind's layers, back to front. Where two layers share a motion, the
 // `-late` variant is the same animation on a delay — that offset is what makes
 // precipitation continuous and the sun shimmer instead of throb.
+// Each kind's layers, back to front.
+//
+// EVERY layer moves. A single static element in an otherwise animated icon
+// reads as broken rather than calm, so even the "still" masses get something:
+// clouds drift, the sun disc breathes. Where two layers share a motion, the
+// `-late` variant is the same animation on a delay — that offset is what makes
+// precipitation continuous and the sun shimmer instead of throb.
 const KIND_LAYERS = {
   clear: [
     { grid: SUN_RAYS, tone: 'ink', motion: 'pulse' },
     { grid: SUN_RAYS_DIAG, tone: 'ink', motion: 'pulse-late' },
-    { grid: SUN_DISC, tone: 'ink' }
+    { grid: SUN_DISC, tone: 'ink', motion: 'breathe' }
   ],
   partly: [
     { grid: SUN_CORNER, tone: 'ink', motion: 'pulse' },
@@ -279,8 +288,8 @@ const KIND_LAYERS = {
   ],
   cloudy: [
     { grid: CLOUD_BACK, tone: 'dim', motion: 'drift-slow' },
-    { grid: CLOUD, tone: 'dim' },
-    { grid: CLOUD_SMALL, tone: 'ink', motion: 'drift' }
+    { grid: CLOUD, tone: 'dim', motion: 'drift' },
+    { grid: CLOUD_SMALL, tone: 'ink', motion: 'drift-late' }
   ],
   fog: [
     { grid: FOG_BARS, tone: 'dim', motion: 'drift' },
@@ -292,7 +301,7 @@ const KIND_LAYERS = {
     { grid: DRIZZLE_DROPS_B, tone: 'ink', motion: 'fall-slow-late' }
   ],
   rain: [
-    { grid: CLOUD, tone: 'dim' },
+    { grid: CLOUD, tone: 'dim', motion: 'drift-slow' },
     { grid: RAIN_DROPS, tone: 'ink', motion: 'fall' },
     { grid: RAIN_DROPS_B, tone: 'ink', motion: 'fall-late' }
   ],
@@ -302,7 +311,7 @@ const KIND_LAYERS = {
     { grid: SNOW_FLAKES_B, tone: 'ink', motion: 'fall-slow-late' }
   ],
   storm: [
-    { grid: CLOUD, tone: 'dim' },
+    { grid: CLOUD, tone: 'dim', motion: 'drift' },
     { grid: RAIN_DROPS, tone: 'dim', motion: 'fall' },
     { grid: BOLT, tone: 'ink', motion: 'flash' }
   ]
