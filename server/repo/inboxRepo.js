@@ -37,6 +37,9 @@ function importDroppedNote({
   source = 'claude',
   sourceType = 'chat',
   sourceUrl = null,
+  sourceRef = null,
+  detailsMd = null,
+  sourceMeta = null,
   projectId = null
 }) {
   const already = db.prepare('SELECT id FROM inbox_items WHERE id = ?').get(id);
@@ -44,9 +47,23 @@ function importDroppedNote({
   const created = createdAt || nowIso();
   db.prepare(
     `INSERT INTO inbox_items
-      (id, title, body_md, source, source_type, source_url, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'new', '', ?, ?, ?)`
-  ).run(id, title, bodyMd, source, sourceType, sourceUrl, projectId, created, created, id);
+      (id, title, body_md, source, source_type, source_url, source_ref, details_md, source_meta_json, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', '', ?, ?, ?)`
+  ).run(
+    id,
+    title,
+    bodyMd,
+    source,
+    sourceType,
+    sourceUrl,
+    sourceRef,
+    detailsMd,
+    sourceMeta ? JSON.stringify(sourceMeta) : null,
+    projectId,
+    created,
+    created,
+    id
+  );
   attachTags('inbox', id, tags);
   logEvent('inbox_item', id, 'inbox_created', { title, source, sourceType });
   return { id, created: true };
@@ -68,7 +85,7 @@ function createInboxItem({
   db.prepare(
     `INSERT INTO inbox_items
       (id, title, body_md, source, source_type, source_url, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'new', '', ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', '', ?, ?, ?)`
   ).run(id, title, bodyMd, source, sourceType, sourceUrl, projectId, created, created, importHash);
   attachTags('inbox', id, tags);
   logEvent('inbox_item', id, 'inbox_created', { title, source, sourceType });
@@ -157,15 +174,36 @@ function archiveItem(id) {
   logEvent('inbox_item', id, 'inbox_archived', {});
 }
 
+// A hold, not a lifecycle stage — `stage` is untouched, so reactivating
+// returns exactly to wherever it was (new/active), not to a fixed default.
+function deactivateItem(id) {
+  db.prepare('UPDATE inbox_items SET deactivated_at = ? WHERE id = ?').run(nowIso(), id);
+  logEvent('inbox_item', id, 'inbox_deactivated', {});
+  return getInboxItem(id);
+}
+
+function reactivateItem(id) {
+  db.prepare('UPDATE inbox_items SET deactivated_at = NULL WHERE id = ?').run(id);
+  logEvent('inbox_item', id, 'inbox_reactivated', {});
+  return getInboxItem(id);
+}
+
 function deleteItem(id) {
   db.prepare('DELETE FROM inbox_items WHERE id = ?').run(id);
   db.prepare("DELETE FROM entity_tags WHERE entity_type='inbox' AND entity_id = ?").run(id);
 }
 
+// Deactivated items are excluded from their stage's count here — that's the
+// whole point of deactivating: pull something out of "active"/"in motion"
+// everywhere that number is shown (tile badge, Metrics, Overview), without
+// touching its actual stage.
 function stageCounts() {
-  const rows = db.prepare('SELECT stage, COUNT(*) AS n FROM inbox_items GROUP BY stage').all();
-  const out = { new: 0, active: 0, resolved: 0, archived: 0 };
+  const rows = db
+    .prepare("SELECT stage, COUNT(*) AS n FROM inbox_items WHERE deactivated_at IS NULL GROUP BY stage")
+    .all();
+  const out = { new: 0, active: 0, resolved: 0, archived: 0, deactivated: 0 };
   for (const r of rows) out[r.stage] = r.n;
+  out.deactivated = db.prepare('SELECT COUNT(*) AS n FROM inbox_items WHERE deactivated_at IS NOT NULL').get().n;
   return out;
 }
 
@@ -181,6 +219,8 @@ module.exports = {
   updateTags,
   resolveWithOutcome,
   archiveItem,
+  deactivateItem,
+  reactivateItem,
   deleteItem,
   stageCounts
 };

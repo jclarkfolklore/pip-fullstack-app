@@ -12,14 +12,18 @@
 // Honest states, no invented data:
 //   - not configured -> tells you to set a location in Settings
 //   - offline/failed  -> shows the last real reading, marked stale
-import { h, fmtDateTime } from '../lib/dom.js';
+import { h, fmtDateTime, fmtTime } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { renderWeatherArt } from '../lib/weatherArt.js';
-import { weatherNow } from '../api/weatherRepo.js';
+import { weatherNow, refreshWeather } from '../api/weatherRepo.js';
 import { navigateTo } from './router.js';
 import { openModal } from './modal.js';
+import { openWeatherSheetModal } from './weatherSheetModal.js';
 
-const REFRESH_MS = 10 * 60 * 1000;
+// Matches Clu3's poll cadence (clu3Panel.js) — both update on the same
+// hourly rhythm, with a manual "get latest" button on each for whenever you
+// don't want to wait.
+const REFRESH_MS = 60 * 60 * 1000;
 
 function dayName(dateStr, index) {
   if (index === 0) return 'TODAY';
@@ -60,46 +64,81 @@ function alertModal(alerts, place) {
 export function mountWeatherPanel(container) {
   const body = h('div', { class: 'pip-wx-body' });
   const placeEl = h('span', { class: 'pip-wx-place' }, '');
+  const refreshBtn = h('button', { class: 'pip-wx-refresh', title: 'Get latest now' }, [icon('refresh', { size: 15 })]);
+  const sheetBtn = h('button', { class: 'pip-clu3-sheet-btn', title: 'Preview weather art & codes' }, [
+    icon('grid', { size: 15 })
+  ]);
+  sheetBtn.addEventListener('click', () => openWeatherSheetModal());
+
   const header = h('div', { class: 'pip-wx-header' }, [
     h('span', { class: 'pip-wx-title' }, [icon('clock', { size: 10 }), ' 3-DAY']),
-    placeEl
+    placeEl,
+    sheetBtn,
+    refreshBtn
   ]);
+  const updatedEl = h('div', { class: 'pip-wx-updated' }, '');
 
-  const widget = h('div', { class: 'pip-wx-widget' }, [header, body]);
+  const widget = h('div', { class: 'pip-wx-widget' }, [header, body, updatedEl]);
   container.appendChild(widget);
 
   let destroyed = false;
+  let refreshing = false;
 
-  function todayCard(day, alerts, place) {
+  // `current` is live right-now conditions (from Open-Meteo's `current`
+  // block) — it's what the art and the big number represent. `day` is still
+  // the daily forecast, and only feeds the H/L line beneath: a high/low is
+  // inherently a prediction (the day isn't over), so it stays sourced from
+  // the forecast even though the headline temperature no longer is.
+  // `current` can be null on old cached payloads from before this existed —
+  // fall back to the forecast rather than showing nothing.
+  function todayCard(day, current, alerts, place, air) {
     const hasAlerts = alerts && alerts.length > 0;
+    const kind = current ? current.kind : day.kind;
+    const label = current ? current.label : day.label;
+    const bigTemp = current ? current.temp : day.high;
 
-    // Three columns spread across the full card width: art, temperatures,
+    // Three columns spread across the full card width: art, temperature,
     // then the condition — so nothing is crammed and nothing is wasted.
     const children = [
-      hasAlerts ? h('span', { class: 'pip-wx-dot', title: `${alerts.length} active alert(s)` }) : null,
       h('div', { class: 'pip-wx-today-left' }, [
         h('div', { class: 'pip-wx-dayname' }, dayName(day.date, 0)),
-        renderWeatherArt(day.kind, { className: 'pip-wx-art--lg' })
+        renderWeatherArt(kind, { className: 'pip-wx-art--lg' })
       ]),
       h('div', { class: 'pip-wx-today-temps' }, [
-        h('div', { class: 'pip-wx-today-high' }, `${day.high}°`),
-        h('div', { class: 'pip-wx-today-low' }, `LOW ${day.low}°`)
+        h('div', { class: 'pip-wx-today-high', title: current ? 'current temperature' : "today's forecast high" }, `${bigTemp}°`),
+        h('div', { class: 'pip-wx-today-low' }, `H ${day.high}° · L ${day.low}°`)
       ]),
       h('div', { class: 'pip-wx-today-right' }, [
-        h('div', { class: 'pip-wx-today-label' }, day.label),
-        hasAlerts ? h('div', { class: 'pip-wx-alert-hint' }, `${alerts.length} ALERT — TAP`) : null
-      ])
-    ].filter(Boolean);
+        h('div', { class: 'pip-wx-today-label' }, label),
+        // Air quality rides in the space the condition label already occupies
+        // rather than claiming a row of its own — the band word carries the
+        // meaning, the number is there if you want it.
+        air
+          ? h('div', { class: 'pip-wx-aqi', dataset: { band: air.label.toLowerCase().replace(/\s+/g, '-') } }, [
+              h('span', { class: 'pip-wx-aqi-label' }, 'AQI'),
+              h('span', { class: 'pip-wx-aqi-value' }, String(air.aqi)),
+              h('span', { class: 'pip-wx-aqi-band' }, air.label)
+            ])
+          : null
+      ].filter(Boolean))
+    ];
 
-    // Only interactive when there's actually something to open.
+    const card = hasAlerts
+      ? h('button', { class: 'pip-wx-today has-alert', onClick: () => alertModal(alerts, place) }, children)
+      : h('div', { class: 'pip-wx-today' }, children);
+
+    // An alert is the one thing here worth interrupting a glance for, so it
+    // gets a real badge with a count and an affordance — not a bare dot you
+    // have to already know is clickable.
     if (hasAlerts) {
-      return h(
-        'button',
-        { class: 'pip-wx-today has-alert', onClick: () => alertModal(alerts, place) },
-        children
+      card.appendChild(
+        h('span', { class: 'pip-wx-alert-badge', title: `${alerts.length} active alert(s) — tap to read` }, [
+          icon('alert', { size: 9 }),
+          h('span', {}, `${alerts.length} ALERT${alerts.length === 1 ? '' : 'S'}`)
+        ])
       );
     }
-    return h('div', { class: 'pip-wx-today' }, children);
+    return card;
   }
 
   function smallCard(day, index) {
@@ -142,7 +181,7 @@ export function mountWeatherPanel(container) {
     }
 
     const [today, ...rest] = data.days;
-    body.appendChild(todayCard(today, data.alerts || [], data.place));
+    body.appendChild(todayCard(today, data.current || null, data.alerts || [], data.place, data.air || null));
     if (rest.length) {
       body.appendChild(h('div', { class: 'pip-wx-rest' }, rest.map((d, i) => smallCard(d, i + 1))));
     }
@@ -150,6 +189,8 @@ export function mountWeatherPanel(container) {
     if (data.stale || data.error === 'offline') {
       body.appendChild(h('div', { class: 'pip-wx-stale' }, 'last known — offline'));
     }
+
+    updatedEl.textContent = data.fetchedAt ? `updated ${fmtTime(data.fetchedAt)}` : '';
   }
 
   async function refresh() {
@@ -161,6 +202,21 @@ export function mountWeatherPanel(container) {
       console.warn('[weather] refresh failed:', err.message);
     }
   }
+
+  refreshBtn.addEventListener('click', async () => {
+    if (destroyed || refreshing) return;
+    refreshing = true;
+    refreshBtn.classList.add('is-spinning');
+    try {
+      const data = await refreshWeather();
+      if (!destroyed) render(data);
+    } catch (err) {
+      console.warn('[weather] manual refresh failed:', err.message);
+    } finally {
+      refreshing = false;
+      refreshBtn.classList.remove('is-spinning');
+    }
+  });
 
   refresh();
   const tick = setInterval(refresh, REFRESH_MS);

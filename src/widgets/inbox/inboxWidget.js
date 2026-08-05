@@ -9,10 +9,13 @@ import {
   setStage,
   resolveInboxItem,
   archiveItem,
+  deactivateItem,
+  reactivateItem,
   stageCounts,
   SOURCE_TYPES
 } from '../../api/inboxRepo.js';
 import { allTagNames } from '../../api/tagsRepo.js';
+import { consumeHighlight, applyHighlight } from '../../lib/highlight.js';
 import { listProjects } from '../../api/projectsRepo.js';
 
 export const kind = 'inbox';
@@ -39,14 +42,20 @@ const SOURCE_LABEL = {
 
 export async function renderTile(ctx) {
   const counts = await stageCounts();
-  const badge = counts.new > 0 ? h('div', { class: 'pip-tile-badge' }, String(counts.new)) : null;
+  // Red = active/new right now (deactivated items are excluded — that's the
+  // point of deactivating). Blue sits to its left, counting what's on hold.
+  const activeCount = counts.new + counts.active;
+  const badges = [
+    counts.deactivated > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--inactive' }, String(counts.deactivated)) : null,
+    activeCount > 0 ? h('div', { class: 'pip-tile-badge' }, String(activeCount)) : null
+  ].filter(Boolean);
   return h(
     'button',
     { class: 'pip-tile', dataset: { widget: 'inbox' }, onClick: (e) => ctx.open('inbox', e.currentTarget) },
     [
-      badge,
+      badges.length ? h('div', { class: 'pip-tile-badge-row' }, badges) : null,
       icon('inbox', { size: 20, className: 'pip-tile-icon' }),
-      h('div', { class: 'pip-tile-sub' }, counts.active ? `${counts.active} in progress` : 'nothing pending'),
+      h('div', { class: 'pip-tile-sub' }, activeCount ? `${activeCount} in progress` : 'nothing pending'),
       h('div', { class: 'pip-tile-label' }, 'INBOX')
     ]
   );
@@ -57,6 +66,10 @@ const STAGE_LABEL = { new: 'NEW', active: 'ACTIVE', resolved: 'RESOLVED', archiv
 export function renderFull(ctx) {
   const filters = { stage: null, tag: null, project: null, search: '', sort: 'created_desc' };
   let projectsById = {};
+
+  // A search-result click deep-links here for one specific item — consumed
+  // once, at mount, so a later re-render (onChange) doesn't re-scroll/flash.
+  let highlightId = consumeHighlight(ctx, 'inbox');
 
   const el = h('div', { class: 'pip-view' });
   const header = h('div', { class: 'pip-view-header' }, [
@@ -260,6 +273,36 @@ export function renderFull(ctx) {
 
   function actionsFor(item, cardEl) {
     const actions = [];
+    // A hold, not a lifecycle move — available on new/active items only.
+    // Resolved/archived are already out of the "needs attention" pool.
+    if (item.stage === 'new' || item.stage === 'active') {
+      actions.push(
+        item.deactivated_at
+          ? h(
+              'button',
+              {
+                class: 'pip-action-btn pip-action-btn--ghost',
+                onClick: async () => {
+                  await reactivateItem(item.id);
+                  renderList();
+                }
+              },
+              'REACTIVATE'
+            )
+          : h(
+              'button',
+              {
+                class: 'pip-action-btn pip-action-btn--ghost',
+                title: "Not ready to resolve, but don't count it as active",
+                onClick: async () => {
+                  await deactivateItem(item.id);
+                  renderList();
+                }
+              },
+              'DEACTIVATE'
+            )
+      );
+    }
     if (item.stage === 'new') {
       actions.push(
         h(
@@ -304,7 +347,7 @@ export function renderFull(ctx) {
   }
 
   function card(item) {
-    const cardEl = h('div', { class: 'pip-card' });
+    const cardEl = h('div', { class: 'pip-card', dataset: { id: item.id } });
     const actionsWrap = h('div', { class: 'pip-card-actions' });
     const sourceIcon = icon(SOURCE_ICON[item.source_type] || 'tag', { size: 11 });
     const project = item.project_id ? projectsById[item.project_id] : null;
@@ -326,7 +369,10 @@ export function renderFull(ctx) {
       ...[
         h('div', { class: 'pip-card-top' }, [
           h('div', { class: 'pip-card-title' }, item.title || '(untitled)'),
-          h('div', { class: 'pip-stage', dataset: { stage: item.stage } }, STAGE_LABEL[item.stage])
+          h('div', { class: 'pip-card-top-tags' }, [
+            item.deactivated_at ? h('div', { class: 'pip-stage', dataset: { stage: 'inactive' } }, 'PAUSED') : null,
+            h('div', { class: 'pip-stage', dataset: { stage: item.stage } }, STAGE_LABEL[item.stage])
+          ])
         ]),
         h('div', { class: 'pip-card-body', html: marked.parse(item.body_md || '') }),
         item.outcome_md
@@ -365,6 +411,15 @@ export function renderFull(ctx) {
     const list = h('div', { class: 'pip-card-list' }, items.map(card));
     listContainer.appendChild(list);
     staggerIn(list.children);
+
+    if (highlightId) {
+      const target = listContainer.querySelector(`[data-id="${highlightId}"]`);
+      if (target) {
+        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        applyHighlight(target);
+        highlightId = null; // one-shot — don't re-scroll on the next onChange render
+      }
+    }
   }
 
   const fab = h('button', { class: 'pip-fab', title: 'Quick add', onClick: openComposeSheet }, [icon('plus', { size: 18, color: '#fff' })]);

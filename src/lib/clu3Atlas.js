@@ -1,212 +1,28 @@
-// Clu3's sprite atlas — the vocabulary scenes are built from.
+// Clu3's set — the room, props and symbol overlays scenes are built from.
 //
-// ADD ART HERE. Anything drawn on a Clu3 stage lives in this file: the cat
-// itself, the room around them, props they interact with, and symbol overlays
-// for effects. Scenes (clu3Scenes.js) only reference these by name, so new art
-// is immediately usable without touching the engine.
+// ADD SET DRESSING HERE. Note what is NOT in this file: the character. Clu3
+// themselves comes from the extracted sprite sheet (clu3SpriteData.json ->
+// clu3Quantize.js), posed by clu3Sequencer.js. The hand-drawn cat that used
+// to live here was removed once the sheet replaced it — see git history if
+// it's ever wanted back.
 //
-// Authored at 2x the original resolution (72x44 stage rather than 36x22) so the
-// art can carry real detail — slit pupils, whiskers, inner ears — instead of
-// reading as a few chunky blocks.
+// Scenes (clu3Scenes.js) reference everything here by name, so new art is
+// immediately usable without touching the engine.
+//
+// Stage is 144x88 (2x the original 72x44 — see clu3Scenes.js), and everything
+// below is a plain scale2x() of the original art: a consistent resolution
+// bump without re-authoring pixels that were already doing their job.
 //
 // Grids are arrays of equal-length strings; '#' is on. renderStage warns if a
-// grid is ragged. Sparse or repeating sprites use gridFrom/hline so long rows
-// can't be miscounted.
+// grid is ragged.
 
-import { gridFrom, hline } from './sprites.js';
+import { gridFrom, hline, scale2x } from './sprites.js';
 
-// ---- the cat -----------------------------------------------------------
-// Split into swappable ears + a shared head/body so a new pose is one small
-// sprite rather than a re-typed 30-row silhouette. Ears occupy rows 0-6;
-// headBody is drawn at +7 and covers rows 7-29. Total footprint 32x30.
+// ---- environment ---------------------------------------------------------
 
-// prettier-ignore
-const catEarsNormal = [
-  '.....##..................##.....',
-  '....####................####....',
-  '....#####..............#####....',
-  '...#######............#######...',
-  '...########..........########...',
-  '..#########..........#########..',
-  '..##########........##########..'
-];
+const floor = hline(144, '###.');
 
-// Pricked and narrower — alert / startled / curious.
-// prettier-ignore
-const catEarsAlert = [
-  '....##....................##....',
-  '....###..................###....',
-  '...####..................####...',
-  '...#####................#####...',
-  '..######................######..',
-  '..#######..............#######..',
-  '..########............########..'
-];
-
-// prettier-ignore
-const catHeadBody = [
-  '.##############################.',
-  '################################',
-  '################################',
-  '################################',
-  '################################',
-  '################################',
-  '################################',
-  '################################',
-  '################################',
-  '################################',
-  '.##############################.',
-  '..############################..',
-  '...##########################...',
-  '.....######################.....',
-  '.....######################.....',
-  '.....######################.....',
-  '.....######################.....',
-  '....########################....',
-  '....########################....',
-  '...##########################...',
-  '...##########################...',
-  '.....#########....#########.....',
-  '.....#########....#########.....'
-];
-
-// --- face parts. Eyes/muzzle/whiskers are 'cut' (they knock holes in the
-// silhouette); pupils, nose and mouth are 'ink' drawn back on top. ---
-
-// prettier-ignore
-const innerEar = [
-  '..##',
-  '.###',
-  '####',
-  '####'
-];
-
-// prettier-ignore
-const eyeOpen = [
-  '..###..',
-  '.#####.',
-  '#######',
-  '#######',
-  '#######',
-  '.#####.',
-  '..###..'
-];
-
-// A cat's vertical slit.
-// prettier-ignore
-const pupil = [
-  '.#.',
-  '###',
-  '###',
-  '###',
-  '.#.'
-];
-
-// prettier-ignore
-const eyeClosed = [
-  '#######'
-];
-
-// prettier-ignore
-const eyeHappy = [
-  '.#####.',
-  '#######'
-];
-
-// prettier-ignore
-const muzzle = [
-  '..##########..',
-  '.############.',
-  '.############.',
-  '.############.',
-  '..##########..'
-];
-
-// prettier-ignore
-const nose = [
-  '####',
-  '.##.',
-  '.##.'
-];
-
-// prettier-ignore
-const mouth = [
-  '##....##',
-  '.##..##.'
-];
-
-// prettier-ignore
-const whisker = [
-  '#######'
-];
-
-// A little chest fluff, so the body isn't a blank mass.
-// prettier-ignore
-const chest = [
-  '##....##',
-  '.#....#.',
-  '..#..#..',
-  '...##...'
-];
-
-// Tail — its own sprite so it can sway independently of the body. 10x16.
-// prettier-ignore
-const tail = [
-  '.......###',
-  '......####',
-  '.....####.',
-  '....####..',
-  '...####...',
-  '..####....',
-  '..###.....',
-  '.###......',
-  '.###......',
-  '.###......',
-  '.###......',
-  '..###.....',
-  '..####....',
-  '...####...',
-  '....###...',
-  '.....##...'
-];
-
-// Curled up, asleep. 36x16.
-// prettier-ignore
-const catCurl = [
-  '.............##########.............',
-  '..........################..........',
-  '........####################........',
-  '......########################......',
-  '.....##########################.....',
-  '....############################....',
-  '...##############################...',
-  '..################################..',
-  '..################################..',
-  '...##############################...',
-  '....############################....',
-  '.....##########################.....',
-  '......########################......',
-  '........####################........',
-  '..........################..........',
-  '.............##########.............'
-];
-
-// Tail wrapped around the curled body (drawn 'cut' so it reads as a seam).
-// prettier-ignore
-const tailCurl = [
-  '..........##',
-  '.......####.',
-  '...####.....',
-  '.###........',
-  '##..........'
-];
-
-// ---- environment -------------------------------------------------------
-
-const floor = hline(72, '###.');
-
-// prettier-ignore
-const window9 = [
+const window9 = scale2x([
   '####################',
   '#........##........#',
   '#........##........#',
@@ -219,10 +35,9 @@ const window9 = [
   '#........##........#',
   '#........##........#',
   '####################'
-];
+]);
 
-// prettier-ignore
-const plant = [
+const plant = scale2x([
   '.....##.....',
   '..#..##..#..',
   '.###.##.###.',
@@ -237,10 +52,9 @@ const plant = [
   '...########.',
   '....######..',
   '.....####...'
-];
+]);
 
-// prettier-ignore
-const box = [
+const box = scale2x([
   '####################',
   '#..................#',
   '#..................#',
@@ -253,10 +67,9 @@ const box = [
   '#..................#',
   '#..................#',
   '####################'
-];
+]);
 
-// prettier-ignore
-const desk = [
+const desk = scale2x([
   '############################',
   '############################',
   '..##....................##..',
@@ -265,18 +78,19 @@ const desk = [
   '..##....................##..',
   '..##....................##..',
   '..##....................##..'
-];
-
-const stars = gridFrom(72, 12, [
-  [3, 2], [11, 0], [17, 5], [24, 1], [31, 7], [38, 2], [45, 6], [52, 0],
-  [59, 4], [66, 8], [70, 2], [7, 8], [21, 9], [35, 10], [49, 9], [63, 11],
-  [14, 3], [28, 4], [43, 0], [56, 7]
 ]);
 
-// ---- props -------------------------------------------------------------
+const stars = scale2x(
+  gridFrom(72, 12, [
+    [3, 2], [11, 0], [17, 5], [24, 1], [31, 7], [38, 2], [45, 6], [52, 0],
+    [59, 4], [66, 8], [70, 2], [7, 8], [21, 9], [35, 10], [49, 9], [63, 11],
+    [14, 3], [28, 4], [43, 0], [56, 7]
+  ])
+);
 
-// prettier-ignore
-const laptop = [
+// ---- props -----------------------------------------------------------
+
+const laptop = scale2x([
   '..##############..',
   '..#............#..',
   '..#............#..',
@@ -287,10 +101,9 @@ const laptop = [
   '##################',
   '.################.',
   '..##############..'
-];
+]);
 
-// prettier-ignore
-const yarn = [
+const yarn = scale2x([
   '...######...',
   '..########..',
   '.####..####.',
@@ -303,10 +116,9 @@ const yarn = [
   '.####..####.',
   '..########..',
   '...######...'
-];
+]);
 
-// prettier-ignore
-const clock = [
+const clock = scale2x([
   '....######....',
   '..##########..',
   '.####....####.',
@@ -321,10 +133,9 @@ const clock = [
   '.####....####.',
   '..##########..',
   '....######....'
-];
+]);
 
-// prettier-ignore
-const papers = [
+const papers = scale2x([
   '....############',
   '....#..........#',
   '....############',
@@ -334,24 +145,13 @@ const papers = [
   '############....',
   '#..........#....',
   '############....'
-];
+]);
 
 // ---- symbols / effects -------------------------------------------------
 
-// prettier-ignore
-const zed = [
-  '########',
-  '#.....##',
-  '#....##.',
-  '....##..',
-  '...##...',
-  '..##....',
-  '.##.....',
-  '########'
-];
+const zed = scale2x(['########', '#.....##', '#....##.', '....##..', '...##...', '..##....', '.##.....', '########']);
 
-// prettier-ignore
-const bang = [
+const bang = scale2x([
   '.###.',
   '#####',
   '#####',
@@ -366,10 +166,9 @@ const bang = [
   '.###.',
   '#####',
   '.###.'
-];
+]);
 
-// prettier-ignore
-const question = [
+const question = scale2x([
   '..######..',
   '.########.',
   '##......##',
@@ -384,10 +183,9 @@ const question = [
   '....##....',
   '...####...',
   '....##....'
-];
+]);
 
-// prettier-ignore
-const sparkle = [
+const sparkle = scale2x([
   '.....#.....',
   '.....#.....',
   '....###....',
@@ -399,10 +197,9 @@ const sparkle = [
   '....###....',
   '.....#.....',
   '.....#.....'
-];
+]);
 
-// prettier-ignore
-const heart = [
+const heart = scale2x([
   '..####..####..',
   '.############.',
   '##############',
@@ -415,10 +212,9 @@ const heart = [
   '....######....',
   '.....####.....',
   '......##......'
-];
+]);
 
-// prettier-ignore
-const alertTri = [
+const alertTri = scale2x([
   '......##......',
   '.....####.....',
   '....##..##....',
@@ -431,26 +227,9 @@ const alertTri = [
   '.###..##..###.',
   '##############',
   '##############'
-];
+]);
 
 export const CLU3_ATLAS = {
-  // cat
-  catEarsNormal,
-  catEarsAlert,
-  catHeadBody,
-  innerEar,
-  eyeOpen,
-  pupil,
-  eyeClosed,
-  eyeHappy,
-  muzzle,
-  nose,
-  mouth,
-  whisker,
-  chest,
-  tail,
-  catCurl,
-  tailCurl,
   // environment
   floor,
   window9,

@@ -97,6 +97,41 @@ const SUN_CORNER = [
   '............'
 ];
 
+// Diagonal rays, alternated against SUN_RAYS so the sun shimmers rather than
+// breathing as one block.
+// prettier-ignore
+const SUN_RAYS_DIAG = [
+  '............',
+  '.#........#.',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '.#........#.',
+  '............'
+];
+
+// A second, higher cloud so overcast has depth and parallax.
+// prettier-ignore
+const CLOUD_BACK = [
+  '............',
+  '..#####.....',
+  '.#######....',
+  '.#######....',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............'
+];
+
 // prettier-ignore
 const RAIN_DROPS = [
   '............',
@@ -145,6 +180,58 @@ const SNOW_FLAKES = [
   '.....#...#..'
 ];
 
+// Second precipitation pass, sitting between the first's rows. Animated on the
+// same keyframes but delayed by half a cycle, so as one set fades out the
+// other is already falling — continuous rain instead of one sheet sliding
+// down and resetting.
+// prettier-ignore
+const RAIN_DROPS_B = [
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '....#...#...',
+  '....#...#...',
+  '............',
+  '...#...#...#',
+  '...#...#...#'
+];
+
+// prettier-ignore
+const DRIZZLE_DROPS_B = [
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '.....#...#..',
+  '............',
+  '...#...#....',
+  '............',
+  '.#...#......'
+];
+
+// prettier-ignore
+const SNOW_FLAKES_B = [
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '............',
+  '.....#...#..',
+  '............',
+  '..#...#.....',
+  '............',
+  '...#...#....'
+];
+
 // prettier-ignore
 const BOLT = [
   '............',
@@ -177,34 +264,46 @@ const FOG_BARS = [
   '............'
 ];
 
+// Each kind's layers, back to front. Where two layers share a motion, the
+// `-late` variant is the same animation on a delay — that offset is what makes
+// precipitation continuous and the sun shimmer instead of throb.
 const KIND_LAYERS = {
   clear: [
     { grid: SUN_RAYS, tone: 'ink', motion: 'pulse' },
+    { grid: SUN_RAYS_DIAG, tone: 'ink', motion: 'pulse-late' },
     { grid: SUN_DISC, tone: 'ink' }
   ],
   partly: [
     { grid: SUN_CORNER, tone: 'ink', motion: 'pulse' },
-    { grid: CLOUD_SMALL, tone: 'dim' }
+    { grid: CLOUD_SMALL, tone: 'dim', motion: 'drift-slow' }
   ],
   cloudy: [
+    { grid: CLOUD_BACK, tone: 'dim', motion: 'drift-slow' },
     { grid: CLOUD, tone: 'dim' },
     { grid: CLOUD_SMALL, tone: 'ink', motion: 'drift' }
   ],
-  fog: [{ grid: FOG_BARS, tone: 'dim', motion: 'drift' }],
+  fog: [
+    { grid: FOG_BARS, tone: 'dim', motion: 'drift' },
+    { grid: CLOUD_BACK, tone: 'faint', motion: 'drift-slow' }
+  ],
   drizzle: [
-    { grid: CLOUD, tone: 'dim' },
-    { grid: DRIZZLE_DROPS, tone: 'ink', motion: 'fall' }
+    { grid: CLOUD, tone: 'dim', motion: 'drift-slow' },
+    { grid: DRIZZLE_DROPS, tone: 'ink', motion: 'fall-slow' },
+    { grid: DRIZZLE_DROPS_B, tone: 'ink', motion: 'fall-slow-late' }
   ],
   rain: [
     { grid: CLOUD, tone: 'dim' },
-    { grid: RAIN_DROPS, tone: 'ink', motion: 'fall' }
+    { grid: RAIN_DROPS, tone: 'ink', motion: 'fall' },
+    { grid: RAIN_DROPS_B, tone: 'ink', motion: 'fall-late' }
   ],
   snow: [
-    { grid: CLOUD, tone: 'dim' },
-    { grid: SNOW_FLAKES, tone: 'ink', motion: 'fall-slow' }
+    { grid: CLOUD, tone: 'dim', motion: 'drift-slow' },
+    { grid: SNOW_FLAKES, tone: 'ink', motion: 'fall-slow' },
+    { grid: SNOW_FLAKES_B, tone: 'ink', motion: 'fall-slow-late' }
   ],
   storm: [
     { grid: CLOUD, tone: 'dim' },
+    { grid: RAIN_DROPS, tone: 'dim', motion: 'fall' },
     { grid: BOLT, tone: 'ink', motion: 'flash' }
   ]
 };

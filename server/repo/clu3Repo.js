@@ -98,7 +98,10 @@ function currentState() {
   const facts = signals.collect();
   const tone = getTone();
   const state = expression(facts, { tone, pendingMessage: pendingMessage() });
-  return { ...state, tone, moods: MOODS };
+  // Unlike weather, there's no upstream fetch to timestamp — this is always
+  // computed fresh from the live local DB. computedAt exists so the panel can
+  // show a "last updated" readout with the same shape as weather's fetchedAt.
+  return { ...state, tone, moods: MOODS, computedAt: new Date().toISOString() };
 }
 
 module.exports = {

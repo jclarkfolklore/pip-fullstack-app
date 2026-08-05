@@ -3,37 +3,40 @@
 // Not a chatbot and not a dashboard tile: it's ambient chrome that reflects
 // the workspace back at you with a face, a line, and (when useful) a link
 // into the app. All of the thinking happens server-side in server/clu3/; this
-// file is presentation plus the update loop.
+// file is presentation plus the update loops.
 //
-// Two update triggers:
-//   - the shared SSE connection, so it reacts the moment data changes
-//   - a slow tick, for time-based moods (staleness crossing a threshold,
-//     the evening wind-down) and to rotate the current line's phrasing
-// Blinking runs on its own timer and repaints only the face.
+// Two things run independently and compose on every paint:
+//   - the PERFORMER — a story sequencer (clu3Sequencer.js) walking a
+//     narrative arc (clu3Narrative.js), one pose per frame. Clu3 isn't
+//     playing a mood loop; it's telling a short story with a beginning, a
+//     turn, and somewhere it lands. A genuine mood change interrupts the
+//     story rather than waiting out its ending, so a repoll visibly lands.
+//   - the SSE `onChange` + hourly tick, which is what actually re-fetches
+//     mood/energy/line from the server — see refresh() below.
+//
+// There is no separate blink timer any more: eye state is part of the pose
+// art itself, so blinking is something the sequence does, not an overlay.
 
-import { h } from '../lib/dom.js';
+import { h, fmtTime } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { renderClu3Visual } from '../lib/clu3Scenes.js';
+import { renderClu3Visual, knownScene } from '../lib/clu3Scenes.js';
+import { createStorySequencer, contextForMood } from '../lib/clu3Sequencer.js';
+import { chooseArc, buildArc } from '../lib/clu3Narrative.js';
 import { onChange } from '../api/client.js';
 import { clu3State, dismissMessage } from '../api/clu3Repo.js';
 import { navigateTo } from './router.js';
+import { openClu3SheetModal } from './clu3SheetModal.js';
 
-const TICK_MS = 20000;
-const BLINK_MIN_MS = 3200;
-const BLINK_MAX_MS = 7000;
-const BLINK_HOLD_MS = 140;
+// Matches the weather panel's poll cadence (weatherPanel.js) — both update
+// hourly. Real activity still reacts instantly via the SSE `onChange` below;
+// this tick only covers time-based moods that need wall-clock time to pass
+// (staleness thresholds, the evening wind-down), which don't need faster
+// than hourly. A manual "get latest" button covers everything else.
+const TICK_MS = 60 * 60 * 1000;
+// One animation frame. Matches the sprite-sheet preview so what you tune
+// there is what you get here.
+const FRAME_MS = 380;
 const ENERGY_PIPS = 5;
-const MODE_KEY = 'pip-clu3-mode';
-
-function savedMode() {
-  try {
-    const v = localStorage.getItem(MODE_KEY);
-    if (v === 'face' || v === 'scene') return v;
-  } catch (_) {
-    /* ignore — defaults below */
-  }
-  return 'scene';
-}
 
 export function mountClu3Panel(container) {
   const faceHost = h('div', { class: 'pip-clu3-face' });
@@ -41,46 +44,65 @@ export function mountClu3Panel(container) {
   const actionHost = h('div', { class: 'pip-clu3-action' });
   const pipsHost = h('div', { class: 'pip-clu3-pips', title: 'energy' });
 
-  let mode = savedMode();
+  const sheetBtn = h('button', { class: 'pip-clu3-sheet-btn', title: 'Preview sprite sheet' }, [icon('grid', { size: 15 })]);
+  const refreshBtn = h('button', { class: 'pip-clu3-refresh', title: 'Get latest now' }, [icon('refresh', { size: 15 })]);
 
-  // Lets you drop to the close-up when you'd rather just read the expression.
-  const modeBtn = h('button', {
-    class: 'pip-clu3-mode',
-    title: 'Toggle scene / face',
-    onClick: () => {
-      mode = mode === 'scene' ? 'face' : 'scene';
-      try {
-        localStorage.setItem(MODE_KEY, mode);
-      } catch (_) {
-        /* ignore — just won't persist */
-      }
-      faceHost.dataset.mode = mode;
-      paintFace();
-    }
-  });
-  modeBtn.appendChild(icon('select', { size: 9 }));
+  sheetBtn.addEventListener('click', () => openClu3SheetModal());
 
   const header = h('div', { class: 'pip-clu3-header' }, [
     h('span', { class: 'pip-clu3-name' }, 'CLU3'),
-    h('div', { class: 'pip-clu3-header-right' }, [pipsHost, modeBtn])
+    h('div', { class: 'pip-clu3-header-right' }, [pipsHost, sheetBtn, refreshBtn])
   ]);
+  const updatedEl = h('div', { class: 'pip-clu3-updated' }, '');
 
   const widget = h('div', { class: 'pip-clu3-widget' }, [
     header,
     faceHost,
-    h('div', { class: 'pip-clu3-speech' }, [lineEl, actionHost])
+    h('div', { class: 'pip-clu3-speech' }, [lineEl, actionHost]),
+    updatedEl
   ]);
   container.appendChild(widget);
 
-  // Last known state, so blink repaints don't need a fetch.
+  // Last known state, so frame repaints don't need a fetch.
   let state = { mood: 'content', line: '', action: null, energy: 100, source: 'rule', messageId: null };
-  let blinking = false;
   let destroyed = false;
-  let blinkTimer = null;
+  let refreshing = false;
+
+  // The performer. It owns which story is being told and which frame of it is
+  // showing; this file only drives the clock and paints what it's handed.
+  // Blinking used to be a separate overlay timer — it isn't any more, because
+  // eye state is part of the pose art itself now.
+  let playingMood = null;
+  let frameTimer = null;
+  const sequencer = createStorySequencer({
+    getStory: () => ({ mood: knownScene(state.mood) }),
+    buildStory: (story) => buildArc(chooseArc(story), contextForMood(story.mood))
+  });
 
   function paintFace() {
     faceHost.innerHTML = '';
-    faceHost.appendChild(renderClu3Visual(state.mood, { blinking, energy: state.energy, mode }));
+    faceHost.appendChild(renderClu3Visual(state.mood, { pose: sequencer.frame(), energy: state.energy }));
+  }
+
+  function scheduleNextFrame() {
+    if (destroyed) return;
+    frameTimer = setTimeout(() => {
+      if (destroyed) return;
+      sequencer.advance();
+      paintFace();
+      scheduleNextFrame();
+    }, FRAME_MS);
+  }
+
+  // Called whenever fresh state comes in. A genuine mood change abandons the
+  // story in progress and starts a new one — that's what makes a repoll
+  // visibly land, rather than the new mood waiting out the old one's ending.
+  function syncAnimator() {
+    const mood = knownScene(state.mood);
+    if (mood === playingMood) return;
+    playingMood = mood;
+    sequencer.interrupt();
+    paintFace();
   }
 
   function paintPips() {
@@ -134,9 +156,11 @@ export function mountClu3Panel(container) {
       const next = await clu3State();
       if (destroyed) return;
       state = next;
+      syncAnimator();
       paintFace();
       paintPips();
       paintSpeech();
+      updatedEl.textContent = state.computedAt ? `updated ${fmtTime(state.computedAt)}` : '';
     } catch (err) {
       // Clu3 going quiet is never worth breaking the app over — leave the
       // last expression on screen and try again on the next tick.
@@ -144,29 +168,20 @@ export function mountClu3Panel(container) {
     }
   }
 
-  function scheduleBlink() {
-    if (destroyed) return;
-    // Low energy = slower, heavier blinking.
-    const slow = state.energy <= 25 ? 1.6 : 1;
-    const delay = (BLINK_MIN_MS + Math.random() * (BLINK_MAX_MS - BLINK_MIN_MS)) * slow;
-    blinkTimer = setTimeout(() => {
-      if (destroyed) return;
-      blinking = true;
-      paintFace();
-      setTimeout(() => {
-        if (destroyed) return;
-        blinking = false;
-        paintFace();
-        scheduleBlink();
-      }, BLINK_HOLD_MS);
-    }, delay);
-  }
+  refreshBtn.addEventListener('click', async () => {
+    if (destroyed || refreshing) return;
+    refreshing = true;
+    refreshBtn.classList.add('is-spinning');
+    await refresh();
+    refreshing = false;
+    refreshBtn.classList.remove('is-spinning');
+  });
 
-  faceHost.dataset.mode = mode;
+  syncAnimator();
   paintFace();
   paintPips();
   refresh();
-  scheduleBlink();
+  scheduleNextFrame();
 
   const tick = setInterval(refresh, TICK_MS);
   const unsubscribe = onChange(refresh);
@@ -176,7 +191,7 @@ export function mountClu3Panel(container) {
     destroy() {
       destroyed = true;
       clearInterval(tick);
-      clearTimeout(blinkTimer);
+      clearTimeout(frameTimer);
       unsubscribe();
     }
   };

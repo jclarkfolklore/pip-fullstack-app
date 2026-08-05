@@ -30,16 +30,41 @@ function createTask({ title, notesMd = '', dueAt = null, projectId = null, fromI
 // syncing from an external system (Monday, ADO, …) safe to re-run: the
 // external id becomes the PIP id, so a second sync updates rather than
 // duplicates. Mirrors inboxRepo.importDroppedNote.
-function importTask({ id, title, notesMd = '', dueAt = null, projectId = null, tags = [], createdAt } = {}) {
+function importTask({
+  id,
+  title,
+  notesMd = '',
+  dueAt = null,
+  projectId = null,
+  tags = [],
+  createdAt,
+  sourceType = 'manual',
+  sourceUrl = null,
+  sourceRef = null,
+  detailsMd = null,
+  sourceMeta = null
+} = {}) {
   if (!id) throw new Error('id is required');
   const already = db.prepare('SELECT id FROM tasks WHERE id = ?').get(id);
   if (already) return { id, created: false };
   db.prepare(
-    `INSERT INTO tasks (id, title, notes_md, status, project_id, due_at, created_at)
-     VALUES (?, ?, ?, 'open', ?, ?, ?)`
-  ).run(id, title, notesMd, projectId, dueAt, createdAt || nowIso());
+    `INSERT INTO tasks (id, title, notes_md, status, project_id, due_at, created_at, source_type, source_url, source_ref, details_md, source_meta_json)
+     VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    title,
+    notesMd,
+    projectId,
+    dueAt,
+    createdAt || nowIso(),
+    sourceType,
+    sourceUrl,
+    sourceRef,
+    detailsMd,
+    sourceMeta ? JSON.stringify(sourceMeta) : null
+  );
   attachTags('task', id, tags);
-  logEvent('task', id, 'task_created', { title, imported: true });
+  logEvent('task', id, 'task_created', { title, imported: true, sourceRef });
   return { id, created: true };
 }
 
@@ -94,13 +119,29 @@ function updateFields(id, fields = {}) {
     title: fields.title !== undefined ? fields.title : existing.title,
     notes_md: fields.notesMd !== undefined ? fields.notesMd : existing.notes_md,
     due_at: fields.dueAt !== undefined ? fields.dueAt : existing.due_at,
-    project_id: fields.projectId !== undefined ? fields.projectId : existing.project_id
+    project_id: fields.projectId !== undefined ? fields.projectId : existing.project_id,
+    // Lets a re-sync backfill the ticket number/link onto tasks imported
+    // before those columns existed.
+    source_type: fields.sourceType !== undefined ? fields.sourceType : existing.source_type,
+    source_url: fields.sourceUrl !== undefined ? fields.sourceUrl : existing.source_url,
+    source_ref: fields.sourceRef !== undefined ? fields.sourceRef : existing.source_ref,
+    details_md: fields.detailsMd !== undefined ? fields.detailsMd : existing.details_md,
+    source_meta_json:
+      fields.sourceMeta !== undefined ? JSON.stringify(fields.sourceMeta) : existing.source_meta_json
   };
-  db.prepare('UPDATE tasks SET title=?, notes_md=?, due_at=?, project_id=? WHERE id=?').run(
+  db.prepare(
+    `UPDATE tasks SET title=?, notes_md=?, due_at=?, project_id=?, source_type=?, source_url=?, source_ref=?,
+       details_md=?, source_meta_json=? WHERE id=?`
+  ).run(
     next.title,
     next.notes_md,
     next.due_at,
     next.project_id,
+    next.source_type,
+    next.source_url,
+    next.source_ref,
+    next.details_md,
+    next.source_meta_json,
     id
   );
   if (fields.tags !== undefined) attachTags('task', id, fields.tags);

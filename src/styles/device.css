@@ -15,7 +15,11 @@
 
 .pip-layout {
   width: 100%;
-  min-height: 100vh;
+  /* Hard cap, not a floor — height:100vh (not min-height) is what makes the
+     console/side-column stretch correctly and forces their own contents to
+     scroll internally instead of growing the page. See html,body overflow
+     in base.css. */
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -44,14 +48,17 @@
   gap: 8px;
 }
 
-/* ===== screen: unbounded, responsive. 16:9 once there's room for it;
-   a taller ratio below that so it isn't a cramped letterboxed strip on a
-   narrow phone. ===== */
+/* ===== screen: unbounded, responsive. Fills whatever height .pip-console
+   has to give it (full row height on desktop; whatever's left below Clu3 and
+   above nav/weather on mobile) rather than a fixed aspect-ratio — the old
+   ratio-based sizing left a dead gap below the screen once Clu3/weather/nav
+   started sharing the mobile column with it. min-height is just a floor so
+   it can't collapse to nothing if those get unusually tall. ===== */
 .pip-screen {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  max-height: 66vh;
+  height: 100%;
+  min-height: 220px;
   border-radius: 14px;
   overflow: hidden;
   background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
@@ -60,14 +67,6 @@
     inset 0 0 0 2px rgba(0, 0, 0, 0.18),
     0 20px 40px rgba(0, 0, 0, 0.35);
   transition: background 0.4s var(--ease-pip);
-}
-
-@media (min-width: 860px) {
-  .pip-screen {
-    aspect-ratio: unset;
-    max-height: none;
-    height: 100%;
-  }
 }
 
 .pip-screen-glass {
@@ -257,17 +256,31 @@
   gap: 8px;
 }
 
-.pip-clu3-mode {
+.pip-clu3-sheet-btn,
+.pip-clu3-refresh {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  color: var(--lcd-ink-faint);
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--lcd-accent-2);
 }
-.pip-clu3-mode:active {
+.pip-clu3-sheet-btn:active,
+.pip-clu3-refresh:active {
   background: var(--lcd-line);
+}
+.pip-clu3-refresh.is-spinning svg {
+  animation: pip-spin 0.7s linear infinite;
+}
+
+.pip-clu3-updated {
+  font-size: 9px;
+  color: var(--lcd-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-align: right;
+  padding-top: 2px;
 }
 
 .pip-clu3-face {
@@ -276,20 +289,10 @@
   padding: 2px 0;
 }
 
-/* Scene mode: a wide 32x20 diorama filling the panel. */
-.pip-clu3-face[data-mode='scene'] svg {
+/* The scene diorama fills the panel width. */
+.pip-clu3-face svg {
   width: 100%;
   height: auto;
-}
-
-/* Face mode: the 16x16 close-up, deliberately modest so it doesn't dominate
-   the panel the way the original oversized head did. */
-.pip-clu3-face[data-mode='face'] svg {
-  width: 76px;
-  height: 76px;
-}
-
-.pip-clu3-face svg {
   /* Drawn at low res on purpose — never smooth it. */
   image-rendering: pixelated;
 }
@@ -454,15 +457,25 @@
   .pip-clu3-panel {
     order: -1;
     max-width: 900px;
+    flex: 0 0 auto;
   }
   .pip-console {
     order: 0;
-  }
-  .pip-controls-panel {
-    order: 1;
+    flex: 1 1 auto;
+    min-height: 0;
   }
   .pip-wx-panel {
+    order: 1;
+    flex: 0 0 auto;
+  }
+  /* Nav is the one thing worth reaching for one-handed — pinned to the
+     bottom edge regardless of how tall Clu3/weather are above it, the way a
+     bottom tab bar works, rather than just sitting wherever it falls in
+     the stack. margin-top: auto eats whatever slack space remains. */
+  .pip-controls-panel {
     order: 2;
+    flex: 0 0 auto;
+    margin-top: auto;
   }
 
   .pip-clu3-widget {
@@ -536,6 +549,39 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  flex: 1 1 auto;
+}
+
+.pip-wx-refresh {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--lcd-accent-2);
+  background: transparent;
+}
+.pip-wx-refresh:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+.pip-wx-refresh.is-spinning svg {
+  animation: pip-spin 0.7s linear infinite;
+}
+
+@keyframes pip-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pip-wx-updated {
+  font-size: 9px;
+  color: var(--lcd-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-align: right;
 }
 
 .pip-wx-body {
@@ -598,10 +644,13 @@
   line-height: 0.9;
 }
 
+/* Mono rather than the pixel face: at glance sizes the pixel font's 8px is
+   unreadable, and going bigger in it would crowd the card. Mono carries the
+   same LCD character while staying legible small. */
 .pip-wx-today-low {
-  font-family: var(--font-pixel);
-  font-size: 8px;
-  letter-spacing: 0.5px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.3px;
   color: var(--lcd-ink-dim);
 }
 
@@ -618,24 +667,76 @@
   line-height: 1.15;
 }
 
-/* Notification dot for active alerts. */
-.pip-wx-dot {
+/* Active alerts. A bare dot required you to already know the card was
+   tappable — this states the count, reads as a control, and pulses so it
+   catches a glance. Corner-pinned so it never reflows the temperatures. */
+.pip-wx-alert-badge {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 7px;
-  height: 7px;
+  top: -6px;
+  right: -4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
   border-radius: 999px;
-  background: var(--lcd-accent);
-  box-shadow: 0 0 6px var(--lcd-accent);
-}
-
-.pip-wx-alert-hint {
   font-family: var(--font-pixel);
   font-size: 7px;
   letter-spacing: 0.5px;
-  color: var(--lcd-accent);
+  color: #fff;
+  background: var(--lcd-accent);
+  box-shadow: 0 0 8px var(--lcd-accent);
+  animation: pip-wx-alert-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pip-wx-alert-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 5px var(--lcd-accent);
+  }
+  50% {
+    box-shadow: 0 0 12px var(--lcd-accent);
+  }
+}
+
+.pip-wx-today.has-alert {
+  outline: 1px solid var(--lcd-accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Air quality — sits under the condition label on today only. The band word
+   does the work; the number is supporting detail. */
+.pip-wx-aqi {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
   margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+}
+
+.pip-wx-aqi-label {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-ink-faint);
+}
+
+.pip-wx-aqi-value {
+  font-size: 14px;
+  color: var(--lcd-ink);
+}
+
+/* Only the bands that actually warrant attention get colour — otherwise the
+   accent stops meaning anything. */
+.pip-wx-aqi[data-band='unhealthy'] .pip-wx-aqi-value,
+.pip-wx-aqi[data-band='very-poor'] .pip-wx-aqi-value,
+.pip-wx-aqi[data-band='hazardous'] .pip-wx-aqi-value,
+.pip-wx-aqi[data-band='unhealthy'] .pip-wx-aqi-band,
+.pip-wx-aqi[data-band='very-poor'] .pip-wx-aqi-band,
+.pip-wx-aqi[data-band='hazardous'] .pip-wx-aqi-band {
+  color: var(--lcd-accent);
 }
 
 /* The following two days: half width each, beneath today. */
@@ -692,6 +793,12 @@
   opacity: 0.3;
 }
 
+/* Barely-there haze — used behind fog so the bars have something to sit in. */
+.pip-wx-faint rect {
+  fill: var(--lcd-ink);
+  opacity: 0.14;
+}
+
 .pip-wx-temps {
   display: flex;
   flex-direction: column;
@@ -700,11 +807,11 @@
 }
 
 .pip-wx-high {
-  font-size: 22px;
+  font-size: 26px;
 }
 
 .pip-wx-low {
-  font-size: 13px;
+  font-size: 17px;
   color: var(--lcd-ink-dim);
 }
 
@@ -737,6 +844,33 @@
   color: var(--lcd-ink-faint);
   text-transform: uppercase;
   letter-spacing: 0.3px;
+}
+
+/* Compact on mobile: today's conditions only, at a glance — the 3-day
+   breakdown is desktop real estate the phone doesn't have to spare. Placed
+   after the base .pip-wx-* rules above so it actually wins the cascade
+   (same specificity, later source order) rather than being overridden by
+   them. */
+@media (max-width: 859px) {
+  .pip-wx-widget {
+    padding: 8px 10px 9px;
+  }
+  .pip-wx-rest {
+    display: none;
+  }
+  .pip-wx-today {
+    padding: 7px 9px;
+  }
+  .pip-wx-art--lg {
+    width: 40px;
+    height: 40px;
+  }
+  .pip-wx-today-high {
+    font-size: 26px;
+  }
+  .pip-wx-today-label {
+    font-size: 13px;
+  }
 }
 
 /* ---- weather motion. Transforms are in viewBox units (12x12). ---- */
@@ -795,11 +929,30 @@
 .pip-wx-fall-slow {
   animation: pip-wx-fall 3.4s linear infinite;
 }
+/* Same keyframes, half a cycle behind — as one set of drops fades out the
+   other is already falling, so precipitation reads as continuous rather than
+   one sheet sliding down and snapping back. */
+.pip-wx-fall-late {
+  animation: pip-wx-fall 1.5s linear infinite;
+  animation-delay: -0.75s;
+}
+.pip-wx-fall-slow-late {
+  animation: pip-wx-fall 3.4s linear infinite;
+  animation-delay: -1.7s;
+}
 .pip-wx-drift {
   animation: pip-wx-drift 5s ease-in-out infinite;
 }
+.pip-wx-drift-slow {
+  animation: pip-wx-drift 8s ease-in-out infinite;
+  animation-delay: -2s;
+}
 .pip-wx-pulse {
   animation: pip-wx-pulse 3s ease-in-out infinite;
+}
+.pip-wx-pulse-late {
+  animation: pip-wx-pulse 3s ease-in-out infinite;
+  animation-delay: -1.5s;
 }
 .pip-wx-flash {
   animation: pip-wx-flash 4s linear infinite;
@@ -810,8 +963,12 @@
 @media (prefers-reduced-motion: reduce) {
   .pip-wx-fall,
   .pip-wx-fall-slow,
+  .pip-wx-fall-late,
+  .pip-wx-fall-slow-late,
   .pip-wx-drift,
+  .pip-wx-drift-slow,
   .pip-wx-pulse,
+  .pip-wx-pulse-late,
   .pip-wx-flash {
     animation: none;
   }
@@ -898,6 +1055,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -915,6 +1073,370 @@
   color: var(--lcd-ink-faint);
   text-transform: uppercase;
   letter-spacing: 0.3px;
+}
+
+/* ---- weather art & code preview ---- */
+.pip-wx-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pip-wx-preview-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* A kind nothing maps to can never appear — worth flagging, not hiding. */
+.pip-wx-preview-card[data-orphan='true'] {
+  outline: 1px dashed var(--lcd-accent);
+}
+
+.pip-wx-preview-art {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.28);
+}
+.pip-wx-preview-art svg {
+  width: 40px;
+  height: 40px;
+}
+
+.pip-wx-preview-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pip-wx-preview-kind {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+}
+
+.pip-wx-preview-count {
+  font-size: 10px;
+  color: var(--lcd-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.pip-wx-preview-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pip-wx-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.3);
+  color: var(--lcd-ink-dim);
+}
+
+/* ---- Clu3 sprite-sheet preview ---- */
+.pip-clu3-sheet-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 6px;
+  background: linear-gradient(180deg, var(--lcd-bg) 70%, transparent);
+}
+
+.pip-clu3-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 6px;
+}
+
+.pip-clu3-sheet-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.pip-clu3-sheet-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.pip-clu3-sheet-stage svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* The pose's stable reference number. Corner-pinned on a solid chip so it
+   stays readable over the sprite — these get quoted when grouping poses into
+   combos, so legibility matters more than subtlety. */
+.pip-clu3-sheet-num {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 15px;
+  padding: 1px 3px;
+  border-bottom-right-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--lcd-bg);
+  background: var(--lcd-ink);
+}
+
+.pip-clu3-sheet-caption {
+  font-size: 9px;
+  color: var(--lcd-ink-faint);
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* Combos need more room than single poses — wider cells so the id and its
+   associations fit without truncating. */
+.pip-clu3-sheet-grid[data-view='combos'] {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+
+.pip-clu3-combo-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.pip-clu3-frame {
+  width: 100%;
+  height: 100%;
+}
+.pip-clu3-frame svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pip-clu3-combo-id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--lcd-ink);
+  text-align: center;
+  line-height: 1.15;
+}
+
+.pip-clu3-combo-field {
+  font-size: 9px;
+  color: var(--lcd-ink-dim);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Poses are buttons in the sheet — clicking one drills into the combos that
+   use it. */
+.pip-clu3-sheet-cell.is-pickable {
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: inherit;
+}
+.pip-clu3-sheet-cell.is-pickable:hover .pip-clu3-sheet-stage {
+  outline: 2px solid var(--lcd-accent-2);
+  outline-offset: -2px;
+}
+
+/* Sequencer view: one live performance per mood, wide enough to show the
+   whole phrase it's currently working through. */
+.pip-clu3-sheet-grid[data-view='sequence'] {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+
+.pip-clu3-seq-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.pip-clu3-seq-cell .pip-clu3-sheet-stage {
+  width: 84px;
+  aspect-ratio: 1;
+}
+
+.pip-clu3-seq-cell .pip-clu3-combo-field {
+  font-size: 8px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.pip-clu3-focus-banner:empty {
+  display: none;
+}
+
+.pip-clu3-focus-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.pip-clu3-focus-hero {
+  flex: 0 0 auto;
+  width: 76px;
+  height: 76px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pip-clu3-focus-hero svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pip-clu3-focus-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.pip-clu3-focus-title {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.pip-clu3-focus-sub {
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+}
+
+/* ---- destructive confirm ---- */
+.pip-confirm-what {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.pip-confirm-consequence {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--lcd-ink-dim);
+}
+
+.pip-confirm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Destructive actions are the only place the app uses a warning fill — it
+   should feel different from every other button. */
+.pip-action-btn--danger {
+  color: #fff;
+  background: linear-gradient(180deg, var(--btn-accent), var(--btn-accent-shadow));
+  box-shadow: 0 2px 0 var(--btn-accent-shadow);
+}
+.pip-action-btn--danger:active {
+  box-shadow: none;
+  transform: translateY(1px);
+}
+
+/* ---- synced ticket detail ---- */
+.pip-ticket-ref-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-accent-2);
+  text-decoration: none;
+}
+.pip-ticket-ref-link:active {
+  opacity: 0.7;
+}
+
+.pip-ticket-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pip-ticket-section-label {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--lcd-ink-faint);
+}
+
+.pip-ticket-prose {
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pip-ticket-prose p,
+.pip-ticket-prose ul,
+.pip-ticket-prose ol {
+  margin: 0 0 6px;
+}
+
+.pip-ticket-prose ul,
+.pip-ticket-prose ol {
+  padding-left: 18px;
+}
+
+.pip-ticket-prose a {
+  color: var(--lcd-accent-2);
+}
+
+.pip-ticket-empty {
+  font-size: 12px;
+  color: var(--lcd-ink-faint);
+  font-style: italic;
+}
+
+.pip-ticket-meta-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  font-size: 12px;
+}
+
+.pip-ticket-meta-key {
+  color: var(--lcd-ink-faint);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  align-self: center;
 }
 
 /* ---- alert cards inside the modal ---- */
@@ -1052,6 +1574,7 @@
 .pip-search-results {
   flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 6px;

@@ -3,6 +3,7 @@ import { icon } from '../../lib/icons.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listProjects, createProject, updateProject, deleteProject } from '../../api/projectsRepo.js';
+import { confirmDestructive } from '../../app/modal.js';
 
 export const kind = 'projects';
 
@@ -80,6 +81,16 @@ export function renderFull(ctx) {
           {
             class: 'pip-action-btn pip-action-btn--ghost',
             onClick: async () => {
+              const attached = c.inbox + c.tasks + c.notes;
+              const ok = await confirmDestructive({
+                title: 'Delete this project?',
+                what: project.name,
+                consequence: attached
+                  ? `Its ${c.inbox} inbox · ${c.tasks} tasks · ${c.notes} notes are NOT deleted — they stay in PIP and become unassigned. Only the project grouping goes away.`
+                  : 'Nothing is assigned to this project, so only the empty project is removed.',
+                confirmLabel: 'DELETE PROJECT'
+              });
+              if (!ok) return;
               await collapseOut(cardEl);
               await deleteProject(project.id);
             }

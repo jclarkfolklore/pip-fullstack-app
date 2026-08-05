@@ -4,7 +4,7 @@
 // file on disk (server/db.js opens it with better-sqlite3), plus a first-
 // class Project entity and a standalone Notes table.
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 9;
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -23,12 +23,18 @@ CREATE TABLE IF NOT EXISTS inbox_items (
   source TEXT NOT NULL DEFAULT 'me',
   source_type TEXT NOT NULL DEFAULT 'manual',
   source_url TEXT,
+  source_ref TEXT,
+  details_md TEXT,
+  source_meta_json TEXT,
   project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
-  stage TEXT NOT NULL DEFAULT 'new' CHECK (stage IN ('new','active','resolved','archived')),
+  -- Arrivals start 'active', not 'new': anything that reached the inbox is
+  -- already live work. 'new' stays valid for historical rows.
+  stage TEXT NOT NULL DEFAULT 'active' CHECK (stage IN ('new','active','resolved','archived')),
   outcome_md TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   stage_changed_at TEXT NOT NULL,
-  import_hash TEXT
+  import_hash TEXT,
+  deactivated_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
@@ -40,7 +46,14 @@ CREATE TABLE IF NOT EXISTS tasks (
   due_at TEXT,
   created_at TEXT NOT NULL,
   completed_at TEXT,
-  from_inbox_item_id TEXT REFERENCES inbox_items(id) ON DELETE SET NULL
+  from_inbox_item_id TEXT REFERENCES inbox_items(id) ON DELETE SET NULL,
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  source_url TEXT,
+  source_ref TEXT,
+  -- Upstream ticket prose (description, acceptance criteria). Kept separate
+  -- from notes_md so a re-sync overwrites the ticket, never your own notes.
+  details_md TEXT,
+  source_meta_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS notes (
@@ -227,6 +240,32 @@ const MIGRATIONS = [
        )`,
       `CREATE INDEX IF NOT EXISTS idx_clu3_created ON clu3_messages(created_at)`
     ]
+  },
+  {
+    // Tickets synced from monday/ADO must always carry their ticket number and
+    // a link back — without them a synced task is a dead end you can't act on.
+    // tasks had no source columns at all; source_ref is the human-facing
+    // ticket number (e.g. "183767"), separate from the prefixed PIP id.
+    version: 8,
+    statements: [
+      `ALTER TABLE tasks ADD COLUMN source_type TEXT NOT NULL DEFAULT 'manual'`,
+      `ALTER TABLE tasks ADD COLUMN source_url TEXT`,
+      `ALTER TABLE tasks ADD COLUMN source_ref TEXT`,
+      `ALTER TABLE tasks ADD COLUMN details_md TEXT`,
+      `ALTER TABLE tasks ADD COLUMN source_meta_json TEXT`,
+      `ALTER TABLE inbox_items ADD COLUMN source_ref TEXT`,
+      `ALTER TABLE inbox_items ADD COLUMN details_md TEXT`,
+      `ALTER TABLE inbox_items ADD COLUMN source_meta_json TEXT`
+    ]
+  },
+  {
+    // "Deactivated" is a hold state orthogonal to the new/active/resolved/
+    // archived lifecycle — for something not ready to resolve that you also
+    // don't want counted as active. Modeled as a nullable timestamp rather
+    // than folded into `stage` so it doesn't require rebuilding that
+    // column's CHECK constraint (SQLite can't ALTER one in place).
+    version: 9,
+    statements: [`ALTER TABLE inbox_items ADD COLUMN deactivated_at TEXT`]
   }
 ];
 

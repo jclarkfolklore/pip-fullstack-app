@@ -14,9 +14,13 @@ const SOURCE_ICON = {
   screenshot: 'camera'
 };
 
-function resultCard(row, ctx) {
+// `onOpen` is the fully-composed click behavior from createSearchWidget below
+// — it both navigates (with a highlight target so the destination widget
+// scrolls to and flashes this exact row) and, on the mobile overlay, closes
+// search first so the result is actually visible instead of hidden behind it.
+function resultCard(row, onOpen) {
   const typeIcon = row.type === 'task' ? 'tasks' : row.type === 'note' ? 'note' : SOURCE_ICON[row.sourceType] || 'inbox';
-  const card = h('button', { class: 'pip-search-result', onClick: () => ctx.open(TYPE_TO_WIDGET[row.type] || 'inbox') }, [
+  const card = h('button', { class: 'pip-search-result', onClick: onOpen }, [
     icon(typeIcon, { size: 14, className: 'pip-search-result-icon' }),
     h('div', { class: 'pip-search-result-body' }, [
       h('div', { class: 'pip-search-result-title' }, row.title),
@@ -41,11 +45,23 @@ export function createSearchWidget(ctx, { onClose = null } = {}) {
     placeholder: 'search…'
   });
 
-async function runSearch() {
+  function openResult(row) {
+    // On mobile this closes the overlay first — otherwise the view navigates
+    // underneath while the (now stale) results stay on top, invisible change.
+    // On desktop there's no onClose, so the panel just stays open as usual.
+    if (onClose) onClose();
+    ctx.open(TYPE_TO_WIDGET[row.type] || 'inbox', null, { highlightId: row.id });
+  }
+
+  async function runSearch() {
     const q = input.value.trim();
     resultsEl.innerHTML = '';
     if (!q) {
       resultsEl.appendChild(h('div', { class: 'pip-search-empty' }, 'Type to search notes and tasks…'));
+      // Clearing back to empty is "exiting search" on the always-open desktop
+      // panel (which has no close button) — release any live highlight here
+      // rather than leaving it dangling until the widget's own fade finishes.
+      ctx.clearHighlight();
       return;
     }
     const rows = await search(q);
@@ -53,7 +69,7 @@ async function runSearch() {
       resultsEl.appendChild(h('div', { class: 'pip-search-empty' }, 'No matches.'));
       return;
     }
-    for (const row of rows) resultsEl.appendChild(resultCard(row, ctx));
+    for (const row of rows) resultsEl.appendChild(resultCard(row, () => openResult(row)));
   }
 
   input.addEventListener('input', debounce(runSearch, 150));
@@ -65,7 +81,17 @@ async function runSearch() {
   ]);
   if (onClose) {
     header.appendChild(
-      h('button', { class: 'pip-search-close', onClick: onClose }, [icon('close', { size: 12 })])
+      h(
+        'button',
+        {
+          class: 'pip-search-close',
+          onClick: () => {
+            ctx.clearHighlight();
+            onClose();
+          }
+        },
+        [icon('close', { size: 12 })]
+      )
     );
   }
 

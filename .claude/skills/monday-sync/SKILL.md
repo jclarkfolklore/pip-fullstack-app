@@ -13,6 +13,20 @@ Two directions, always run separately and explicitly:
 
 Default to PULL unless the user clearly asked to push.
 
+## Excluded boards
+
+**Do not sync these.** Skip them when gathering, and don't create PIP records
+from them:
+
+| Board | Id | Reason |
+|---|---|---|
+| FLKR – PROJ – Rock 'Em Sock 'Em | 18418466592 | Not in use — Key's call, 2026-08-05 |
+| Subitems of FLKR – PROJ – Rock 'Em Sock 'Em | 18418466596 | same board |
+
+Also skip template and reference boards, which hold no real assignments:
+anything named `TEMP —`, `Temp —`, `* Template`, plus `Users`, `Job Roles`,
+`Client Register`, `Project Register`, and the `* Portal` custom objects.
+
 ## Setup facts
 
 - Key's monday user id is **101807615** (`get_user_context` to confirm).

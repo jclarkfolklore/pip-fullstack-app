@@ -6,6 +6,11 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  /* The app is one fixed-height screen, not a scrolling page — every widget
+     that needs to scroll does so internally (.pip-view-body etc.). Without
+     this, a long list just grows the whole page instead of using that
+     internal scroll chain. */
+  overflow: hidden;
   background: radial-gradient(ellipse at 50% -10%, #3a3352 0%, #1b1826 55%, #100e17 100%);
   font-family: var(--font-mono);
   -webkit-tap-highlight-color: transparent;
@@ -13,7 +18,7 @@ html, body {
 }
 
 #pip-root {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;

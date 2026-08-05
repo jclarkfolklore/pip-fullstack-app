@@ -1,0 +1,95 @@
+// Detail view for a synced ticket (monday / ADO), rendered in the app's shared
+// modal. Works for both tasks and inbox items — since migration v8 they carry
+// the same source columns, so one renderer covers both.
+//
+// The point of this view is to answer "what am I actually supposed to do?"
+// without leaving PIP: the upstream description and acceptance criteria, the
+// ticket metadata, and a link out for anything this doesn't capture.
+
+import { marked } from 'marked';
+import { h } from '../lib/dom.js';
+import { icon } from '../lib/icons.js';
+import { openModal } from './modal.js';
+
+const SOURCE_ICON = {
+  manual: 'tag',
+  chat: 'chat',
+  monday: 'monday',
+  ado: 'ado',
+  email: 'mail',
+  screenshot: 'camera'
+};
+
+const SOURCE_NAME = { monday: 'monday.com', ado: 'Azure DevOps' };
+
+function prose(md) {
+  const el = h('div', { class: 'pip-ticket-prose' });
+  el.innerHTML = marked.parse(md);
+  // Anything we render from upstream opens in a new tab rather than replacing
+  // the app.
+  for (const a of el.querySelectorAll('a')) {
+    a.target = '_blank';
+    a.rel = 'noopener';
+  }
+  return el;
+}
+
+function section(label, node) {
+  return h('div', { class: 'pip-ticket-section' }, [h('div', { class: 'pip-ticket-section-label' }, label), node]);
+}
+
+function metaGrid(meta) {
+  const cells = [];
+  for (const [key, value] of Object.entries(meta)) {
+    if (value === null || value === undefined || value === '') continue;
+    cells.push(h('div', { class: 'pip-ticket-meta-key' }, key));
+    cells.push(h('div', {}, Array.isArray(value) ? value.join(', ') : String(value)));
+  }
+  if (!cells.length) return null;
+  return h('div', { class: 'pip-ticket-meta-grid' }, cells);
+}
+
+function safeParse(json) {
+  if (!json) return null;
+  try {
+    return JSON.parse(json);
+  } catch (_) {
+    return null;
+  }
+}
+
+// `record` is a task or inbox_item row. `extra` lets the caller add rows to the
+// meta grid that only it knows (project name, local status).
+export function openTicketModal(record, { extra = {} } = {}) {
+  const meta = safeParse(record.source_meta_json) || {};
+  const body = [];
+
+  if (record.source_ref) {
+    const sourceLabel = SOURCE_NAME[record.source_type] || record.source_type || 'source';
+    body.push(
+      h('a', { class: 'pip-ticket-ref-link', href: record.source_url || '#', target: '_blank', rel: 'noopener' }, [
+        icon(SOURCE_ICON[record.source_type] || 'tag', { size: 11 }),
+        ` ${sourceLabel} ${record.source_ref} — open`
+      ])
+    );
+  }
+
+  const grid = metaGrid({ ...meta, ...extra });
+  if (grid) body.push(section('DETAILS', grid));
+
+  if (record.details_md) {
+    body.push(section('FROM THE TICKET', prose(record.details_md)));
+  } else if (record.source_ref) {
+    body.push(
+      section(
+        'FROM THE TICKET',
+        h('div', { class: 'pip-ticket-empty' }, 'No description synced yet — re-run the sync to pull it in.')
+      )
+    );
+  }
+
+  const ownNotes = record.notes_md || record.body_md;
+  if (ownNotes) body.push(section('YOUR NOTES', prose(ownNotes)));
+
+  return openModal({ title: record.title || 'Ticket', body });
+}

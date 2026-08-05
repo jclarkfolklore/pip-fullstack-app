@@ -19,11 +19,22 @@
 //     bodyMd:    "…",
 //     project:   "Best Buy",             // created on demand by name
 //     sourceType:"monday",               // manual|chat|monday|ado|email|screenshot
-//     sourceUrl: "https://…",
+//     sourceRef: "12704488282",          // REQUIRED for monday/ado — ticket number
+//     sourceUrl: "https://…",            // REQUIRED for monday/ado — link back
+//     detailsMd: "## Description\n…",    // the ticket's own description/AC,
+//                                         // kept apart from your notes — a
+//                                         // re-sync overwrites this, never bodyMd
+//     sourceMeta:{ Area: "…", Iteration: "…" },  // small key/value facts shown
+//                                         // in the detail modal
 //     tags:      ["mention"],
 //     state:     "open" | "done",        // the state IN THE SOURCE SYSTEM
+//     status:    "open" | "doing",       // tasks only; overridden to done if state=done
 //     dueAt:     "2026-08-12"            // tasks only
 //   }
+//
+// A ticket synced without its number and link is a dead end — you can't get
+// back to the source to act on it. So sourceRef/sourceUrl are ENFORCED below
+// for monday/ado records rather than left to whoever assembles the JSON.
 //
 // `state` is what keeps PIP honest: an item that's been completed upstream is
 // resolved/completed here too, rather than lingering as fake open work.
@@ -96,6 +107,7 @@ async function upsertInbox(rec, projectId, index) {
       source: 'monday-sync',
       sourceType: rec.sourceType || 'monday',
       sourceUrl: rec.sourceUrl || null,
+      sourceRef: rec.sourceRef || null,
       projectId: projectId || null
     });
     if (doneUpstream) await post(`/api/inbox/${rec.id}/resolve`, { outcomeMd: 'Completed upstream.', taskTitles: [] });
@@ -145,17 +157,53 @@ async function upsertTask(rec, projectId, tasksById) {
       notesMd: rec.bodyMd || '',
       projectId: projectId || null,
       dueAt: rec.dueAt || null,
-      tags: rec.tags || []
+      tags: rec.tags || [],
+      sourceType: rec.sourceType || 'manual',
+      sourceUrl: rec.sourceUrl || null,
+      sourceRef: rec.sourceRef || null,
+      detailsMd: rec.detailsMd || null,
+      sourceMeta: rec.sourceMeta || null
     });
     if (wantStatus !== 'open') await post(`/api/tasks/${rec.id}/status`, { status: wantStatus });
-    return console.log(`  + task "${rec.title}" (${wantStatus})`);
+    return console.log(`  + task ${rec.sourceRef || rec.id} "${rec.title}" (${wantStatus})`);
   }
 
-  if (existing.status !== wantStatus) {
+  // Reconcile drift, including backfilling ref/url onto tasks imported before
+  // those columns existed.
+  const changes = [];
+  if (existing.title !== rec.title) changes.push('title');
+  if (rec.sourceRef && existing.source_ref !== rec.sourceRef) changes.push('ref');
+  if (rec.sourceUrl && existing.source_url !== rec.sourceUrl) changes.push('url');
+  if (rec.detailsMd && existing.details_md !== rec.detailsMd) changes.push('details');
+  if (projectId && existing.project_id !== projectId) changes.push('project');
+
+  if (changes.length) {
+    if (DRY) console.log(`  ~ would update task "${rec.title}" (${changes.join(', ')})`);
+    else {
+      await patch(`/api/tasks/${rec.id}`, {
+        title: rec.title,
+        projectId: projectId || existing.project_id,
+        sourceType: rec.sourceType || existing.source_type,
+        sourceUrl: rec.sourceUrl || existing.source_url,
+        sourceRef: rec.sourceRef || existing.source_ref,
+        detailsMd: rec.detailsMd || existing.details_md,
+        sourceMeta: rec.sourceMeta || undefined
+      });
+      console.log(`  ~ task ${rec.sourceRef || rec.id} (${changes.join(', ')})`);
+    }
+  }
+
+  // Only move status FORWARD (open -> doing -> done) from a sync. A ticket
+  // still "Ready for Release" upstream but already done locally means the
+  // release hasn't shipped yet, not that the work reverted — don't undo real
+  // completion someone recorded by hand. Mirrors the inbox rule below: sync
+  // resolves, it never reopens.
+  const RANK = { open: 0, doing: 1, done: 2 };
+  if (existing.status !== wantStatus && RANK[wantStatus] > RANK[existing.status]) {
     if (DRY) console.log(`  ~ would set task "${rec.title}" ${existing.status} -> ${wantStatus}`);
     else {
       await post(`/api/tasks/${rec.id}/status`, { status: wantStatus });
-      console.log(`  ~ task "${rec.title}" ${existing.status} -> ${wantStatus}`);
+      console.log(`  ~ task ${rec.sourceRef || rec.id} ${existing.status} -> ${wantStatus}`);
     }
   }
 }
@@ -182,6 +230,21 @@ async function main() {
   const missing = records.filter((r) => !r.id || !r.title);
   if (missing.length) {
     console.error(`${missing.length} record(s) missing required id/title — aborting so nothing lands half-synced.`);
+    process.exit(1);
+  }
+
+  // Ticket-number + link are mandatory for tracked systems. Abort rather than
+  // import a record you can't navigate back to.
+  const TRACKED = new Set(['monday', 'ado']);
+  const untraceable = records.filter((r) => TRACKED.has(r.sourceType) && (!r.sourceRef || !r.sourceUrl));
+  if (untraceable.length) {
+    console.error(
+      `${untraceable.length} ${[...TRACKED].join('/')} record(s) missing sourceRef or sourceUrl — aborting.\n` +
+        'Every synced ticket must carry its number and a link back. Offenders:'
+    );
+    for (const r of untraceable) {
+      console.error(`  ${r.id}: ref=${r.sourceRef || '(none)'} url=${r.sourceUrl || '(none)'}`);
+    }
     process.exit(1);
   }
 

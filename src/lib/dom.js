@@ -37,6 +37,15 @@ export function fmtDate(iso) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+// Clock time only (e.g. "2:41 PM") — for "last updated at" readouts where the
+// date is implicitly "today" and full fmtDateTime would be more than needed.
+export function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
 export function fmtDateTime(iso) {
   if (!iso) return '';
   const d = new Date(iso);

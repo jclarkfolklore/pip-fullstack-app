@@ -26,6 +26,11 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* Without this, the CSS overflow spec computes overflow-x to 'auto' too
+     (since overflow-y isn't 'visible') — a long unbroken token anywhere
+     inside (a URL, say) then gets its own horizontal scrollbar here rather
+     than wrapping. The main display area should never scroll sideways. */
+  overflow-x: hidden;
   padding-right: 2px;
 }
 
@@ -110,6 +115,26 @@
   font-family: var(--font-pixel);
 }
 
+/* Two badges side by side (e.g. Inbox: on-hold count, then active count) —
+   the row is what's positioned; the badges inside lay out via flex instead. */
+.pip-tile-badge-row {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pip-tile-badge-row .pip-tile-badge {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+.pip-tile-badge--inactive {
+  background: var(--lcd-accent-2);
+}
+
 .pip-tile-sub {
   font-size: 12px;
   color: var(--lcd-ink-dim);
@@ -153,7 +178,144 @@
   min-width: 60px;
 }
 
+/* ===== search deep-link flash — a search result click lands on the exact
+   card, not just the right widget. Fades on its own; see src/lib/highlight.js. ===== */
+.pip-highlight-flash {
+  animation: pip-highlight-flash 1.8s ease-out;
+}
+@keyframes pip-highlight-flash {
+  0%,
+  35% {
+    box-shadow: 0 0 0 2px var(--lcd-accent-2), 0 0 16px 2px var(--lcd-accent-2);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
 /* ===== cards (inbox / tasks) ===== */
+/* ===== tasks: grouped card grid =====
+   Sections read in work order (in progress -> todo -> done). Cards rather than
+   full-width rows so more fits on screen without scanning long lines. */
+.pip-task-section {
+  margin-bottom: 14px;
+}
+
+.pip-task-section-label {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--lcd-ink-faint);
+  margin-bottom: 6px;
+}
+
+.pip-task-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.pip-task-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.pip-task-card.is-clickable {
+  cursor: pointer;
+}
+.pip-task-card.is-clickable:hover {
+  border-color: var(--lcd-accent-2);
+}
+
+/* Underway work gets a little more presence; finished work recedes. */
+.pip-task-card[data-status='doing'] {
+  border-color: var(--lcd-accent);
+}
+.pip-task-card[data-status='done'] {
+  opacity: 0.62;
+}
+
+/* Ticket number for synced work — sits above the title as a link back to
+   monday/ADO. Pixel font so it reads as an identifier, not prose. */
+.pip-task-card-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-accent-2);
+  text-decoration: none;
+}
+.pip-task-card-ref:active {
+  opacity: 0.7;
+}
+
+.pip-task-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.pip-task-card[data-status='done'] .pip-task-card-title {
+  text-decoration: line-through;
+}
+
+/* Clamp so one verbose task can't stretch its row. */
+.pip-task-card-notes {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--lcd-ink-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pip-task-card-meta {
+  font-size: 11px;
+  color: var(--lcd-ink-faint);
+}
+
+.pip-task-card-meta.is-overdue {
+  color: var(--lcd-accent);
+}
+
+.pip-task-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 3px;
+}
+
+.pip-task-card-actions .pip-action-btn--ghost {
+  margin-left: auto;
+  padding: 5px 6px;
+}
+
+.pip-chip-toggle {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--lcd-ink-dim);
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--lcd-line);
+}
+.pip-chip-toggle[data-on='true'] {
+  color: var(--lcd-ink);
+  background: var(--lcd-line);
+}
+
 .pip-card-list {
   display: flex;
   flex-direction: column;
@@ -194,12 +356,26 @@
 .pip-stage[data-stage='active'] { background: var(--lcd-accent); }
 .pip-stage[data-stage='resolved'] { background: #6a9f5a; }
 .pip-stage[data-stage='archived'] { background: var(--lcd-ink-faint); }
+/* On hold — orthogonal to stage, so it's a second chip rather than replacing
+   the stage one (see .pip-card-top-tags below). */
+.pip-stage[data-stage='inactive'] { background: var(--lcd-accent-2); }
+
+.pip-card-top-tags {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 
 .pip-card-body {
   font-size: 13px;
   color: var(--lcd-ink);
   margin-top: 4px;
   line-height: 1.35;
+  /* A raw URL or other unbroken long token in markdown body text has no
+     natural break point — without this it just pushes the card wider than
+     its column instead of wrapping. */
+  overflow-wrap: anywhere;
 }
 .pip-card-body p { margin: 0 0 6px; }
 .pip-card-body code {

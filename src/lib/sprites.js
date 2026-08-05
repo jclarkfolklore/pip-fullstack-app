@@ -51,6 +51,23 @@ export function hline(width, pattern = '#') {
   return [row.slice(0, width)];
 }
 
+// Doubles a grid's resolution by duplicating every pixel into a 2x2 block —
+// for scaling existing sprites up to a new canvas size uniformly (crisp
+// nearest-neighbor, no blur) without hand-redrawing ones that don't need
+// extra nuance. Bespoke art that DOES want the extra detail (the cat itself)
+// is hand-authored at the target resolution instead, not run through this.
+export function scale2x(grid) {
+  const out = [];
+  for (const row of grid) {
+    const doubled = row
+      .split('')
+      .map((c) => c + c)
+      .join('');
+    out.push(doubled, doubled);
+  }
+  return out;
+}
+
 // ---- rendering ---------------------------------------------------------
 
 function rect(x, y) {

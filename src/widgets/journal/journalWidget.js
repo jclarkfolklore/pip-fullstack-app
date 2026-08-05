@@ -4,6 +4,7 @@ import { icon } from '../../lib/icons.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listEntries, createEntry, updateEntry, deleteEntry, entryCount } from '../../api/journalRepo.js';
+import { confirmDestructive } from '../../app/modal.js';
 
 export const kind = 'journal';
 
@@ -92,6 +93,14 @@ export function renderFull(ctx) {
           {
             class: 'pip-action-btn pip-action-btn--ghost',
             onClick: async () => {
+              const ok = await confirmDestructive({
+                title: 'Delete this journal entry?',
+                what: fmtDateTime(entry.created_at),
+                consequence:
+                  'Journal entries are your own written record — this one is gone permanently and cannot be recovered.',
+                confirmLabel: 'DELETE ENTRY'
+              });
+              if (!ok) return;
               await collapseOut(cardEl);
               await deleteEntry(entry.id);
             }

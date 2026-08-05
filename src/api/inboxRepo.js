@@ -32,6 +32,14 @@ export function archiveItem(id) {
   return apiPost(`/api/inbox/${id}/archive`, {});
 }
 
+export function deactivateItem(id) {
+  return apiPost(`/api/inbox/${id}/deactivate`, {});
+}
+
+export function reactivateItem(id) {
+  return apiPost(`/api/inbox/${id}/reactivate`, {});
+}
+
 export function deleteItem(id) {
   return apiDelete(`/api/inbox/${id}`);
 }

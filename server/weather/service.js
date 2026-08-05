@@ -26,8 +26,20 @@ const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const ALERTS_URL = 'https://api.weather.gov/alerts/active';
 const USER_AGENT = 'PIP-personal-dashboard (local, single-user)';
 
-const REFRESH_MS = 30 * 60 * 1000; // upstream data updates on ~hourly cadence
-const STALE_AFTER_MS = 90 * 60 * 1000; // past this the UI flags it as stale
+// Air quality, also Open-Meteo and also key-less. US AQI because the bands
+// below are the US EPA ones; swap both together if that ever changes.
+const AIR_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
+const AQI_BANDS = [
+  { max: 50, label: 'Good' },
+  { max: 100, label: 'Moderate' },
+  { max: 150, label: 'Sensitive' },
+  { max: 200, label: 'Unhealthy' },
+  { max: 300, label: 'Very poor' },
+  { max: Infinity, label: 'Hazardous' }
+];
+
+const REFRESH_MS = 60 * 60 * 1000; // matches Clu3's poll cadence — see clu3Panel.js
+const STALE_AFTER_MS = 2 * 60 * 60 * 1000; // past this the UI flags it as stale
 const REQUEST_TIMEOUT_MS = 8000;
 const FORECAST_DAYS = 3;
 
@@ -137,6 +149,21 @@ async function fetchAlerts(lat, lon) {
   }
 }
 
+// Never throws — like alerts, an air-quality outage must not take the
+// forecast down with it. Returns null rather than a fake reading.
+async function fetchAirQuality(lat, lon) {
+  try {
+    const data = await fetchJson(`${AIR_URL}?latitude=${lat}&longitude=${lon}&current=us_aqi&timezone=auto`);
+    const value = data && data.current ? data.current.us_aqi : null;
+    if (typeof value !== 'number' || Number.isNaN(value)) return null;
+    const aqi = Math.round(value);
+    return { aqi, label: AQI_BANDS.find((b) => aqi <= b.max).label };
+  } catch (err) {
+    console.warn('[pip] air quality fetch failed:', err.message);
+    return null;
+  }
+}
+
 // City name -> candidate coordinates, for the Settings location picker.
 async function searchPlaces(name) {
   const query = String(name || '').trim();
@@ -150,7 +177,7 @@ async function searchPlaces(name) {
   }));
 }
 
-function shape(raw, settings, alerts = []) {
+function shape(raw, settings, alerts = [], air = null) {
   const daily = raw.daily || {};
   const days = (daily.time || []).map((date, i) => {
     const code = daily.weather_code[i];
@@ -165,13 +192,31 @@ function shape(raw, settings, alerts = []) {
     };
   });
 
+  // What's actually happening right now, distinct from the daily forecast —
+  // today's card reads this for its temperature and icon; only the high/low
+  // underneath it comes from the (predicted) daily block, same as tomorrow
+  // and the day after.
+  let current = null;
+  if (raw.current && raw.current.temperature_2m !== undefined) {
+    const { kind, label } = describe(raw.current.weather_code);
+    current = {
+      temp: Math.round(raw.current.temperature_2m),
+      code: raw.current.weather_code,
+      kind,
+      label,
+      observedAt: raw.current.time || null
+    };
+  }
+
   return {
     place: settings.place,
     unit: settings.unit,
     unitLabel: settings.unit === 'celsius' ? 'C' : 'F',
     timezone: raw.timezone || null,
+    current,
     days,
     alerts,
+    air,
     fetchedAt: new Date().toISOString()
   };
 }
@@ -183,12 +228,17 @@ async function refresh() {
   const url =
     `${FORECAST_URL}?latitude=${settings.lat}&longitude=${settings.lon}` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
+    `&current=temperature_2m,weather_code` +
     `&timezone=auto&forecast_days=${FORECAST_DAYS}&temperature_unit=${settings.unit}`;
 
-  // Alerts are best-effort and resolve to [] on failure, so Promise.all is
-  // safe here — only the forecast can reject.
-  const [raw, alerts] = await Promise.all([fetchJson(url), fetchAlerts(settings.lat, settings.lon)]);
-  const payload = shape(raw, settings, alerts);
+  // Alerts and air quality are best-effort and resolve to []/null on failure,
+  // so Promise.all is safe here — only the forecast can reject.
+  const [raw, alerts, air] = await Promise.all([
+    fetchJson(url),
+    fetchAlerts(settings.lat, settings.lon),
+    fetchAirQuality(settings.lat, settings.lon)
+  ]);
+  const payload = shape(raw, settings, alerts, air);
   writeCache(payload);
   return payload;
 }
@@ -208,7 +258,7 @@ function refreshOnce() {
 async function current() {
   const settings = getSettings();
   if (!settings.configured) {
-    return { configured: false, place: null, days: [], alerts: [], stale: false, error: null };
+    return { configured: false, place: null, days: [], alerts: [], air: null, stale: false, error: null };
   }
 
   const cached = readCache();
@@ -226,7 +276,7 @@ async function current() {
     if (cached) {
       return { configured: true, ...cached, stale: age > STALE_AFTER_MS, error: 'offline' };
     }
-    return { configured: true, place: settings.place, days: [], alerts: [], stale: false, error: 'offline' };
+    return { configured: true, place: settings.place, days: [], alerts: [], air: null, stale: false, error: 'offline' };
   }
 
   return { configured: true, ...(cached || {}), stale: age > STALE_AFTER_MS, error: null };

@@ -6,6 +6,8 @@ import { onChange } from '../../api/client.js';
 import { listNotes, createNote, updateNote, deleteNote, noteCounts, SOURCE_TYPES } from '../../api/notesRepo.js';
 import { allTagNames } from '../../api/tagsRepo.js';
 import { listProjects } from '../../api/projectsRepo.js';
+import { confirmDestructive } from '../../app/modal.js';
+import { consumeHighlight, applyHighlight } from '../../lib/highlight.js';
 
 export const kind = 'notes';
 
@@ -28,6 +30,10 @@ export async function renderTile(ctx) {
 export function renderFull(ctx) {
   const filters = { project: null, tag: null, search: '', sort: 'updated_desc' };
   let projectsById = {};
+
+  // A search-result click deep-links here for one specific note — consumed
+  // once, at mount, so a later re-render (onChange) doesn't re-scroll/flash.
+  let highlightId = consumeHighlight(ctx, 'notes');
 
   const el = h('div', { class: 'pip-view' });
   const header = h('div', { class: 'pip-view-header' }, [
@@ -121,7 +127,7 @@ export function renderFull(ctx) {
   }
 
   function card(note) {
-    const cardEl = h('div', { class: 'pip-card' });
+    const cardEl = h('div', { class: 'pip-card', dataset: { id: note.id } });
     const project = note.project_id ? projectsById[note.project_id] : null;
     const sourceIcon = icon(SOURCE_ICON[note.source_type] || 'tag', { size: 11 });
     const metaEl = h('div', { class: 'pip-card-meta' }, [
@@ -152,7 +158,20 @@ export function renderFull(ctx) {
           ),
           h(
             'button',
-            { class: 'pip-action-btn pip-action-btn--ghost', onClick: async () => { await collapseOut(cardEl); await deleteNote(note.id); } },
+            {
+              class: 'pip-action-btn pip-action-btn--ghost',
+              onClick: async () => {
+                const ok = await confirmDestructive({
+                  title: 'Delete this note?',
+                  what: note.title || 'Untitled note',
+                  consequence: 'Notes are reference material with no archive stage — this is permanent and cannot be undone.',
+                  confirmLabel: 'DELETE NOTE'
+                });
+                if (!ok) return;
+                await collapseOut(cardEl);
+                await deleteNote(note.id);
+              }
+            },
             'DELETE'
           )
         ])
@@ -171,6 +190,15 @@ export function renderFull(ctx) {
     const list = h('div', { class: 'pip-card-list' }, items.map(card));
     listContainer.appendChild(list);
     staggerIn(list.children);
+
+    if (highlightId) {
+      const target = listContainer.querySelector(`[data-id="${highlightId}"]`);
+      if (target) {
+        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        applyHighlight(target);
+        highlightId = null; // one-shot — don't re-scroll on the next onChange render
+      }
+    }
   }
 
   const fab = h('button', { class: 'pip-fab', title: 'New note', onClick: () => openComposeSheet() }, [icon('plus', { size: 18, color: '#fff' })]);

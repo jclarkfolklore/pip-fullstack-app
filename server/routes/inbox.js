@@ -67,6 +67,18 @@ router.post('/:id/archive', (req, res) => {
   res.json(inboxRepo.getInboxItem(req.params.id));
 });
 
+router.post('/:id/deactivate', (req, res) => {
+  const updated = inboxRepo.deactivateItem(req.params.id);
+  if (!updated) return res.status(404).json({ error: 'not found' });
+  res.json(updated);
+});
+
+router.post('/:id/reactivate', (req, res) => {
+  const updated = inboxRepo.reactivateItem(req.params.id);
+  if (!updated) return res.status(404).json({ error: 'not found' });
+  res.json(updated);
+});
+
 router.delete('/:id', (req, res) => {
   inboxRepo.deleteItem(req.params.id);
   res.status(204).end();
