@@ -531,8 +531,8 @@
 }
 
 .pip-wx-place {
-  font-size: 11px;
-  color: var(--lcd-ink-faint);
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -544,15 +544,17 @@
   gap: 6px;
 }
 
-/* Today: full width, the headline of the panel. */
+/* Today: full width, the headline of the panel. Three columns spread edge to
+   edge so the card is actually used rather than hugging the left. */
 .pip-wx-today {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
   text-align: left;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.26);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -570,6 +572,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.pip-wx-today-temps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
   flex: 0 0 auto;
 }
@@ -577,26 +587,35 @@
 .pip-wx-today-right {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
   min-width: 0;
 }
 
 .pip-wx-today-high {
-  font-size: 30px;
-  line-height: 1;
+  font-size: 38px;
+  line-height: 0.9;
 }
 
-.pip-wx-today-low,
-.pip-wx-today-label {
-  font-size: 12px;
+.pip-wx-today-low {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
   color: var(--lcd-ink-dim);
 }
 
+.pip-wx-today-label {
+  font-size: 15px;
+  line-height: 1.15;
+  color: var(--lcd-ink);
+}
+
 .pip-wx-daylabel {
-  font-size: 10px;
-  color: var(--lcd-ink-faint);
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
   text-align: center;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 /* Notification dot for active alerts. */
@@ -629,30 +648,39 @@
 .pip-wx-day {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 2px;
+  gap: 3px;
+  padding: 8px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.22);
   border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
+/* Art beside the temps, spread across the card's width. */
+.pip-wx-day-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .pip-wx-dayname {
   font-family: var(--font-pixel);
-  font-size: 7px;
+  font-size: 9px;
   letter-spacing: 0.5px;
-  color: var(--lcd-ink-dim);
+  color: var(--lcd-ink);
+  text-align: center;
 }
 
 .pip-wx-art {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
   overflow: hidden;
 }
 
 .pip-wx-art--lg {
-  width: 62px;
-  height: 62px;
+  width: 66px;
+  height: 66px;
 }
 
 .pip-wx-ink rect {
@@ -666,12 +694,18 @@
 
 .pip-wx-temps {
   display: flex;
-  gap: 5px;
-  font-size: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.05;
+}
+
+.pip-wx-high {
+  font-size: 22px;
 }
 
 .pip-wx-low {
-  color: var(--lcd-ink-faint);
+  font-size: 13px;
+  color: var(--lcd-ink-dim);
 }
 
 .pip-wx-empty {

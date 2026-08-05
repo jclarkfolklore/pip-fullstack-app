@@ -73,15 +73,19 @@ export function mountWeatherPanel(container) {
   function todayCard(day, alerts, place) {
     const hasAlerts = alerts && alerts.length > 0;
 
+    // Three columns spread across the full card width: art, temperatures,
+    // then the condition — so nothing is crammed and nothing is wasted.
     const children = [
       hasAlerts ? h('span', { class: 'pip-wx-dot', title: `${alerts.length} active alert(s)` }) : null,
       h('div', { class: 'pip-wx-today-left' }, [
         h('div', { class: 'pip-wx-dayname' }, dayName(day.date, 0)),
         renderWeatherArt(day.kind, { className: 'pip-wx-art--lg' })
       ]),
-      h('div', { class: 'pip-wx-today-right' }, [
+      h('div', { class: 'pip-wx-today-temps' }, [
         h('div', { class: 'pip-wx-today-high' }, `${day.high}°`),
-        h('div', { class: 'pip-wx-today-low' }, `low ${day.low}°`),
+        h('div', { class: 'pip-wx-today-low' }, `LOW ${day.low}°`)
+      ]),
+      h('div', { class: 'pip-wx-today-right' }, [
         h('div', { class: 'pip-wx-today-label' }, day.label),
         hasAlerts ? h('div', { class: 'pip-wx-alert-hint' }, `${alerts.length} ALERT — TAP`) : null
       ])
@@ -101,10 +105,14 @@ export function mountWeatherPanel(container) {
   function smallCard(day, index) {
     return h('div', { class: 'pip-wx-day' }, [
       h('div', { class: 'pip-wx-dayname' }, dayName(day.date, index)),
-      renderWeatherArt(day.kind),
-      h('div', { class: 'pip-wx-temps' }, [
-        h('span', { class: 'pip-wx-high' }, `${day.high}°`),
-        h('span', { class: 'pip-wx-low' }, `${day.low}°`)
+      // Art beside the temperatures rather than stacked above them — uses the
+      // card's width instead of leaving gutters either side of a centred icon.
+      h('div', { class: 'pip-wx-day-row' }, [
+        renderWeatherArt(day.kind),
+        h('div', { class: 'pip-wx-temps' }, [
+          h('span', { class: 'pip-wx-high' }, `${day.high}°`),
+          h('span', { class: 'pip-wx-low' }, `${day.low}°`)
+        ])
       ]),
       h('div', { class: 'pip-wx-daylabel' }, day.label)
     ]);
