@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { db } = require('../db');
 const { logEvent } = require('./activityRepo');
 const { tagsFor, attachTags } = require('./tagsRepo');
+const { listTasksFromInboxItem } = require('./tasksRepo');
 
 function newId() {
   return crypto.randomUUID();
@@ -16,7 +17,7 @@ function nowIso() {
 const SOURCE_TYPES = ['manual', 'chat', 'monday', 'ado', 'email', 'screenshot'];
 
 function hydrate(row) {
-  return row ? { ...row, tags: tagsFor('inbox', row.id) } : null;
+  return row ? { ...row, tags: tagsFor('inbox', row.id), resolvedTasks: listTasksFromInboxItem(row.id) } : null;
 }
 
 function findByImportHash(hash) {
@@ -151,10 +152,6 @@ function resolveWithOutcome(id, outcomeMd) {
   logEvent('inbox_item', id, 'inbox_resolved', { outcomeMd });
 }
 
-function linkResolvedTask(id, taskId) {
-  db.prepare('UPDATE inbox_items SET resolved_task_id = ? WHERE id = ?').run(taskId, id);
-}
-
 function archiveItem(id) {
   setStage(id, 'archived');
   logEvent('inbox_item', id, 'inbox_archived', {});
@@ -183,7 +180,6 @@ module.exports = {
   updateFields,
   updateTags,
   resolveWithOutcome,
-  linkResolvedTask,
   archiveItem,
   deleteItem,
   stageCounts

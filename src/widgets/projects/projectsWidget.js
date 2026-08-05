@@ -10,7 +10,7 @@ export async function renderTile(ctx) {
   const projects = await listProjects();
   return h('button', { class: 'pip-tile', dataset: { widget: 'projects' }, onClick: (e) => ctx.open('projects', e.currentTarget) }, [
     icon('folder', { size: 20, className: 'pip-tile-icon' }),
-    h('div', { class: 'pip-tile-sub' }, `${projects.length} active`),
+    h('div', { class: 'pip-tile-sub' }, projects.length ? `${projects.length} active` : 'no projects yet'),
     h('div', { class: 'pip-tile-label' }, 'PROJECTS')
   ]);
 }
@@ -75,19 +75,17 @@ export function renderFull(ctx) {
       h('div', { class: 'pip-card-meta' }, `${c.inbox} inbox · ${c.tasks} tasks · ${c.notes} notes`),
       h('div', { class: 'pip-card-actions' }, [
         h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(project) }, 'RENAME'),
-        project.id !== 'unassigned'
-          ? h(
-              'button',
-              {
-                class: 'pip-action-btn pip-action-btn--ghost',
-                onClick: async () => {
-                  await collapseOut(cardEl);
-                  await deleteProject(project.id);
-                }
-              },
-              'DELETE'
-            )
-          : null
+        h(
+          'button',
+          {
+            class: 'pip-action-btn pip-action-btn--ghost',
+            onClick: async () => {
+              await collapseOut(cardEl);
+              await deleteProject(project.id);
+            }
+          },
+          'DELETE'
+        )
       ])
     );
     return cardEl;

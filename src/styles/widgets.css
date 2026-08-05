@@ -40,12 +40,26 @@
   background: var(--lcd-line);
 }
 
-/* ===== dashboard grid ===== */
+/* ===== dashboard grid, grouped into sections ===== */
+.pip-tile-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 4px;
+}
+
+.pip-tile-group-label {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--lcd-ink-faint);
+  margin-bottom: 6px;
+}
+
 .pip-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  padding-top: 4px;
 }
 
 .pip-tile {
@@ -352,6 +366,38 @@
   resize: vertical;
 }
 
+.pip-task-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.pip-task-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pip-task-row input {
+  flex: 1 1 auto;
+}
+
+.pip-task-row-remove {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--lcd-ink-dim);
+  background: rgba(255, 255, 255, 0.35);
+}
+.pip-task-row-remove:active {
+  background: var(--lcd-line);
+}
+
 .pip-sheet-error {
   font-size: 12px;
   color: var(--lcd-accent);
@@ -438,20 +484,3 @@
   font-size: 9px;
   color: var(--lcd-ink-faint);
 }
-
-/* ===== db bar (backup export link), bottom of dashboard ===== */
-.pip-dbbar {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  padding-top: 6px;
-}
-.pip-dbbar button,
-.pip-dbbar-link {
-  font-size: 10px;
-  font-family: var(--font-pixel);
-  color: var(--lcd-ink-faint);
-  text-decoration: none;
-}
-.pip-dbbar button:active,
-.pip-dbbar-link:active { color: var(--lcd-ink); }

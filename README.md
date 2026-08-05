@@ -85,21 +85,29 @@ The data model (`server/`) doesn't know the UI exists, and the UI
 is what makes it safe to keep reshaping either side without risking the
 other.
 
-## The four entities
+## The five entities
 
 - **Inbox** — things to triage. Lifecycle: **new → active → resolved →
-  archived** (with a reopen path back). Resolving can spin off a linked
-  Task. Carries tags, a project, a markdown body, and a source (see below).
-- **Tasks** — status: **open → doing → done**. Can belong to a project.
+  archived** (with a reopen path back). Resolving can spawn any number of
+  linked Tasks. Carries tags, a project, a markdown body, and a source
+  (see below).
+- **Tasks** — status: **open → doing → done**. Can belong to a project,
+  and can trace back to the inbox item they were decomposed from.
 - **Notes** — plain reference material. No lifecycle — just create, edit,
   pin, delete. For the "store notes and whatnot" use case that doesn't fit
   a triage flow.
-- **Projects** — first-class, not just a tag. Everything above can
-  optionally belong to one; a Projects widget shows counts per project.
-  Deleting a project un-assigns its items rather than deleting them.
+- **Journal** — a personal work journal: free-form, dated entries for
+  recording experiences, interactions, or reflections. No title, no
+  lifecycle, not tied to a project — distinct from Notes (reference
+  material).
+- **Projects** — first-class, not just a tag. Everything above (except
+  Journal) can optionally belong to one; a Projects widget shows counts
+  per project. Deleting a project un-assigns its items rather than
+  deleting them.
 
-All three content types (Inbox/Tasks/Notes) share one tag system
-(`entity_tags`) and one cross-entity search.
+Inbox/Tasks/Notes share one tag system (`entity_tags`) and one
+cross-entity search. Journal entries aren't tagged or searched alongside
+them — they're a private log, not work content to triage or reference.
 
 ## Multi-source ingestion
 

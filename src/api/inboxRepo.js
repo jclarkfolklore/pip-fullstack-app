@@ -22,10 +22,10 @@ export function setStage(id, stage) {
   return apiPost(`/api/inbox/${id}/stage`, { stage });
 }
 
-// Combines outcome + optional "turn into a task" in one call — the server
-// does the resolve + create-task + link atomically.
-export function resolveInboxItem(id, { outcomeMd = '', makeTask = false, taskTitle = null } = {}) {
-  return apiPost(`/api/inbox/${id}/resolve`, { outcomeMd, makeTask, taskTitle });
+// Combines outcome + spawning zero or more tasks in one call — the server
+// resolves the item and creates a task per title, all linked back to it.
+export function resolveInboxItem(id, { outcomeMd = '', taskTitles = [] } = {}) {
+  return apiPost(`/api/inbox/${id}/resolve`, { outcomeMd, taskTitles });
 }
 
 export function archiveItem(id) {

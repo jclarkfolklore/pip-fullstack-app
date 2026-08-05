@@ -148,29 +148,29 @@ export function renderFull(ctx) {
   }
 
   function openOutcomeSheet(item) {
-    let makeTask = false;
     const outcomeInput = h('textarea', { rows: '4', placeholder: 'What happened / what did you decide?' });
-    const taskTitleInput = h('input', {
-      type: 'text',
-      placeholder: 'Task title',
-      value: item.title,
-      style: 'display:none'
-    });
-    const taskCheckbox = h('input', { type: 'checkbox', id: 'mk-task' });
-    taskCheckbox.addEventListener('change', () => {
-      makeTask = taskCheckbox.checked;
-      taskTitleInput.style.display = makeTask ? 'block' : 'none';
-    });
+    const taskRows = h('div', { class: 'pip-task-rows' });
+
+    function addTaskRow(value = '') {
+      const input = h('input', { type: 'text', placeholder: 'Task title' });
+      input.value = value;
+      const row = h('div', { class: 'pip-task-row' }, [
+        input,
+        h('button', { class: 'pip-task-row-remove', title: 'Remove', onClick: () => row.remove() }, [icon('close', { size: 10 })])
+      ]);
+      taskRows.appendChild(row);
+      input.focus();
+    }
 
     const scrim = h('div', { class: 'pip-sheet-scrim' }, [
       h('div', { class: 'pip-sheet' }, [
         h('div', { class: 'pip-sheet-title' }, 'RESOLVE'),
         h('div', { class: 'pip-field' }, [h('label', {}, 'Outcome'), outcomeInput]),
-        h('div', { class: 'pip-field', style: 'flex-direction:row;align-items:center;gap:6px;' }, [
-          taskCheckbox,
-          h('label', { for: 'mk-task', style: 'margin:0' }, 'Turn into a task')
+        h('div', { class: 'pip-field' }, [
+          h('label', {}, 'Tasks to create (optional — this item can spawn any number)'),
+          taskRows,
+          h('button', { class: 'pip-action-btn', onClick: () => addTaskRow() }, '+ ADD TASK')
         ]),
-        h('div', { class: 'pip-field' }, [taskTitleInput]),
         h('div', { class: 'pip-sheet-actions' }, [
           h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() }, 'CANCEL'),
           h(
@@ -178,11 +178,8 @@ export function renderFull(ctx) {
             {
               class: 'pip-action-btn pip-action-btn--primary',
               onClick: async () => {
-                await resolveInboxItem(item.id, {
-                  outcomeMd: outcomeInput.value.trim(),
-                  makeTask,
-                  taskTitle: makeTask ? taskTitleInput.value.trim() : null
-                });
+                const taskTitles = [...taskRows.querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean);
+                await resolveInboxItem(item.id, { outcomeMd: outcomeInput.value.trim(), taskTitles });
                 scrim.remove();
                 renderList();
               }
@@ -326,19 +323,28 @@ export function renderFull(ctx) {
       );
     }
     cardEl.append(
-      h('div', { class: 'pip-card-top' }, [
-        h('div', { class: 'pip-card-title' }, item.title || '(untitled)'),
-        h('div', { class: 'pip-stage', dataset: { stage: item.stage } }, STAGE_LABEL[item.stage])
-      ]),
-      h('div', { class: 'pip-card-body', html: marked.parse(item.body_md || '') }),
-      item.outcome_md
-        ? h('div', { class: 'pip-card-body', html: `<em>Outcome:</em> ${marked.parseInline(item.outcome_md)}` })
-        : null,
-      item.tags.length
-        ? h('div', { class: 'pip-tag-row' }, item.tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`)))
-        : null,
-      metaEl,
-      actionsWrap
+      ...[
+        h('div', { class: 'pip-card-top' }, [
+          h('div', { class: 'pip-card-title' }, item.title || '(untitled)'),
+          h('div', { class: 'pip-stage', dataset: { stage: item.stage } }, STAGE_LABEL[item.stage])
+        ]),
+        h('div', { class: 'pip-card-body', html: marked.parse(item.body_md || '') }),
+        item.outcome_md
+          ? h('div', { class: 'pip-card-body', html: `<em>Outcome:</em> ${marked.parseInline(item.outcome_md)}` })
+          : null,
+        item.resolvedTasks && item.resolvedTasks.length
+          ? h(
+              'div',
+              { class: 'pip-tag-row' },
+              item.resolvedTasks.map((t) => h('span', { class: 'pip-tag' }, `→ ${t.title}`))
+            )
+          : null,
+        item.tags.length
+          ? h('div', { class: 'pip-tag-row' }, item.tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`)))
+          : null,
+        metaEl,
+        actionsWrap
+      ].filter(Boolean)
     );
     actionsWrap.append(...actionsFor(item, cardEl));
     return cardEl;

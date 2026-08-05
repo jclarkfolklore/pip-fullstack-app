@@ -96,6 +96,13 @@ function deleteTask(id) {
   db.prepare("DELETE FROM entity_tags WHERE entity_type='task' AND entity_id = ?").run(id);
 }
 
+function listTasksFromInboxItem(inboxItemId) {
+  return db
+    .prepare('SELECT * FROM tasks WHERE from_inbox_item_id = ? ORDER BY created_at ASC')
+    .all(inboxItemId)
+    .map(hydrate);
+}
+
 function taskCounts() {
   const rows = db.prepare('SELECT status, COUNT(*) AS n FROM tasks GROUP BY status').all();
   const out = { open: 0, doing: 0, done: 0 };
@@ -103,4 +110,13 @@ function taskCounts() {
   return out;
 }
 
-module.exports = { createTask, listTasks, getTask, setTaskStatus, updateFields, deleteTask, taskCounts };
+module.exports = {
+  createTask,
+  listTasks,
+  getTask,
+  setTaskStatus,
+  updateFields,
+  deleteTask,
+  taskCounts,
+  listTasksFromInboxItem
+};

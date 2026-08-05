@@ -133,28 +133,30 @@ export function renderFull(ctx) {
       metaEl.appendChild(h('a', { class: 'pip-card-source-link', href: note.source_url, target: '_blank', rel: 'noopener' }, [icon('link', { size: 10 }), ' open source']));
     }
     cardEl.append(
-      h('div', { class: 'pip-card-top' }, [
-        h('div', { class: 'pip-card-title', style: 'display:flex;align-items:center;gap:6px;' }, [
-          note.pinned ? icon('pin', { size: 11 }) : null,
-          note.title || '(untitled)'
+      ...[
+        h('div', { class: 'pip-card-top' }, [
+          h('div', { class: 'pip-card-title', style: 'display:flex;align-items:center;gap:6px;' }, [
+            note.pinned ? icon('pin', { size: 11 }) : null,
+            note.title || '(untitled)'
+          ])
+        ]),
+        h('div', { class: 'pip-card-body', html: marked.parse(note.body_md || '') }),
+        note.tags.length ? h('div', { class: 'pip-tag-row' }, note.tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`))) : null,
+        metaEl,
+        h('div', { class: 'pip-card-actions' }, [
+          h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(note) }, 'EDIT'),
+          h(
+            'button',
+            { class: 'pip-action-btn pip-action-btn--ghost', onClick: async () => { await updateNote(note.id, { pinned: !note.pinned }); renderList(); } },
+            note.pinned ? 'UNPIN' : 'PIN'
+          ),
+          h(
+            'button',
+            { class: 'pip-action-btn pip-action-btn--ghost', onClick: async () => { await collapseOut(cardEl); await deleteNote(note.id); } },
+            'DELETE'
+          )
         ])
-      ]),
-      h('div', { class: 'pip-card-body', html: marked.parse(note.body_md || '') }),
-      note.tags.length ? h('div', { class: 'pip-tag-row' }, note.tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`))) : null,
-      metaEl,
-      h('div', { class: 'pip-card-actions' }, [
-        h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(note) }, 'EDIT'),
-        h(
-          'button',
-          { class: 'pip-action-btn pip-action-btn--ghost', onClick: async () => { await updateNote(note.id, { pinned: !note.pinned }); renderList(); } },
-          note.pinned ? 'UNPIN' : 'PIN'
-        ),
-        h(
-          'button',
-          { class: 'pip-action-btn pip-action-btn--ghost', onClick: async () => { await collapseOut(cardEl); await deleteNote(note.id); } },
-          'DELETE'
-        )
-      ])
+      ].filter(Boolean)
     );
     return cardEl;
   }

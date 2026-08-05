@@ -126,39 +126,41 @@ export function renderFull(ctx) {
     const project = task.project_id ? projectsById[task.project_id] : null;
 
     cardEl.append(
-      h('div', { class: 'pip-card-top' }, [
-        h('div', { class: 'pip-card-title' }, task.title),
-        h('div', { class: 'pip-stage', dataset: { stage: task.status === 'done' ? 'resolved' : task.status === 'doing' ? 'active' : 'new' } }, STATUS_LABEL[task.status])
-      ]),
-      task.notes_md ? h('div', { class: 'pip-card-body' }, task.notes_md) : null,
-      h('div', { class: 'pip-card-meta' }, [
-        task.due_at ? `due ${fmtDate(task.due_at)}` : `added ${fmtDate(task.created_at)}`,
-        project ? ` · ${project.name}` : ''
-      ]),
-      h('div', { class: 'pip-card-actions' }, [
-        h(
-          'button',
-          {
-            class: 'pip-action-btn pip-action-btn--primary',
-            onClick: async () => {
-              await setTaskStatus(task.id, nextStatus);
-              renderList();
-            }
-          },
-          nextLabel
-        ),
-        h(
-          'button',
-          {
-            class: 'pip-action-btn pip-action-btn--ghost',
-            onClick: async () => {
-              await collapseOut(cardEl);
-              await deleteTask(task.id);
-            }
-          },
-          'DELETE'
-        )
-      ])
+      ...[
+        h('div', { class: 'pip-card-top' }, [
+          h('div', { class: 'pip-card-title' }, task.title),
+          h('div', { class: 'pip-stage', dataset: { stage: task.status === 'done' ? 'resolved' : task.status === 'doing' ? 'active' : 'new' } }, STATUS_LABEL[task.status])
+        ]),
+        task.notes_md ? h('div', { class: 'pip-card-body' }, task.notes_md) : null,
+        h('div', { class: 'pip-card-meta' }, [
+          task.due_at ? `due ${fmtDate(task.due_at)}` : `added ${fmtDate(task.created_at)}`,
+          project ? ` · ${project.name}` : ''
+        ]),
+        h('div', { class: 'pip-card-actions' }, [
+          h(
+            'button',
+            {
+              class: 'pip-action-btn pip-action-btn--primary',
+              onClick: async () => {
+                await setTaskStatus(task.id, nextStatus);
+                renderList();
+              }
+            },
+            nextLabel
+          ),
+          h(
+            'button',
+            {
+              class: 'pip-action-btn pip-action-btn--ghost',
+              onClick: async () => {
+                await collapseOut(cardEl);
+                await deleteTask(task.id);
+              }
+            },
+            'DELETE'
+          )
+        ])
+      ].filter(Boolean)
     );
     return cardEl;
   }

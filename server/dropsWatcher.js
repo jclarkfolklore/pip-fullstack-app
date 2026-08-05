@@ -54,7 +54,7 @@ function importOne(filePath) {
 function scanOnce({ verbose = false } = {}) {
   if (!fs.existsSync(DROPS_DIR)) return { imported: 0 };
   fs.mkdirSync(PROCESSED_DIR, { recursive: true });
-  const files = fs.readdirSync(DROPS_DIR).filter((f) => f.endsWith('.md'));
+  const files = fs.readdirSync(DROPS_DIR).filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md');
   let imported = 0;
   for (const file of files) {
     const fullPath = path.join(DROPS_DIR, file);

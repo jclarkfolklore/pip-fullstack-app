@@ -41,11 +41,11 @@ router.post('/:id/stage', (req, res) => {
 });
 
 router.post('/:id/resolve', (req, res) => {
-  const { outcomeMd = '', makeTask = false, taskTitle } = req.body || {};
+  const { outcomeMd = '', taskTitles = [] } = req.body || {};
   inboxRepo.resolveWithOutcome(req.params.id, outcomeMd);
-  if (makeTask && taskTitle) {
-    const taskId = tasksRepo.createTask({ title: taskTitle, notesMd: outcomeMd, fromInboxItemId: req.params.id });
-    inboxRepo.linkResolvedTask(req.params.id, taskId);
+  const titles = Array.isArray(taskTitles) ? taskTitles.map((t) => String(t || '').trim()).filter(Boolean) : [];
+  for (const title of titles) {
+    tasksRepo.createTask({ title, notesMd: outcomeMd, fromInboxItemId: req.params.id });
   }
   res.json(inboxRepo.getInboxItem(req.params.id));
 });

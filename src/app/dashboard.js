@@ -2,8 +2,9 @@ import { h } from '../lib/dom.js';
 import { viewEnter, viewExit, tileToFull } from '../lib/animations.js';
 import { onNavigate, currentView, navigateTo, goHome } from './router.js';
 import { listWidgets } from '../api/layoutRepo.js';
-import { getWidgetModule } from './widgetRegistry.js';
+import { getWidgetModule, GROUPS } from './widgetRegistry.js';
 import { onChange } from '../api/client.js';
+import { onThemeChange } from '../lib/theme.js';
 
 function clockNode() {
   const time = h('div', { class: 'pip-clock-time' }, '');
@@ -20,30 +21,40 @@ function clockNode() {
   return wrap;
 }
 
-function dbBar() {
-  // Just a backup download now — the server holds the real, live data, and
-  // Claude reads/writes it directly on disk, so there's no "import a file to
-  // restore state" flow to build here anymore.
-  return h('div', { class: 'pip-dbbar' }, [
-    h('a', { href: '/api/export', class: 'pip-dbbar-link' }, 'EXPORT BACKUP .sqlite')
-  ]);
-}
-
 export function mountDashboard(container, ctx) {
   let activeModule = null; // module currently rendered full-screen
   let activeHandle = null; // { el, destroy }
 
   async function renderGrid() {
     const widgetRows = await listWidgets();
-    const tiles = await Promise.all(
+    const rowsWithTiles = await Promise.all(
       widgetRows.map(async (row) => {
         const mod = getWidgetModule(row.kind);
         if (!mod) return null;
-        return mod.renderTile(ctx);
+        return { row, tile: await mod.renderTile(ctx) };
       })
     );
-    const grid = h('div', { class: 'pip-grid' }, tiles.filter(Boolean));
-    return h('div', {}, [clockNode(), grid, dbBar()]);
+    const byGroup = new Map();
+    for (const entry of rowsWithTiles) {
+      if (!entry) continue;
+      const key = entry.row.group_name || 'work';
+      if (!byGroup.has(key)) byGroup.set(key, []);
+      byGroup.get(key).push(entry.tile);
+    }
+
+    const knownKeys = new Set(GROUPS.map((g) => g.key));
+    const groupDefs = [...GROUPS, ...[...byGroup.keys()].filter((k) => !knownKeys.has(k)).map((k) => ({ key: k, label: k.toUpperCase() }))];
+
+    const sections = groupDefs
+      .filter((g) => byGroup.has(g.key))
+      .map((g) =>
+        h('section', { class: 'pip-tile-group' }, [
+          h('div', { class: 'pip-tile-group-label' }, g.label),
+          h('div', { class: 'pip-grid' }, byGroup.get(g.key))
+        ])
+      );
+
+    return h('div', {}, [clockNode(), h('div', { class: 'pip-tile-groups' }, sections)]);
   }
 
   function teardownActive() {
@@ -83,18 +94,22 @@ export function mountDashboard(container, ctx) {
     viewEnter(activeHandle.el, direction);
   }
 
-  onNavigate((viewId, previous) => show(viewId, previous, ctx.pendingTileRect));
-  onChange(async () => {
-    // Only the dashboard grid needs a manual refresh on data change — widget
-    // full-views subscribe to onChange themselves. Re-render tiles in place
-    // without a transition so badge counts stay live.
+  async function refreshGridInPlace() {
+    // Only the dashboard grid needs a manual refresh on data/theme change —
+    // widget full-views subscribe to these themselves. Re-render tiles in
+    // place without a transition so badge counts and the Settings tile's
+    // theme label stay live.
     if (currentView() === 'dashboard' && container.firstElementChild) {
       const node = await renderGrid();
       if (currentView() === 'dashboard' && container.firstElementChild) {
         container.replaceChild(node, container.firstElementChild);
       }
     }
-  });
+  }
+
+  onNavigate((viewId, previous) => show(viewId, previous, ctx.pendingTileRect));
+  onChange(refreshGridInPlace);
+  onThemeChange(refreshGridInPlace);
 
   show(currentView(), null, null);
 }

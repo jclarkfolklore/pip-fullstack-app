@@ -76,22 +76,31 @@ transient and gitignored; only the main `.sqlite` file is tracked.
 
 ## Data model (server/schema.js is authoritative — this is a summary)
 
-- `projects` — id, name (unique), color, archived, sort_order
+- `projects` — id, name (unique), color, archived, sort_order. No seeded
+  default project — starts empty until the user creates one.
 - `inbox_items` — id, title, body_md, source, source_type, source_url,
   project_id, stage (`new|active|resolved|archived`), outcome_md,
-  created_at, stage_changed_at, resolved_task_id, import_hash
+  created_at, stage_changed_at, import_hash. Resolving can spawn any
+  number of tasks (not just one) — see `tasks.from_inbox_item_id` below.
 - `tasks` — id, title, notes_md, status (`open|doing|done`), project_id,
-  due_at, created_at, completed_at, from_inbox_item_id
+  due_at, created_at, completed_at, from_inbox_item_id — the one-to-many
+  link back to the inbox item a task was decomposed from, if any.
 - `notes` — id, title, body_md, source*, project_id, pinned, created_at,
   updated_at, import_hash — no lifecycle, just reference material
+- `journal_entries` — id, body_md, created_at, updated_at — a personal
+  work journal (experiences, interactions, reflections). No title, no
+  lifecycle, not tied to a project; distinct from Notes (reference
+  material) and Inbox (things to triage).
 - `tags` + `entity_tags` (entity_type `inbox`|`task`|`note`, entity_id) —
-  one polymorphic tag system shared across all three
+  one polymorphic tag system shared across those three (journal entries
+  aren't tagged)
 - `activity_log` — id, entity_type, entity_id, event_type, detail_json,
   occurred_at — append-only; Metrics is computed entirely from this, not
   from the mutable "current state" columns above
 - `widgets` — dashboard tile layout (id, kind, title, glyph, sort_order,
-  enabled) — the grid reads this, so hiding/reordering tiles is a data
-  change, not a code change
+  enabled, group_name) — the grid reads this, so hiding/reordering/
+  regrouping tiles is a data change, not a code change. group_name buckets
+  tiles into dashboard sections (see GROUPS in `src/app/widgetRegistry.js`).
 - `app_meta` — key/value (currently just `schema_version`)
 
 `source_type` (on `inbox_items`/`notes`) is one of `manual`, `chat`,
@@ -141,17 +150,33 @@ That means you can:
   killing a process you didn't start.
 - Hit the API directly for testing: `curl http://127.0.0.1:4288/api/health`,
   etc. — no file-bridge workaround needed.
-- Read or fix the data directly, two ways: through the API while the server
-  is running, or by opening `data/pip.sqlite` with `sqlite3`/
-  `better-sqlite3` directly (works whether the server is running or not —
-  it'll notice external changes live via `PRAGMA data_version` polling, no
-  restart needed).
+
+### Mutate through the API, not raw SQL
+
+**Every write goes through `server/routes/*.js` (or a `data/drops/` file for
+creating new inbox items/notes) — never a raw `db.prepare(...)` script or
+`sqlite3` `UPDATE`/`DELETE`/`INSERT`.** The routes → `server/repo/*.js` path
+is the only layer that reliably calls `activityRepo.logEvent(...)`
+alongside the actual mutation; a raw SQL edit changes the "current state"
+columns but silently skips the log, so Metrics and any future "what
+happened when" question can't see it. It also skips whatever validation the
+repo layer does (e.g. `deleteProject` vs. just deleting the row). Direct SQL
+is fine for **read-only** inspection (`sqlite3 data/pip.sqlite "SELECT
+..."`) any time. The full CRUD surface already exists per entity — list
+(`GET /api/inbox` etc.), get by id, create, update, delete, plus
+entity-specific actions (`POST /api/inbox/:id/stage`, `/resolve`,
+`/archive`; `POST /api/tasks/:id/status`) — reach for those first.
+
+Reserve direct `data/pip.sqlite` edits for the narrow case a route
+genuinely can't do yet — and even then, add the route/repo function instead
+if it's something you'll want again, rather than leaving it a one-off.
+Actual schema changes always go through `MIGRATIONS` in `server/schema.js`
+(see Conventions above), never a hand-run `ALTER TABLE`.
 
 For the common case of "add a new inbox item or note," writing a markdown
 drop file into `data/drops/` (see `data/drops/README.md` for the
-format) is simpler than composing API calls or SQL by hand — the running
-server auto-imports it within a few seconds, idempotent on the note's own
-`id`.
+format) is simpler than composing API calls by hand — the running server
+auto-imports it within a few seconds, idempotent on the note's own `id`.
 
 If you're a Claude session *without* local shell access to this machine
 (e.g. a cloud Cowork session reaching this project through a file bridge),

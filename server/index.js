@@ -13,6 +13,7 @@ app.use('/api/projects', require('./routes/projects'));
 app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/notes', require('./routes/notes'));
+app.use('/api/journal', require('./routes/journal'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/metrics', require('./routes/metrics'));
 app.use('/api/activity', require('./routes/activity'));

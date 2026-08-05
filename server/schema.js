@@ -4,7 +4,7 @@
 // file on disk (server/db.js opens it with better-sqlite3), plus a first-
 // class Project entity and a standalone Notes table.
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 6;
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS inbox_items (
   outcome_md TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   stage_changed_at TEXT NOT NULL,
-  resolved_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
   import_hash TEXT
 );
 
@@ -58,6 +57,17 @@ CREATE TABLE IF NOT EXISTS notes (
   import_hash TEXT
 );
 
+-- A personal work journal — free-form, dated entries, no title, no
+-- lifecycle, not tied to a project. For the "record experiences,
+-- interactions, keep a work journal" use case, distinct from Notes
+-- (reference material) and Inbox (things to triage).
+CREATE TABLE IF NOT EXISTS journal_entries (
+  id TEXT PRIMARY KEY,
+  body_md TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS tags (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE
@@ -78,7 +88,8 @@ CREATE TABLE IF NOT EXISTS widgets (
   glyph TEXT NOT NULL DEFAULT 'link',
   sort_order INTEGER NOT NULL DEFAULT 0,
   enabled INTEGER NOT NULL DEFAULT 1,
-  config_json TEXT NOT NULL DEFAULT '{}'
+  config_json TEXT NOT NULL DEFAULT '{}',
+  group_name TEXT NOT NULL DEFAULT 'work'
 );
 
 CREATE TABLE IF NOT EXISTS activity_log (
@@ -102,27 +113,89 @@ CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_notes_project ON notes(project_id);
 CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at);
+CREATE INDEX IF NOT EXISTS idx_journal_created ON journal_entries(created_at);
 CREATE INDEX IF NOT EXISTS idx_entity_tags_entity ON entity_tags(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_entity ON activity_log(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_occurred ON activity_log(occurred_at);
 `;
 
+// group_name buckets tiles on the dashboard grid — see GROUPS in
+// widgetRegistry.js for the display order/labels. Purely a layout
+// grouping, independent of sort_order (which still orders tiles within
+// a group).
 const SEED_WIDGETS = [
-  { id: 'inbox', kind: 'inbox', title: 'INBOX', glyph: 'inbox', sort_order: 0 },
-  { id: 'tasks', kind: 'tasks', title: 'TASKS', glyph: 'tasks', sort_order: 1 },
-  { id: 'notes', kind: 'notes', title: 'NOTES', glyph: 'note', sort_order: 2 },
-  { id: 'projects', kind: 'projects', title: 'PROJECTS', glyph: 'folder', sort_order: 3 },
-  { id: 'metrics', kind: 'metrics', title: 'METRICS', glyph: 'metrics', sort_order: 4 },
-  { id: 'overview', kind: 'overview', title: 'STATUS', glyph: 'link', sort_order: 5 }
+  { id: 'inbox', kind: 'inbox', title: 'INBOX', glyph: 'inbox', sort_order: 0, group_name: 'work' },
+  { id: 'tasks', kind: 'tasks', title: 'TASKS', glyph: 'tasks', sort_order: 1, group_name: 'work' },
+  { id: 'notes', kind: 'notes', title: 'NOTES', glyph: 'note', sort_order: 2, group_name: 'work' },
+  { id: 'journal', kind: 'journal', title: 'JOURNAL', glyph: 'book', sort_order: 3, group_name: 'work' },
+  { id: 'projects', kind: 'projects', title: 'PROJECTS', glyph: 'folder', sort_order: 4, group_name: 'work' },
+  { id: 'metrics', kind: 'metrics', title: 'METRICS', glyph: 'metrics', sort_order: 5, group_name: 'insights' },
+  { id: 'overview', kind: 'overview', title: 'STATUS', glyph: 'link', sort_order: 6, group_name: 'insights' },
+  { id: 'settings', kind: 'settings', title: 'SETTINGS', glyph: 'theme', sort_order: 7, group_name: 'system' }
 ];
 
-const SEED_PROJECTS = [
-  { id: 'unassigned', name: 'Unassigned', color: 'default', sort_order: 0 }
-];
+// No default/seed project — Projects starts genuinely empty until the
+// user creates one (previously seeded an "Unassigned" placeholder that
+// nothing ever actually referenced; see MIGRATIONS v4).
+const SEED_PROJECTS = [];
 
 // Future schema changes go here as { version, statements: [...] } — same
 // pattern as the old client-side schema, just running against a real file
 // via better-sqlite3 instead of sql.js.
-const MIGRATIONS = [];
+const MIGRATIONS = [
+  {
+    version: 2,
+    statements: [
+      `INSERT OR IGNORE INTO widgets (id, kind, title, glyph, sort_order)
+       VALUES ('settings', 'settings', 'SETTINGS', 'theme', 6)`
+    ]
+  },
+  {
+    version: 3,
+    statements: [
+      `ALTER TABLE widgets ADD COLUMN group_name TEXT NOT NULL DEFAULT 'work'`,
+      `UPDATE widgets SET group_name = 'insights' WHERE id IN ('metrics', 'overview')`,
+      `UPDATE widgets SET group_name = 'system' WHERE id = 'settings'`
+    ]
+  },
+  {
+    version: 4,
+    statements: [
+      // The seeded "Unassigned" project was never referenced by any
+      // inbox item, task, or note (they use a NULL project_id for "no
+      // project" instead) — it was just a permanently-empty placeholder.
+      `DELETE FROM projects WHERE id = 'unassigned'`
+    ]
+  },
+  {
+    version: 5,
+    statements: [
+      // resolved_task_id was write-only (never read/displayed anywhere)
+      // and only modeled a single resulting task. tasks.from_inbox_item_id
+      // already models the real, one-to-many relationship — an inbox item
+      // can now resolve into any number of tasks — so this column is
+      // redundant. Requires SQLite 3.35+ (bundled better-sqlite3 has it).
+      `ALTER TABLE inbox_items DROP COLUMN resolved_task_id`
+    ]
+  },
+  {
+    version: 6,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS journal_entries (
+         id TEXT PRIMARY KEY,
+         body_md TEXT NOT NULL DEFAULT '',
+         created_at TEXT NOT NULL,
+         updated_at TEXT NOT NULL
+       )`,
+      `CREATE INDEX IF NOT EXISTS idx_journal_created ON journal_entries(created_at)`,
+      `UPDATE widgets SET sort_order = 4 WHERE id = 'projects'`,
+      `UPDATE widgets SET sort_order = 5 WHERE id = 'metrics'`,
+      `UPDATE widgets SET sort_order = 6 WHERE id = 'overview'`,
+      `UPDATE widgets SET sort_order = 7 WHERE id = 'settings'`,
+      `INSERT OR IGNORE INTO widgets (id, kind, title, glyph, sort_order, group_name)
+       VALUES ('journal', 'journal', 'JOURNAL', 'book', 3, 'work')`
+    ]
+  }
+];
 
 module.exports = { SCHEMA_VERSION, SCHEMA_SQL, SEED_WIDGETS, SEED_PROJECTS, MIGRATIONS };

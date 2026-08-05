@@ -2,20 +2,7 @@ import { h } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { goHome } from './router.js';
 import { mountDesktopSearchPanel, openMobileSearchOverlay } from './searchPanel.js';
-
-const THEMES = ['default', 'amber', 'mono', 'night'];
-
-function applyTheme(name) {
-  const layout = document.querySelector('.pip-layout');
-  if (!layout) return;
-  if (name === 'default') delete layout.dataset.theme;
-  else layout.dataset.theme = name;
-  try {
-    localStorage.setItem('pip-theme', name);
-  } catch (_) {
-    /* ignore — theme just won't persist across reloads */
-  }
-}
+import { THEMES, getTheme, setTheme } from '../lib/theme.js';
 
 function btn(name, { accent = false, extraClass = '', onClick, title }) {
   return h(
@@ -41,15 +28,6 @@ export function buildShell() {
     h('div', { class: 'pip-vignette' })
   ]);
 
-  let themeIdx = 0;
-  try {
-    const saved = localStorage.getItem('pip-theme');
-    const idx = THEMES.indexOf(saved);
-    if (idx !== -1) themeIdx = idx;
-  } catch (_) {
-    /* ignore */
-  }
-
   // ctx is filled in by index.js once it exists; the search button closes
   // over this mutable holder so buildShell() can be called before ctx is ready.
   const ctxHolder = { current: null };
@@ -68,8 +46,8 @@ export function buildShell() {
     btn('theme', {
       title: 'Cycle screen theme',
       onClick: () => {
-        themeIdx = (themeIdx + 1) % THEMES.length;
-        applyTheme(THEMES[themeIdx]);
+        const idx = THEMES.indexOf(getTheme());
+        setTheme(THEMES[(idx + 1) % THEMES.length]);
       }
     })
   ]);
@@ -80,12 +58,11 @@ export function buildShell() {
   const sideCol = h('div', { class: 'pip-side' }, [controlsPanel, searchPanelHost]);
   const layout = h('div', { class: 'pip-layout' }, [consoleEl, sideCol]);
 
-  try {
-    const saved = localStorage.getItem('pip-theme');
-    if (saved && saved !== 'default') layout.dataset.theme = saved;
-  } catch (_) {
-    /* ignore */
-  }
+  // Applied directly to the local reference (not via setTheme()'s
+  // document.querySelector) since `layout` isn't attached to the document
+  // yet at this point — index.js appends it right after buildShell() returns.
+  const initialTheme = getTheme();
+  if (initialTheme !== 'default') layout.dataset.theme = initialTheme;
 
   return {
     layout,

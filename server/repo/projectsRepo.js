@@ -65,7 +65,6 @@ function updateProject(id, { name, color, archived, sortOrder } = {}) {
 }
 
 function deleteProject(id) {
-  if (id === 'unassigned') throw new Error('Cannot delete the Unassigned project');
   db.prepare('DELETE FROM projects WHERE id = ?').run(id);
   logEvent('project', id, 'project_deleted', {});
 }
