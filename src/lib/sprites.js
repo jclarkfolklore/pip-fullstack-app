@@ -62,6 +62,18 @@ function rect(x, y) {
   return r;
 }
 
+// Hand-authored grids are easy to get wrong by one character, and a ragged
+// grid renders subtly broken rather than failing — so say so loudly.
+function assertRectangular(grid, name) {
+  const w = grid[0] ? grid[0].length : 0;
+  const bad = grid.findIndex((row) => row.length !== w);
+  if (bad !== -1) {
+    console.warn(
+      `[sprites] "${name || 'inline'}" row ${bad} is ${grid[bad].length} chars, expected ${w} — art will be misaligned`
+    );
+  }
+}
+
 function paintLayer(svg, grid, { x = 0, y = 0, tone = 'ink', motion = null, className = '' }) {
   const g = document.createElementNS(SVG_NS, 'g');
   const classes = [TONE_CLASS[tone] || TONE_CLASS.ink];
@@ -99,6 +111,7 @@ export function renderStage(spec, atlas = {}) {
       console.warn(`[sprites] unknown sprite "${layer.sprite}"`);
       continue;
     }
+    assertRectangular(grid, layer.sprite);
     paintLayer(svg, grid, layer);
   }
 

@@ -11,50 +11,80 @@
 //   'face'            — the detailed 16x16 close-up from faces.js, for when
 //                       expression alone is the point
 //
-// The canvas is 32x20. Ground line sits at y=18 so characters stand on it.
+// The canvas is 72x44 with the ground at y=40. Everything is laid out so the
+// set sits LEFT of the cat and symbols sit above or right of them — nothing
+// overlaps the character.
 
 import { renderStage } from './sprites.js';
 import { CLU3_ATLAS } from './clu3Atlas.js';
 import { renderFace } from './faces.js';
 
-// Canvas. Wider than it is tall so there's room for a set beside the cat;
-// rows 0-4 stay clear for symbol overlays above their head.
-const W = 36;
-const H = 22;
-const GROUND_Y = 20;
+const W = 72;
+const H = 44;
+const GROUND_Y = 40;
 
-// Standing cat poses are 15 tall, so this lands their feet on the ground.
-const CAT_X = 13;
-const CAT_Y = GROUND_Y - 15;
+// The cat is 32x30 (7 rows of ears + 23 of head/body).
+const CAT_X = 26;
+const CAT_Y = GROUND_Y - 30;
+const EARS_H = 7;
 
-// Eye overlay offset relative to the cat's own origin.
-const EYE_DX = 4;
-const EYE_DY = 4;
+// Face part offsets, relative to the cat's own origin.
+const EYE_L = 5;
+const EYE_R = 20;
+const EYE_Y = 8;
+const PUPIL_L = 7;
+const PUPIL_R = 22;
+const PUPIL_Y = 9;
+const LID_Y = 11;
 
-function catEyes({ blinking, happy = false }) {
-  if (blinking) return 'catEyesClosed';
-  return happy ? 'catEyesHappy' : 'catEyesOpen';
+function eyeLayers(x, y, { blinking, happy }) {
+  if (blinking) return [{ sprite: 'eyeClosed', x, y: y + LID_Y, tone: 'cut' }];
+  if (happy) return [{ sprite: 'eyeHappy', x, y: y + LID_Y, tone: 'cut' }];
+  return [{ sprite: 'eyeOpen', x, y: y + EYE_Y, tone: 'cut' }];
 }
 
-// The shared room: floor, a window, a plant beneath it. Dim, so the cat reads
-// as the subject instead of competing with the set. Everything sits left of
-// CAT_X so nothing collides with the character.
-function room({ withWindow = true, withPlant = true } = {}) {
-  const layers = [{ sprite: 'floor', x: 0, y: GROUND_Y, tone: 'faint' }];
-  if (withWindow) layers.push({ sprite: 'window9', x: 1, y: 4, tone: 'dim' });
-  if (withPlant) layers.push({ sprite: 'plant', x: 2, y: 13, tone: 'dim' });
+// The cat: ears + body + the face knocked into it + a tail that sways on its
+// own. Body and face share one motion so the features never slide off the head.
+function cat({ pose = 'normal', blinking = false, happy = false, motion = 'bob' } = {}) {
+  const x = CAT_X;
+  const y = CAT_Y;
+  const ears = pose === 'alert' ? 'catEarsAlert' : 'catEarsNormal';
+
+  const layers = [
+    { sprite: 'tail', x: x + 31, y: y + 14, tone: 'ink', motion: 'sway' },
+    { sprite: ears, x, y, tone: 'ink', motion },
+    { sprite: 'catHeadBody', x, y: y + EARS_H, tone: 'ink', motion },
+    { sprite: 'innerEar', x: x + 4, y: y + 3, tone: 'cut', motion },
+    { sprite: 'innerEar', x: x + 24, y: y + 3, tone: 'cut', motion },
+    ...eyeLayers(x + EYE_L, y, { blinking, happy }).map((l) => ({ ...l, motion })),
+    ...eyeLayers(x + EYE_R, y, { blinking, happy }).map((l) => ({ ...l, motion })),
+    { sprite: 'muzzle', x: x + 9, y: y + 15, tone: 'cut', motion },
+    { sprite: 'whisker', x: x + 1, y: y + 16, tone: 'cut', motion },
+    { sprite: 'whisker', x: x + 24, y: y + 16, tone: 'cut', motion },
+    { sprite: 'whisker', x: x + 2, y: y + 18, tone: 'cut', motion },
+    { sprite: 'whisker', x: x + 23, y: y + 18, tone: 'cut', motion },
+    { sprite: 'nose', x: x + 14, y: y + 15, tone: 'ink', motion },
+    { sprite: 'mouth', x: x + 12, y: y + 18, tone: 'ink', motion },
+    { sprite: 'chest', x: x + 12, y: y + 21, tone: 'cut', motion }
+  ];
+
+  // Pupils only exist when the eyes are actually open.
+  if (!blinking && !happy) {
+    layers.push(
+      { sprite: 'pupil', x: x + PUPIL_L, y: y + PUPIL_Y, tone: 'ink', motion },
+      { sprite: 'pupil', x: x + PUPIL_R, y: y + PUPIL_Y, tone: 'ink', motion }
+    );
+  }
+
   return layers;
 }
 
-// The cat, its tail, and its eyes as one reusable group. Eyes are 'cut' so
-// they knock through the ink silhouette; body and eyes share the same motion
-// so the face never slides off the head.
-function cat({ pose = 'catSit', blinking = false, happy = false, motion = 'bob' } = {}) {
-  return [
-    { sprite: 'tail', x: CAT_X + 16, y: CAT_Y + 6, tone: 'ink', motion: 'sway' },
-    { sprite: pose, x: CAT_X, y: CAT_Y, tone: 'ink', motion },
-    { sprite: catEyes({ blinking, happy }), x: CAT_X + EYE_DX, y: CAT_Y + EYE_DY, tone: 'cut', motion }
-  ];
+// The shared room. Everything sits left of CAT_X so nothing collides.
+function room({ withWindow = true, withPlant = true } = {}) {
+  const layers = [{ sprite: 'floor', x: 0, y: GROUND_Y, tone: 'faint' }];
+  if (withWindow) layers.push({ sprite: 'window9', x: 4, y: 8, tone: 'dim' });
+  if (withPlant) layers.push({ sprite: 'plant', x: 6, y: 26, tone: 'dim' });
+  return layers;
 }
 
 // mood -> scene. Every entry returns a full stage spec.
@@ -69,9 +99,9 @@ export const SCENES = {
     width: W,
     height: H,
     layers: [
-      ...room(),
+      ...room({ withPlant: false }),
       ...cat({ blinking: s.blinking, happy: true }),
-      { sprite: 'yarn', x: 9, y: GROUND_Y - 6, tone: 'ink', motion: 'nudge' }
+      { sprite: 'yarn', x: 8, y: GROUND_Y - 12, tone: 'ink', motion: 'nudge' }
     ]
   }),
 
@@ -80,9 +110,9 @@ export const SCENES = {
     height: H,
     layers: [
       ...room(),
-      ...cat({ pose: 'catAlert', blinking: s.blinking, happy: true }),
-      { sprite: 'sparkle', x: 12, y: 0, tone: 'ink', motion: 'twinkle' },
-      { sprite: 'sparkle', x: 29, y: 2, tone: 'ink', motion: 'twinkle-late' }
+      ...cat({ pose: 'alert', blinking: s.blinking, happy: true }),
+      { sprite: 'sparkle', x: 14, y: 0, tone: 'ink', motion: 'twinkle' },
+      { sprite: 'sparkle', x: 59, y: 3, tone: 'ink', motion: 'twinkle-late' }
     ]
   }),
 
@@ -91,9 +121,9 @@ export const SCENES = {
     height: H,
     layers: [
       ...room({ withPlant: false }),
-      ...cat({ pose: 'catAlert', blinking: s.blinking }),
-      { sprite: 'box', x: 2, y: GROUND_Y - 6, tone: 'dim' },
-      { sprite: 'question', x: 30, y: 1, tone: 'ink', motion: 'float' }
+      ...cat({ pose: 'alert', blinking: s.blinking }),
+      { sprite: 'box', x: 3, y: GROUND_Y - 12, tone: 'dim' },
+      { sprite: 'question', x: 59, y: 1, tone: 'ink', motion: 'float' }
     ]
   }),
 
@@ -102,10 +132,10 @@ export const SCENES = {
     height: H,
     layers: [
       { sprite: 'floor', x: 0, y: GROUND_Y, tone: 'faint' },
-      { sprite: 'desk', x: 0, y: GROUND_Y - 4, tone: 'dim' },
-      { sprite: 'laptop', x: 2, y: GROUND_Y - 8, tone: 'ink', motion: 'flicker' },
-      { sprite: 'papers', x: 4, y: GROUND_Y - 13, tone: 'dim' },
-      ...cat({ pose: 'catSit', blinking: s.blinking, motion: null })
+      { sprite: 'desk', x: 0, y: 32, tone: 'dim' },
+      { sprite: 'laptop', x: 5, y: 22, tone: 'ink', motion: 'flicker' },
+      { sprite: 'clock', x: 4, y: 4, tone: 'dim', motion: 'tick' },
+      ...cat({ blinking: s.blinking, motion: null })
     ]
   }),
 
@@ -114,9 +144,9 @@ export const SCENES = {
     height: H,
     layers: [
       ...room({ withWindow: false }),
-      { sprite: 'clock', x: 2, y: 4, tone: 'dim', motion: 'tick' },
+      { sprite: 'clock', x: 5, y: 8, tone: 'dim', motion: 'tick' },
       ...cat({ blinking: s.blinking }),
-      { sprite: 'alertTri', x: 29, y: 1, tone: 'ink', motion: 'pulse-soft' }
+      { sprite: 'alertTri', x: 58, y: 2, tone: 'ink', motion: 'pulse-soft' }
     ]
   }),
 
@@ -125,9 +155,9 @@ export const SCENES = {
     height: H,
     layers: [
       ...room({ withPlant: false }),
-      ...cat({ pose: 'catAlert', blinking: s.blinking, motion: 'jitter' }),
-      { sprite: 'bang', x: 31, y: 1, tone: 'ink', motion: 'flash' },
-      { sprite: 'bang', x: 10, y: 1, tone: 'ink', motion: 'flash-late' }
+      ...cat({ pose: 'alert', blinking: s.blinking, motion: 'jitter' }),
+      { sprite: 'bang', x: 62, y: 2, tone: 'ink', motion: 'flash' },
+      { sprite: 'bang', x: 18, y: 2, tone: 'ink', motion: 'flash-late' }
     ]
   }),
 
@@ -137,10 +167,12 @@ export const SCENES = {
     layers: [
       { sprite: 'stars', x: 0, y: 1, tone: 'faint', motion: 'twinkle' },
       { sprite: 'floor', x: 0, y: GROUND_Y, tone: 'faint' },
-      // The curled pose is only 8 tall, so it sits lower than the standing ones.
-      { sprite: 'catCurl', x: 12, y: GROUND_Y - 8, tone: 'ink', motion: 'breathe' },
-      { sprite: 'zed', x: 30, y: 9, tone: 'ink', motion: 'float' },
-      { sprite: 'zed', x: 31, y: 4, tone: 'dim', motion: 'float-late' }
+      // The curled pose is only 16 tall, so it sits lower than standing ones.
+      { sprite: 'catCurl', x: 18, y: GROUND_Y - 16, tone: 'ink', motion: 'breathe' },
+      { sprite: 'tailCurl', x: 42, y: GROUND_Y - 11, tone: 'cut', motion: 'breathe' },
+      { sprite: 'eyeClosed', x: 24, y: GROUND_Y - 10, tone: 'cut', motion: 'breathe' },
+      { sprite: 'zed', x: 56, y: 17, tone: 'ink', motion: 'float' },
+      { sprite: 'zed', x: 61, y: 6, tone: 'dim', motion: 'float-late' }
     ]
   })
 };
