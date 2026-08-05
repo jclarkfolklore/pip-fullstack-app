@@ -1,10 +1,9 @@
 import { h } from '../lib/dom.js';
 import { viewEnter, viewExit, tileToFull } from '../lib/animations.js';
 import { onNavigate, currentView, navigateTo, goHome } from './router.js';
-import { listWidgets } from '../db/repo/layoutRepo.js';
+import { listWidgets } from '../api/layoutRepo.js';
 import { getWidgetModule } from './widgetRegistry.js';
-import { onChange, exportDatabase, openDatabase } from '../db/client.js';
-import { downloadDatabaseFile, pickDatabaseFile, saveSnapshotDebounced } from '../db/persistence.js';
+import { onChange } from '../api/client.js';
 
 function clockNode() {
   const time = h('div', { class: 'pip-clock-time' }, '');
@@ -21,29 +20,12 @@ function clockNode() {
   return wrap;
 }
 
-function dbBar(ctx) {
+function dbBar() {
+  // Just a backup download now — the server holds the real, live data, and
+  // Claude reads/writes it directly on disk, so there's no "import a file to
+  // restore state" flow to build here anymore.
   return h('div', { class: 'pip-dbbar' }, [
-    h(
-      'button',
-      {
-        onClick: () => downloadDatabaseFile(exportDatabase())
-      },
-      'EXPORT .sqlite'
-    ),
-    h(
-      'button',
-      {
-        onClick: async () => {
-          const bytes = await pickDatabaseFile();
-          if (!bytes) return;
-          if (!window.confirm('Replace the current data with this .sqlite file?')) return;
-          await openDatabase(bytes);
-          saveSnapshotDebounced(exportDatabase);
-          location.reload();
-        }
-      },
-      'IMPORT'
-    )
+    h('a', { href: '/api/export', class: 'pip-dbbar-link' }, 'EXPORT BACKUP .sqlite')
   ]);
 }
 
@@ -51,19 +33,17 @@ export function mountDashboard(container, ctx) {
   let activeModule = null; // module currently rendered full-screen
   let activeHandle = null; // { el, destroy }
 
-  function renderGrid() {
-    const grid = h(
-      'div',
-      { class: 'pip-grid' },
-      listWidgets()
-        .map((row) => {
-          const mod = getWidgetModule(row.kind);
-          if (!mod) return null;
-          return mod.renderTile(ctx);
-        })
-        .filter(Boolean)
+  async function renderGrid() {
+    const widgetRows = await listWidgets();
+    const tiles = await Promise.all(
+      widgetRows.map(async (row) => {
+        const mod = getWidgetModule(row.kind);
+        if (!mod) return null;
+        return mod.renderTile(ctx);
+      })
     );
-    return h('div', {}, [clockNode(), grid, dbBar(ctx)]);
+    const grid = h('div', { class: 'pip-grid' }, tiles.filter(Boolean));
+    return h('div', {}, [clockNode(), grid, dbBar()]);
   }
 
   function teardownActive() {
@@ -82,7 +62,7 @@ export function mountDashboard(container, ctx) {
     container.innerHTML = '';
 
     if (viewId === 'dashboard') {
-      const node = renderGrid();
+      const node = await renderGrid();
       container.appendChild(node);
       viewEnter(node, direction);
       return;
@@ -104,13 +84,15 @@ export function mountDashboard(container, ctx) {
   }
 
   onNavigate((viewId, previous) => show(viewId, previous, ctx.pendingTileRect));
-  onChange(() => {
+  onChange(async () => {
     // Only the dashboard grid needs a manual refresh on data change — widget
     // full-views subscribe to onChange themselves. Re-render tiles in place
     // without a transition so badge counts stay live.
     if (currentView() === 'dashboard' && container.firstElementChild) {
-      const node = renderGrid();
-      container.replaceChild(node, container.firstElementChild);
+      const node = await renderGrid();
+      if (currentView() === 'dashboard' && container.firstElementChild) {
+        container.replaceChild(node, container.firstElementChild);
+      }
     }
   });
 

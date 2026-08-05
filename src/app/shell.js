@@ -1,13 +1,15 @@
 import { h } from '../lib/dom.js';
-import { goHome, navigateTo } from './router.js';
+import { icon } from '../lib/icons.js';
+import { goHome } from './router.js';
+import { mountDesktopSearchPanel, openMobileSearchOverlay } from './searchPanel.js';
 
 const THEMES = ['default', 'amber', 'mono', 'night'];
 
 function applyTheme(name) {
-  const device = document.querySelector('.pip-device');
-  if (!device) return;
-  if (name === 'default') delete device.dataset.theme;
-  else device.dataset.theme = name;
+  const layout = document.querySelector('.pip-layout');
+  if (!layout) return;
+  if (name === 'default') delete layout.dataset.theme;
+  else layout.dataset.theme = name;
   try {
     localStorage.setItem('pip-theme', name);
   } catch (_) {
@@ -15,11 +17,22 @@ function applyTheme(name) {
   }
 }
 
+function btn(name, { accent = false, extraClass = '', onClick, title }) {
+  return h(
+    'button',
+    { class: `pip-btn ${accent ? 'pip-btn--accent' : ''} ${extraClass}`.trim(), title, onClick },
+    [icon(name, { size: 16 })]
+  );
+}
+
+// Builds the console (screen + status bar + bottom controls) and returns
+// references index.js needs to finish wiring up (the #pip-app mount point,
+// and a place to attach the desktop search panel once ctx exists).
 export function buildShell() {
   const app = h('main', { id: 'pip-app', class: 'pip-app' });
   const statusbar = h('header', { class: 'pip-statusbar' }, [
     h('div', { class: 'pip-status-title' }, [h('span', { class: 'pip-status-dot' }), 'PIP']),
-    h('div', {}, 'v0.1')
+    h('div', {}, 'v0.2')
   ]);
   const screenGlass = h('div', { class: 'pip-screen-glass' }, [statusbar, app]);
   const screen = h('div', { class: 'pip-screen' }, [
@@ -27,7 +40,6 @@ export function buildShell() {
     h('div', { class: 'pip-scanlines' }),
     h('div', { class: 'pip-vignette' })
   ]);
-  const bezel = h('div', { class: 'pip-screen-bezel' }, [screen]);
 
   let themeIdx = 0;
   try {
@@ -37,25 +49,51 @@ export function buildShell() {
   } catch (_) {
     /* ignore */
   }
+
+  // ctx is filled in by index.js once it exists; the search button closes
+  // over this mutable holder so buildShell() can be called before ctx is ready.
+  const ctxHolder = { current: null };
+
   const controls = h('nav', { class: 'pip-controls' }, [
-    h('button', { class: 'pip-btn pip-btn--menu', onClick: () => goHome() }, 'MENU'),
-    h('div', { class: 'pip-dpad' }, [
-      h('button', { class: 'pip-btn pip-btn--dpad', onClick: () => history.back() }, '◂'),
-      h('button', { class: 'pip-btn pip-btn--select', onClick: () => goHome() }, '●'),
-      h('button', { class: 'pip-btn pip-btn--dpad', onClick: () => history.forward() }, '▸')
-    ]),
-    h('button', {
-      class: 'pip-btn pip-btn--light',
+    btn('home', { title: 'Home', onClick: () => goHome() }),
+    btn('back', { title: 'Back', onClick: () => history.back() }),
+    btn('forward', { title: 'Forward', onClick: () => history.forward() }),
+    btn('search', {
+      extraClass: 'pip-btn--search',
+      title: 'Search',
+      onClick: () => {
+        if (ctxHolder.current) openMobileSearchOverlay(screen, ctxHolder.current);
+      }
+    }),
+    btn('theme', {
       title: 'Cycle screen theme',
       onClick: () => {
         themeIdx = (themeIdx + 1) % THEMES.length;
         applyTheme(THEMES[themeIdx]);
       }
-    }, '✦')
+    })
   ]);
 
-  const shellEl = h('div', { class: 'pip-shell' }, [h('div', { class: 'pip-speaker' }), bezel, controls]);
-  const device = h('div', { class: 'pip-device' }, [shellEl]);
+  const consoleEl = h('div', { class: 'pip-console' }, [screen]);
+  const controlsPanel = h('div', { class: 'pip-controls-panel' }, [controls]);
+  const searchPanelHost = h('aside', { class: 'pip-search-panel' });
+  const sideCol = h('div', { class: 'pip-side' }, [controlsPanel, searchPanelHost]);
+  const layout = h('div', { class: 'pip-layout' }, [consoleEl, sideCol]);
 
-  return { device, app, screen };
+  try {
+    const saved = localStorage.getItem('pip-theme');
+    if (saved && saved !== 'default') layout.dataset.theme = saved;
+  } catch (_) {
+    /* ignore */
+  }
+
+  return {
+    layout,
+    app,
+    screen,
+    setCtx(ctx) {
+      ctxHolder.current = ctx;
+      mountDesktopSearchPanel(searchPanelHost, ctx);
+    }
+  };
 }

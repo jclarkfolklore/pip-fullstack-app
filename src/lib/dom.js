@@ -56,3 +56,17 @@ export function debounce(fn, wait) {
     t = setTimeout(() => fn(...args), wait);
   };
 }
+
+// Shows a small inline error line inside a compose sheet (e.g. a duplicate
+// project name, or the server being briefly unreachable) instead of the
+// sheet just silently closing on a failed save.
+export function showSheetError(sheetEl, message) {
+  let errEl = sheetEl.querySelector('.pip-sheet-error');
+  if (!errEl) {
+    errEl = h('div', { class: 'pip-sheet-error' });
+    const actions = sheetEl.querySelector('.pip-sheet-actions');
+    if (actions) sheetEl.insertBefore(errEl, actions);
+    else sheetEl.appendChild(errEl);
+  }
+  errEl.textContent = message;
+}

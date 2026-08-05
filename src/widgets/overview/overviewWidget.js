@@ -1,23 +1,32 @@
 import { h } from '../../lib/dom.js';
-import { stageCounts } from '../../db/repo/inboxRepo.js';
-import { taskCounts } from '../../db/repo/tasksRepo.js';
+import { icon } from '../../lib/icons.js';
+import { onChange } from '../../api/client.js';
+import { stageCounts } from '../../api/inboxRepo.js';
+import { taskCounts } from '../../api/tasksRepo.js';
+import { noteCounts } from '../../api/notesRepo.js';
+import { listProjects } from '../../api/projectsRepo.js';
 
 export const kind = 'overview';
 
-export function renderTile(ctx) {
-  const inbox = stageCounts();
-  const tasks = taskCounts();
+export async function renderTile(ctx) {
+  const [inbox, tasks] = await Promise.all([stageCounts(), taskCounts()]);
   const openish = inbox.new + inbox.active + tasks.open + tasks.doing;
   return h('button', { class: 'pip-tile', dataset: { widget: 'overview' }, onClick: (e) => ctx.open('overview', e.currentTarget) }, [
-    h('div', { class: 'pip-tile-icon' }, '📡'),
+    icon('link', { size: 20, className: 'pip-tile-icon' }),
     h('div', { class: 'pip-tile-sub' }, openish ? `${openish} in motion` : 'all clear'),
     h('div', { class: 'pip-tile-label' }, 'STATUS')
   ]);
 }
 
 export function renderFull(ctx) {
-  const inbox = stageCounts();
-  const tasks = taskCounts();
+  const el = h('div', { class: 'pip-view' }, [
+    h('div', { class: 'pip-view-header' }, [
+      h('button', { class: 'pip-back', onClick: ctx.goHome }, [icon('back', { size: 12 }), ' HOME']),
+      h('div', { class: 'pip-view-title' }, 'STATUS')
+    ])
+  ]);
+  const body = h('div', { class: 'pip-view-body pip-card-list' });
+  el.appendChild(body);
 
   const row = (label, value) =>
     h('div', { class: 'pip-card' }, [
@@ -27,20 +36,22 @@ export function renderFull(ctx) {
       ])
     ]);
 
-  const el = h('div', { class: 'pip-view' }, [
-    h('div', { class: 'pip-view-header' }, [
-      h('button', { class: 'pip-back', onClick: ctx.goHome }, '‹ HOME'),
-      h('div', { class: 'pip-view-title' }, 'STATUS')
-    ]),
-    h('div', { class: 'pip-view-body pip-card-list' }, [
+  async function render() {
+    const [inbox, tasks, notes, projects] = await Promise.all([stageCounts(), taskCounts(), noteCounts(), listProjects()]);
+    body.innerHTML = '';
+    body.append(
       row('Inbox — new', inbox.new),
       row('Inbox — active', inbox.active),
       row('Inbox — resolved', inbox.resolved),
       row('Tasks — open', tasks.open),
       row('Tasks — doing', tasks.doing),
-      row('Tasks — done', tasks.done)
-    ])
-  ]);
+      row('Tasks — done', tasks.done),
+      row('Notes', notes.total),
+      row('Active projects', projects.length)
+    );
+  }
 
-  return { el };
+  render();
+  const unsubscribe = onChange(render);
+  return { el, destroy: unsubscribe };
 }

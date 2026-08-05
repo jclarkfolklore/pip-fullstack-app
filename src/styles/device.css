@@ -1,46 +1,73 @@
-.pip-device {
-  width: min(94vw, 430px);
-  filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.45));
+/* ===== overall page layout =====
+   Mobile-first: console fills the viewport, search panel is not part of
+   the flow (it's opened as an in-screen overlay instead). At the desktop
+   breakpoint the layout becomes a row: console + a permanent search panel
+   to its right, outside the screen frame. */
+
+#pip-root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
 }
 
-.pip-shell {
-  position: relative;
-  background: linear-gradient(160deg, var(--shell-highlight) 0%, var(--shell-base) 35%, var(--shell-base-2) 100%);
-  border-radius: var(--shell-radius) var(--shell-radius) 64px 64px / 52px 52px 84px 84px;
-  padding: 26px 22px 30px;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -18px 30px rgba(0, 0, 0, 0.08),
-    0 1px 0 var(--shell-shadow);
-  transition: background 0.4s var(--ease-pip);
+.pip-layout {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
 }
 
-.pip-speaker {
-  width: 46px;
-  height: 8px;
-  margin: 0 auto 14px;
-  border-radius: 6px;
-  background: repeating-linear-gradient(90deg, var(--shell-shadow) 0 3px, transparent 3px 6px);
-  opacity: 0.55;
+.pip-console {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.pip-screen-bezel {
-  background: linear-gradient(155deg, var(--bezel-color-2), var(--bezel-color));
-  border-radius: var(--screen-radius);
-  padding: 14px;
-  box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.6),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.04);
+/* ===== right column: nav controls panel stacked above the search panel.
+   Mobile: stacks below the screen in normal document flow (nav panel has
+   no special framing there — search panel is display:none, opened as an
+   overlay instead). Desktop: becomes the row's second column, stretched
+   to match the screen's full height. ===== */
+.pip-side {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
+/* ===== screen: unbounded, responsive. 16:9 once there's room for it;
+   a taller ratio below that so it isn't a cramped letterboxed strip on a
+   narrow phone. ===== */
 .pip-screen {
   position: relative;
-  aspect-ratio: 5 / 6.4;
-  border-radius: 10px;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 66vh;
+  border-radius: 14px;
   overflow: hidden;
   background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
-  box-shadow: inset 0 0 22px var(--lcd-glow), inset 0 0 2px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 0 26px var(--lcd-glow),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.18),
+    0 20px 40px rgba(0, 0, 0, 0.35);
   transition: background 0.4s var(--ease-pip);
+}
+
+@media (min-width: 860px) {
+  .pip-screen {
+    aspect-ratio: unset;
+    max-height: none;
+    height: 100%;
+  }
 }
 
 .pip-screen-glass {
@@ -72,8 +99,8 @@
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  box-shadow: inset 0 0 34px 6px rgba(20, 24, 16, 0.35);
-  border-radius: 10px;
+  box-shadow: inset 0 0 40px 8px rgba(20, 24, 16, 0.32);
+  border-radius: 14px;
 }
 
 .pip-statusbar {
@@ -81,7 +108,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px 6px;
+  padding: 10px 14px 6px;
   font-family: var(--font-pixel);
   font-size: 8px;
   letter-spacing: 0.5px;
@@ -98,7 +125,6 @@
 .pip-statusbar .pip-status-dot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
   background: var(--lcd-accent);
   box-shadow: 0 0 4px var(--lcd-accent);
 }
@@ -108,88 +134,200 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
-  padding: 0 10px 10px;
+  padding: 0 12px 12px;
 }
 
-/* ---- Controls ---- */
+/* ===== nav controls: flat button row on mobile (below the screen),
+   framed in an LCD-style panel on desktop (top of the right column). ===== */
+.pip-controls-panel {
+  display: flex;
+}
+
 .pip-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 22px;
-  padding: 0 6px;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 2px;
+  width: 100%;
+}
+
+@media (min-width: 860px) {
+  .pip-controls-panel {
+    flex: 0 0 auto;
+    background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
+    border-radius: 14px;
+    box-shadow:
+      inset 0 0 26px var(--lcd-glow),
+      inset 0 0 0 2px rgba(0, 0, 0, 0.18),
+      0 16px 30px rgba(0, 0, 0, 0.3);
+    padding: 10px;
+  }
 }
 
 .pip-btn {
-  font-family: var(--font-pixel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--bezel-color);
-  border-radius: 999px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, var(--btn-face), #e2ddf1);
+  box-shadow: 0 3px 0 var(--btn-face-shadow), 0 5px 8px rgba(0, 0, 0, 0.15);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
 .pip-btn:active {
-  transform: translateY(2px) scale(0.96);
-}
-
-.pip-btn--menu {
-  font-size: 9px;
-  padding: 10px 16px;
-  background: linear-gradient(180deg, var(--btn-face), #e2ddf1);
-  box-shadow: 0 4px 0 var(--btn-face-shadow), 0 6px 8px rgba(0, 0, 0, 0.15);
-  letter-spacing: 1px;
-}
-.pip-btn--menu:active {
+  transform: translateY(2px);
   box-shadow: 0 1px 0 var(--btn-face-shadow);
 }
 
-.pip-btn--light {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: var(--btn-accent-2-shadow);
-  background: linear-gradient(180deg, var(--btn-face), #e2ddf1);
-  box-shadow: 0 4px 0 var(--btn-face-shadow), 0 6px 8px rgba(0, 0, 0, 0.15);
-}
-.pip-btn--light:active {
-  box-shadow: 0 1px 0 var(--btn-face-shadow);
-}
-
-.pip-dpad {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pip-btn--dpad {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  font-size: 14px;
-  background: linear-gradient(180deg, var(--btn-face), #e2ddf1);
-  box-shadow: 0 4px 0 var(--btn-face-shadow), 0 6px 8px rgba(0, 0, 0, 0.15);
-}
-.pip-btn--dpad:active {
-  box-shadow: 0 1px 0 var(--btn-face-shadow);
-}
-
-.pip-btn--select {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  font-size: 15px;
+.pip-btn--accent {
   color: #fff;
   background: linear-gradient(180deg, var(--btn-accent), var(--btn-accent-shadow));
-  box-shadow: 0 5px 0 var(--btn-accent-shadow), 0 8px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 3px 0 var(--btn-accent-shadow), 0 5px 8px rgba(0, 0, 0, 0.2);
 }
-.pip-btn--select:active {
+.pip-btn--accent:active {
   box-shadow: 0 1px 0 var(--btn-accent-shadow);
 }
 
-@media (min-width: 720px) {
-  .pip-device {
-    width: min(60vw, 460px);
+.pip-btn--search {
+  display: flex;
+}
+
+@media (min-width: 860px) {
+  /* search lives permanently in the side panel on desktop — no need for the
+     bottom-bar search button to open an overlay too */
+  .pip-btn--search {
+    display: none;
   }
+}
+
+/* ===== desktop search panel (outside the screen frame) ===== */
+.pip-search-panel {
+  display: none;
+}
+
+@media (min-width: 860px) {
+  .pip-layout {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+  }
+  .pip-console {
+    width: auto;
+    flex: 0 1 900px;
+  }
+  .pip-side {
+    width: auto;
+    flex: 0 0 300px;
+  }
+  .pip-search-panel {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+.pip-search-widget {
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
+  border-radius: 14px;
+  box-shadow: inset 0 0 26px var(--lcd-glow), inset 0 0 0 2px rgba(0, 0, 0, 0.18), 0 16px 30px rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  color: var(--lcd-ink);
+  font-family: var(--font-mono);
+}
+
+.pip-search-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.pip-search-close {
+  margin-left: auto;
+  color: var(--lcd-ink);
+}
+
+.pip-search-input {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--lcd-line);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--lcd-ink);
+  margin-bottom: 8px;
+}
+
+.pip-search-results {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pip-search-empty {
+  text-align: center;
+  color: var(--lcd-ink-faint);
+  font-size: 13px;
+  padding: 20px 6px;
+}
+
+.pip-search-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.pip-search-result-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.pip-search-result-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pip-search-result-snippet {
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+  margin-top: 2px;
+}
+
+.pip-search-result-meta {
+  font-size: 10px;
+  color: var(--lcd-ink-faint);
+  margin-top: 3px;
+  text-transform: uppercase;
+}
+
+/* mobile search overlay — same widget, laid over the screen */
+.pip-search-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(20, 18, 12, 0.2);
+  padding: 8px;
+}
+.pip-search-overlay .pip-search-widget {
+  height: 100%;
+  min-height: 0;
 }

@@ -68,8 +68,8 @@
 }
 
 .pip-tile-icon {
-  font-size: 18px;
-  line-height: 1;
+  display: block;
+  color: var(--lcd-ink);
 }
 
 .pip-tile-label {
@@ -214,9 +214,31 @@
 }
 
 .pip-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   font-size: 11px;
   color: var(--lcd-ink-faint);
   margin-top: 6px;
+}
+
+.pip-card-meta-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pip-card-source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--lcd-accent-2);
+  text-decoration: none;
+  margin-left: auto;
+}
+.pip-card-source-link:active {
+  opacity: 0.7;
 }
 
 .pip-card-actions {
@@ -252,8 +274,9 @@
   font-size: 13px;
 }
 .pip-empty-glyph {
-  font-size: 26px;
+  display: inline-block;
   margin-bottom: 8px;
+  color: var(--lcd-ink-faint);
 }
 
 /* ===== inbox unread badge on tile handled via .pip-tile-badge ===== */
@@ -329,6 +352,12 @@
   resize: vertical;
 }
 
+.pip-sheet-error {
+  font-size: 12px;
+  color: var(--lcd-accent);
+  margin: -2px 0 8px;
+}
+
 .pip-sheet-actions {
   display: flex;
   justify-content: flex-end;
@@ -352,16 +381,77 @@
   color: var(--lcd-ink-faint);
 }
 
-/* ===== db toolbar (export/import/reset), bottom of dashboard ===== */
+/* ===== metrics: pixel bar chart ===== */
+.pip-metrics-section-title {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-ink-dim);
+  margin: 12px 0 6px;
+}
+.pip-metrics-section-title:first-child {
+  margin-top: 0;
+}
+
+.pip-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  height: 96px;
+  padding: 4px 2px 0;
+}
+
+.pip-bar-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.pip-bar-track {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 20px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--lcd-line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pip-bar-fill {
+  width: 100%;
+  background: var(--lcd-accent-2);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s var(--ease-pip);
+}
+
+.pip-bar-value {
+  font-size: 10px;
+  color: var(--lcd-ink-dim);
+  margin-top: 3px;
+}
+
+.pip-bar-label {
+  font-size: 9px;
+  color: var(--lcd-ink-faint);
+}
+
+/* ===== db bar (backup export link), bottom of dashboard ===== */
 .pip-dbbar {
   display: flex;
   justify-content: center;
   gap: 10px;
   padding-top: 6px;
 }
-.pip-dbbar button {
+.pip-dbbar button,
+.pip-dbbar-link {
   font-size: 10px;
   font-family: var(--font-pixel);
   color: var(--lcd-ink-faint);
+  text-decoration: none;
 }
-.pip-dbbar button:active { color: var(--lcd-ink); }
+.pip-dbbar button:active,
+.pip-dbbar-link:active { color: var(--lcd-ink); }

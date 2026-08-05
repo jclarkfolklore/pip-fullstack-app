@@ -1,142 +1,188 @@
-# PIP — a Tamagotchi-styled productivity device
+# PIP — a universal organization + work-log tool
 
-A personal dashboard that lives entirely in your browser: no server, no
-backend, no account. It's a real SQLite database running client-side, wrapped
-in a Tamagotchi/Digimon-style LCD device shell.
+A personal/team dashboard for staying on top of things across multiple
+projects and workboards: an Inbox (triage lifecycle), Tasks, Notes
+(reference material), and Projects, plus a Metrics view built from a real
+work-history log. Styled as a pixelated, LED-lit device screen.
+
+This is a **full-stack app**: a real Express + SQLite server running
+locally, and a browser frontend that talks to it. It replaced an earlier
+static/file://-only version specifically so Claude could get direct, live
+access to the data.
+
+If you're working on this with Claude Code, it reads `CLAUDE.md` at this
+repo's root automatically — commands, architecture, conventions, and how it
+should interact with the running app all live there. This README is the
+human-facing tour; `CLAUDE.md` is the agent-facing one. (For a Claude
+session without local shell access to this machine — e.g. cloud Cowork —
+see `docs/CLAUDE-INTEGRATION.md` instead.)
 
 ## Running it
 
-Just open `dist/index.html` by double-clicking it. That's it — no `npm
-install`, no server, works offline. Bookmark that file or drag it to your
-dock/home screen for quick access.
+First time only:
 
-If you ever want to develop on it (see "Developing" below), you'll need
-Node.js and to run `npm install` once inside this folder.
+```
+npm install
+```
+
+Then either:
+
+- **One-off**: `npm run server`, then open `http://127.0.0.1:4288` in a
+  browser.
+- **Always on (recommended)**: install the LaunchAgent so it starts on
+  login and restarts itself if it ever crashes:
+  ```
+  cp scripts/com.folklore.pip.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.folklore.pip.plist
+  ```
+  After that, `http://127.0.0.1:4288` is just always there. Bookmark it.
+
+If you change the frontend source and want the build to update:
+`npm run build` (one-off) or `npm run watch` (rebuilds on save).
 
 ## What's actually in here
 
 ```
-src/               source — edit these, not dist/
-  index.js         boots the app: opens the db, mounts the shell
-  styles/          plain CSS, themeable via custom properties (variables.css)
-  db/
-    schema.js      the data model — table definitions, lives independent of any UI
-    client.js      sql.js wrapper (init, run/all/get helpers, change notifications)
-    persistence.js IndexedDB autosave + .sqlite file export/import
-    repo/          one file per "entity" — inboxRepo, tasksRepo, layoutRepo.
-                   Widgets talk to these, never to raw SQL directly.
+server/            the backend — Express + better-sqlite3
+  index.js         entrypoint: binds 127.0.0.1 only, serves the built
+                    frontend, mounts the API, starts the drops watcher
+  db.js            opens data/pip.sqlite (WAL mode), runs schema + migrations
+  schema.js         the data model — table definitions + migrations
+  repo/             one file per entity — projects, inbox, tasks, notes,
+                    tags, activity, search, layout. Routes call these,
+                    never raw SQL directly.
+  routes/           REST endpoints, one file per resource, + events.js (SSE)
+  dropsWatcher.js   auto-imports data/drops/*.md every few seconds
+  lib/frontmatter.js  minimal YAML-frontmatter parser (CommonJS twin of
+                       src/lib/frontmatter.js — Node backend vs. bundled
+                       frontend can't share an ESM module directly)
+  public/           built frontend lands here (webpack output) — gitignored
+
+src/                frontend source
+  index.js          boots the app, mounts the shell
+  api/              fetch-based client — one file per entity, mirrors
+                     server/repo/ function names. client.js also owns the
+                     shared SSE connection (onChange) that makes the UI
+                     live-refresh.
   app/
-    router.js      tiny hash router (#/inbox, #/tasks, ...)
-    shell.js       the device chrome — bezel, screen, physical buttons
-    dashboard.js   the home-screen grid + tile↔full-view transitions
+    shell.js        console chrome — screen, status bar, bottom nav
+    dashboard.js    home-screen grid + tile↔full-view transitions
     widgetRegistry.js  maps a widget "kind" to its module
-  widgets/         one folder per widget: inbox/, tasks/, pacing/, overview/
-  lib/             small dependency-free helpers (dom, animations, frontmatter parser)
-dist/              the built app — this is what you actually open/run
-inbox/drops/       where Claude (or you) drop markdown notes to import
+    searchPanel.js  cross-entity search — desktop side panel + mobile overlay
+  widgets/          one folder per widget: inbox/, tasks/, notes/,
+                     projects/, metrics/, overview/
+  lib/              dom helpers, animejs helpers, frontmatter parser, the
+                     pixel icon system
+
+data/               tracked in git (personal/private app — see CLAUDE.md)
+  pip.sqlite         the real, live database
+  drops/             drop .md files here — auto-imported, no button needed
 ```
 
-The point of this split: the **data model** (`db/`) doesn't know the UI
-exists, and the **UI** (`widgets/`, `app/`) never writes raw SQL — it calls
-repo functions. That's what makes it safe to keep reshaping the interface
-over time without risking the data, and vice versa.
+The data model (`server/`) doesn't know the UI exists, and the UI
+(`src/widgets/`, `src/app/`) never writes SQL — it calls the fetch-based
+`src/api/` client, which mirrors the server's `repo/` functions. That split
+is what makes it safe to keep reshaping either side without risking the
+other.
 
-## Adding a new widget
+## The four entities
 
-1. Make a folder under `src/widgets/yourthing/`.
-2. Export `kind`, `renderTile(ctx)` (the dashboard tile) and `renderFull(ctx)`
-   (the full-screen view, returns `{ el, destroy? }`).
-3. Register it in `src/app/widgetRegistry.js`.
-4. Add a row for it to `SEED_WIDGETS` in `src/db/schema.js` (or insert one via
-   `layoutRepo.js` — the dashboard reads its tile list from the `widgets`
-   table, so ordering/enabling is just data).
-5. Rebuild (`npm run build`).
+- **Inbox** — things to triage. Lifecycle: **new → active → resolved →
+  archived** (with a reopen path back). Resolving can spin off a linked
+  Task. Carries tags, a project, a markdown body, and a source (see below).
+- **Tasks** — status: **open → doing → done**. Can belong to a project.
+- **Notes** — plain reference material. No lifecycle — just create, edit,
+  pin, delete. For the "store notes and whatnot" use case that doesn't fit
+  a triage flow.
+- **Projects** — first-class, not just a tag. Everything above can
+  optionally belong to one; a Projects widget shows counts per project.
+  Deleting a project un-assigns its items rather than deleting them.
 
-`pacing` and `overview` currently ship as intentionally thin — `overview` has
-real numbers, `pacing` is a labeled placeholder — both are meant to grow once
-we've actually lived with the Inbox/Tasks loop for a while.
+All three content types (Inbox/Tasks/Notes) share one tag system
+(`entity_tags`) and one cross-entity search.
 
-## The Inbox lifecycle
+## Multi-source ingestion
 
-Every inbox item moves through: **new → active → resolved → archived**
-(with a "reopen" path back). Resolving can optionally spin off a linked
-Task. Items carry tags and a markdown body (rendered with `marked`).
+Every inbox item and note carries a `source_type` — `manual`, `chat`,
+`monday`, `ado`, `email`, `screenshot` — which drives its pixel icon and
+feeds the Metrics "by source" breakdown, plus an optional `source_url` that
+renders as a clickable "open source" link on the card.
 
-## How notes from Claude get in (`inbox/drops/`)
+The **drops** folder (`data/drops/`) is how Claude turns something you hand
+it — a Monday item, an ADO work item, a screenshot, an email, or you just
+describing something in chat — into a real Inbox item or Note: Claude
+writes a small markdown file with frontmatter, and the running server
+auto-imports it within a few seconds. No button, no manual step. See
+`data/drops/README.md` for the exact format.
 
-Because this is a fully static, serverless app, nothing here can reach into
-your browser's storage automatically. So the convention is a folder-based
-handoff:
+For anything beyond creating a new item — resolving something, changing a
+status, correcting a typo, bulk cleanup — Claude edits `data/pip.sqlite`
+directly. It's a real SQLite file; see `docs/CLAUDE-INTEGRATION.md`.
 
-- Claude writes one `.md` file per note into `inbox/drops/`, formatted like:
+## Work log & Metrics
 
-  ```
-  ---
-  id: "9f2c...-a real uuid"
-  title: "Short title"
-  tags: ["work", "follow-up"]
-  source: "claude"
-  createdAt: "2026-08-04T18:00:00Z"
-  ---
-  The body of the note, in markdown.
-  ```
+Every meaningful state change is appended to `activity_log` — separate from
+the mutable "current state" columns, so it survives an item's state
+changing again later. That's the basis for Metrics:
 
-- On the Inbox screen, tap **IMPORT** and pick the `inbox/drops` folder.
-  Every `.md` file in it gets parsed and inserted as a `new` item.
-- Importing is **idempotent** — it keys off the `id` in the frontmatter, so
-  re-selecting the same folder never creates duplicates. Safe to import
-  often.
-- You can also add notes directly in the app with the **+** button — no
-  Claude round-trip required.
+- resolved-per-day bar chart, last 7 days
+- average time-to-resolve (from the log, not an overwritable column)
+- current inbox/task/note snapshot counts
+- breakdown by project and by source type
+- top tags
 
-## Data & backups
+Intentionally a first pass, not a finished analytics suite — the natural
+place to grow as more kinds of data flow in.
 
-Day-to-day storage is **IndexedDB**, scoped to wherever this `index.html`
-file lives — it autosaves on every change, no action needed, and survives
-reloads/restarts.
+## Search
 
-Because this app is opened via `file://` (no server), the browser can't
-silently overwrite the original `.sqlite` file on disk — every **EXPORT
-.sqlite** tap triggers a real download of a portable, standard SQLite file.
-Use it to:
-- back up your data somewhere durable,
-- move it to another device,
-- hand it to Claude to inspect between chat sessions (a real `.sqlite` file,
-  openable with any SQLite tool).
+One implementation (`src/app/searchPanel.js` + `server/repo/searchRepo.js`,
+via `GET /api/search`), mounted two ways: an always-visible panel on the
+right at ≥860px viewport width, or a full-screen overlay on mobile opened
+via the bottom-nav search icon. Searches inbox items, tasks, notes, and
+tags in one unified list. Known limitation: a result opens the right widget
+but doesn't yet deep-link to that specific card.
 
-**IMPORT** (next to Export, at the bottom of the dashboard) loads a `.sqlite`
-file back in, replacing the current data after a confirmation prompt.
+## Visual design: pixel icons, no emoji, unbounded LED screen
+
+Every glyph — nav buttons, tile icons, source badges — is a hand-authored
+8×8 pixel icon (`src/lib/icons.js`), rendered as SVG rather than emoji.
+Custom-built rather than an actual "Carbon" icon pack, for licensing/fit
+reasons; swapping is a one-file change if you'd rather use a real pack.
+
+The screen is unbounded — no device bezel/shell — and responsive: a single
+column with the screen on top and a bottom icon-button nav bar below 860px,
+becoming a row with a search side panel on the right at ≥860px. Aspect
+ratio is 4:3 below that breakpoint and true 16:9 at/above it (16:9 at every
+width would letterbox down to a cramped strip on a typical phone) — a
+one-line change in `src/styles/device.css` if you'd rather have strict 16:9
+everywhere.
+
+## Live refresh
+
+The frontend holds one shared Server-Sent Events connection
+(`GET /api/events`). The server polls SQLite's own `PRAGMA data_version` —
+which changes on ANY commit to the file, from any process — and pushes a
+refresh signal to every open tab. This is what makes the UI update live
+when Claude edits the database directly, with no reload needed.
+
+## Backups
+
+**EXPORT BACKUP .sqlite** at the bottom of the dashboard downloads a
+timestamped copy of the live database (flushing the WAL first, so it's a
+complete, openable-anywhere file) — for whenever you want a point-in-time
+backup, separate from the live `data/pip.sqlite`.
 
 ## Theming
 
-Tap the ✦ button to cycle screen tints (default sage LCD → amber → mono →
-night). All of it is CSS custom properties in `src/styles/variables.css` —
-add a new `[data-theme='name']` block there and it's in the rotation.
-
-## Developing
-
-```
-npm install       # once
-npm run build     # production build → dist/
-npm start         # dev server with live reload (webpack-dev-server)
-npm run watch     # rebuild dist/ on save, no server
-```
-
-Two build-specific things worth knowing if you touch the config:
-
-- **No runtime code-splitting.** Everything bundles into one
-  `pip.bundle.js`. Since the shipped app opens via `file://`, dynamic
-  `import()`/chunk fetches are unreliable there — so "code splitting" here
-  means modular *source* files, not lazy-loaded chunks. Keep new widgets as
-  static imports in `widgetRegistry.js`.
-- **sql.js's `.wasm` and the pixel fonts are inlined as base64** (see the
-  `asset/inline` rules in `webpack.config.js`), so nothing ever needs a
-  network fetch to a local file — Chrome blocks `fetch()`/XHR to `file://`
-  resources, but inline `data:` URIs work everywhere.
+Tap the theme icon in the bottom nav to cycle screen tints (sage → amber →
+mono → night). CSS custom properties in `src/styles/variables.css` — add a
+`[data-theme='name']` block there to add one.
 
 ## This is meant to evolve
 
-Nothing here is precious. Tell Claude what's annoying, missing, or wrong
-about how you actually use it day to day, and it'll reshape the relevant
-widget/table — that's the whole point of keeping the data model and the UI
-decoupled.
+Nothing here is precious. Tell Claude what's missing or wrong about how you
+actually use it, and it'll reshape the relevant widget/table — hand it a
+Monday item, an ADO work item, a screenshot, an email, or a rough note in
+chat, and it can turn that into a drop file and/or extend the app if the
+current widgets don't already fit.

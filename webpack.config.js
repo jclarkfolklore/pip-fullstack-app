@@ -8,34 +8,24 @@ module.exports = (env, argv) => {
   return {
     entry: './src/index.js',
     output: {
-      path: path.resolve(__dirname, 'dist'),
+      // Builds into server/public/ — the Express server (server/index.js)
+      // serves this folder as static files. The app is now opened over
+      // http://127.0.0.1:<port>, not file://, so none of the old
+      // wasm-inlining / no-devServer / relative-publicPath workarounds are
+      // needed anymore.
+      path: path.resolve(__dirname, 'server', 'public'),
       filename: 'pip.bundle.js',
-      // Relative publicPath so index.html works opened directly via file://
-      publicPath: ''
+      publicPath: '/'
     },
-    // No runtime code-splitting: this app is opened via file:// (no server),
-    // and dynamic import()/chunk fetches are unreliable under the file: protocol.
-    // "Code splitting" here means modular SOURCE files bundled into one output.
     optimization: {
       splitChunks: false,
       runtimeChunk: false
-    },
-    experiments: {
-      asyncWebAssembly: false
     },
     module: {
       rules: [
         {
           test: /\.css$/,
           use: [MiniCssExtractPlugin.loader, 'css-loader']
-        },
-        {
-          // sql.js's wasm binary + pixel fonts are inlined as base64 data URIs
-          // so nothing ever needs a runtime fetch()/XHR to a local file — Chrome
-          // blocks those under file://, but data: URIs and <script>/<link> tags
-          // load fine.
-          test: /\.wasm$/,
-          type: 'asset/inline'
         },
         {
           test: /\.(woff2?|ttf|eot)$/,
@@ -51,10 +41,6 @@ module.exports = (env, argv) => {
         inject: 'body'
       })
     ],
-    devServer: {
-      static: path.resolve(__dirname, 'dist'),
-      open: true
-    },
     devtool: isProd ? false : 'eval-source-map',
     performance: { hints: false }
   };

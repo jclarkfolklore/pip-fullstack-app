@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.folklore.pip</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/key/Documents/Claude/Projects/ToDo/todo-app/scripts/pip-start.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/key/Documents/Claude/Projects/ToDo/todo-app</string>
+
+  <!-- launchd agents get a minimal PATH — this covers the usual Homebrew
+       (Apple Silicon and Intel) and system Node install locations. If your
+       node lives somewhere else, add that directory here. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/key/Documents/Claude/Projects/ToDo/data/pip-server.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/key/Documents/Claude/Projects/ToDo/data/pip-server.error.log</string>
+</dict>
+</plist>
