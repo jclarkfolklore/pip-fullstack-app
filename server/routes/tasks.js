@@ -12,6 +12,17 @@ router.get('/counts', (req, res) => {
   res.json(tasksRepo.taskCounts());
 });
 
+// Idempotent create-with-id, for syncing external work in (see
+// scripts/pip-upsert.js). Re-running a sync updates instead of duplicating.
+router.post('/import', (req, res) => {
+  try {
+    const result = tasksRepo.importTask(req.body || {});
+    res.status(result.created ? 201 : 200).json(tasksRepo.getTask(result.id));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 router.post('/', (req, res) => {
   const id = tasksRepo.createTask(req.body || {});
   res.status(201).json(tasksRepo.getTask(id));

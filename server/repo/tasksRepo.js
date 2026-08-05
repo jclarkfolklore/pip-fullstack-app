@@ -26,6 +26,23 @@ function createTask({ title, notesMd = '', dueAt = null, projectId = null, fromI
   return id;
 }
 
+// Create with a caller-supplied id, idempotent on that id. This is what makes
+// syncing from an external system (Monday, ADO, …) safe to re-run: the
+// external id becomes the PIP id, so a second sync updates rather than
+// duplicates. Mirrors inboxRepo.importDroppedNote.
+function importTask({ id, title, notesMd = '', dueAt = null, projectId = null, tags = [], createdAt } = {}) {
+  if (!id) throw new Error('id is required');
+  const already = db.prepare('SELECT id FROM tasks WHERE id = ?').get(id);
+  if (already) return { id, created: false };
+  db.prepare(
+    `INSERT INTO tasks (id, title, notes_md, status, project_id, due_at, created_at)
+     VALUES (?, ?, ?, 'open', ?, ?, ?)`
+  ).run(id, title, notesMd, projectId, dueAt, createdAt || nowIso());
+  attachTags('task', id, tags);
+  logEvent('task', id, 'task_created', { title, imported: true });
+  return { id, created: true };
+}
+
 function listTasks({ status = null, project = null, tag = null, search = '', sort = 'created_desc' } = {}) {
   const where = [];
   const params = [];
@@ -112,6 +129,7 @@ function taskCounts() {
 
 module.exports = {
   createTask,
+  importTask,
   listTasks,
   getTask,
   setTaskStatus,

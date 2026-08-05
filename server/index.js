@@ -3,12 +3,33 @@ const express = require('express');
 const { DB_PATH } = require('./db');
 const { startDropsWatcher, DROPS_DIR } = require('./dropsWatcher');
 const { startWeatherPoller } = require('./weather/service');
+const changeBus = require('./lib/changeBus');
 
 const PORT = Number(process.env.PIP_PORT) || 4288;
 const HOST = '127.0.0.1'; // deliberately local-only — never bind 0.0.0.0
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+
+// Broadcast a live-refresh to every open tab after any successful mutating API
+// request. This is what makes the UI update without a manual reload: SQLite's
+// PRAGMA data_version (polled in routes/events.js) is deliberately NOT bumped
+// for commits on the same connection, so in-process writes are invisible to it.
+// Hooked on 'finish' so we only announce changes that actually succeeded.
+const MUTATING = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
+app.use((req, res, next) => {
+  if (!MUTATING.has(req.method) || !req.path.startsWith('/api/')) return next();
+  // Capture the path now — Express rewrites req.url to be router-relative once
+  // the request enters a mounted router, so reading it in 'finish' gives '/'.
+  const path = req.originalUrl.split('?')[0];
+  const method = req.method;
+  res.on('finish', () => {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      changeBus.publish({ path, method });
+    }
+  });
+  next();
+});
 
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/inbox', require('./routes/inbox'));

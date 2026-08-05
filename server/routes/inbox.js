@@ -23,6 +23,18 @@ router.post('/', (req, res) => {
   res.status(201).json(inboxRepo.getInboxItem(id));
 });
 
+// Idempotent create-with-id, for syncing external work in (see
+// scripts/pip-upsert.js). Same importer the drops watcher uses, so re-running
+// a sync updates instead of duplicating.
+router.post('/import', (req, res) => {
+  try {
+    const result = inboxRepo.importDroppedNote(req.body || {});
+    res.status(result.created ? 201 : 200).json(inboxRepo.getInboxItem(result.id));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 router.get('/:id', (req, res) => {
   const item = inboxRepo.getInboxItem(req.params.id);
   if (!item) return res.status(404).json({ error: 'not found' });
