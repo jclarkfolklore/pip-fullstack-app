@@ -4,7 +4,7 @@
 // file on disk (server/db.js opens it with better-sqlite3), plus a first-
 // class Project entity and a standalone Notes table.
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -68,6 +68,21 @@ CREATE TABLE IF NOT EXISTS journal_entries (
   updated_at TEXT NOT NULL
 );
 
+-- Clu3's authored messages. The rules engine (server/clu3/) covers the
+-- always-on baseline; this table is what lets Claude leave Clu3 something
+-- specific to say about work we actually did together. Deliberately NOT
+-- written to activity_log — Clu3 is chrome, not work history.
+CREATE TABLE IF NOT EXISTS clu3_messages (
+  id TEXT PRIMARY KEY,
+  body TEXT NOT NULL,
+  mood TEXT NOT NULL DEFAULT 'content',
+  action_kind TEXT,
+  action_label TEXT,
+  created_at TEXT NOT NULL,
+  expires_at TEXT,
+  dismissed_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS tags (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE
@@ -114,6 +129,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_notes_project ON notes(project_id);
 CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at);
 CREATE INDEX IF NOT EXISTS idx_journal_created ON journal_entries(created_at);
+CREATE INDEX IF NOT EXISTS idx_clu3_created ON clu3_messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_entity_tags_entity ON entity_tags(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_entity ON activity_log(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_occurred ON activity_log(occurred_at);
@@ -194,6 +210,22 @@ const MIGRATIONS = [
       `UPDATE widgets SET sort_order = 7 WHERE id = 'settings'`,
       `INSERT OR IGNORE INTO widgets (id, kind, title, glyph, sort_order, group_name)
        VALUES ('journal', 'journal', 'JOURNAL', 'book', 3, 'work')`
+    ]
+  },
+  {
+    version: 7,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS clu3_messages (
+         id TEXT PRIMARY KEY,
+         body TEXT NOT NULL,
+         mood TEXT NOT NULL DEFAULT 'content',
+         action_kind TEXT,
+         action_label TEXT,
+         created_at TEXT NOT NULL,
+         expires_at TEXT,
+         dismissed_at TEXT
+       )`,
+      `CREATE INDEX IF NOT EXISTS idx_clu3_created ON clu3_messages(created_at)`
     ]
   }
 ];

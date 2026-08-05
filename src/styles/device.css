@@ -203,6 +203,745 @@
   }
 }
 
+/* ===== Clu3 — companion panel, top of the right column =====
+   Same LCD treatment as the screen and search panel so the three read as one
+   device. Face is a 16x16 pixel grid (src/lib/faces.js) in two tones. */
+.pip-clu3-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 0 26px var(--lcd-glow),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.18),
+    0 16px 30px rgba(0, 0, 0, 0.3);
+  padding: 10px 12px 12px;
+  color: var(--lcd-ink);
+  font-family: var(--font-mono);
+}
+
+.pip-clu3-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pip-clu3-name {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+}
+
+.pip-clu3-pips {
+  display: flex;
+  gap: 3px;
+}
+
+.pip-clu3-pip {
+  width: 5px;
+  height: 5px;
+  background: var(--lcd-line);
+  opacity: 0.55;
+}
+
+.pip-clu3-pip.is-on {
+  background: var(--lcd-accent);
+  opacity: 1;
+  box-shadow: 0 0 4px var(--lcd-accent);
+}
+
+.pip-clu3-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pip-clu3-mode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  color: var(--lcd-ink-faint);
+}
+.pip-clu3-mode:active {
+  background: var(--lcd-line);
+}
+
+.pip-clu3-face {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+/* Scene mode: a wide 32x20 diorama filling the panel. */
+.pip-clu3-face[data-mode='scene'] svg {
+  width: 100%;
+  height: auto;
+}
+
+/* Face mode: the 16x16 close-up, deliberately modest so it doesn't dominate
+   the panel the way the original oversized head did. */
+.pip-clu3-face[data-mode='face'] svg {
+  width: 76px;
+  height: 76px;
+}
+
+.pip-clu3-face svg {
+  /* Drawn at low res on purpose — never smooth it. */
+  image-rendering: pixelated;
+}
+
+.pip-clu3-px-body {
+  fill: var(--lcd-ink);
+  opacity: 0.22;
+}
+
+.pip-clu3-px-ink {
+  fill: var(--lcd-ink);
+}
+
+.pip-clu3-px-faint {
+  fill: var(--lcd-ink);
+  opacity: 0.12;
+}
+
+/* Knockout tone — an opaque background fill, so it can punch holes in an ink
+   silhouette (a translucent tone would just tint what's underneath). */
+.pip-clu3-px-cut {
+  fill: var(--lcd-bg-2);
+}
+
+/* ---- sprite motion. Translations are in viewBox units (1 = one pixel). ---- */
+@keyframes pip-sp-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.4px); }
+}
+@keyframes pip-sp-sway {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(9deg); }
+}
+@keyframes pip-sp-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.06); }
+}
+@keyframes pip-sp-float {
+  0% { transform: translateY(1px); opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 0.8; }
+  100% { transform: translateY(-3px); opacity: 0; }
+}
+@keyframes pip-sp-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@keyframes pip-sp-flash {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 85% { opacity: 0.1; }
+}
+@keyframes pip-sp-jitter {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-0.3px); }
+  75% { transform: translateX(0.3px); }
+}
+@keyframes pip-sp-nudge {
+  0%, 70%, 100% { transform: translateX(0) rotate(0deg); }
+  80% { transform: translateX(0.8px) rotate(12deg); }
+}
+@keyframes pip-sp-pulse-soft {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes pip-sp-flicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: 1; }
+  50% { opacity: 0.55; }
+  53% { opacity: 1; }
+}
+@keyframes pip-sp-tick {
+  0%, 49% { opacity: 0.7; }
+  50%, 100% { opacity: 1; }
+}
+
+.pip-sp-bob { animation: pip-sp-bob 3.2s ease-in-out infinite; }
+.pip-sp-sway { animation: pip-sp-sway 2.6s ease-in-out infinite; }
+.pip-sp-breathe { animation: pip-sp-breathe 4s ease-in-out infinite; }
+.pip-sp-float { animation: pip-sp-float 3.6s ease-in-out infinite; }
+.pip-sp-float-late { animation: pip-sp-float 3.6s ease-in-out 1.8s infinite; }
+.pip-sp-twinkle { animation: pip-sp-twinkle 2.4s ease-in-out infinite; }
+.pip-sp-twinkle-late { animation: pip-sp-twinkle 2.4s ease-in-out 1.2s infinite; }
+.pip-sp-flash { animation: pip-sp-flash 1.4s linear infinite; }
+.pip-sp-flash-late { animation: pip-sp-flash 1.4s linear 0.7s infinite; }
+.pip-sp-jitter { animation: pip-sp-jitter 0.5s ease-in-out infinite; }
+.pip-sp-nudge { animation: pip-sp-nudge 4.5s ease-in-out infinite; }
+.pip-sp-pulse-soft { animation: pip-sp-pulse-soft 2s ease-in-out infinite; }
+.pip-sp-flicker { animation: pip-sp-flicker 2.8s linear infinite; }
+.pip-sp-tick { animation: pip-sp-tick 2s steps(1, end) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pip-sp-bob, .pip-sp-sway, .pip-sp-breathe, .pip-sp-float, .pip-sp-float-late,
+  .pip-sp-twinkle, .pip-sp-twinkle-late, .pip-sp-flash, .pip-sp-flash-late,
+  .pip-sp-jitter, .pip-sp-nudge, .pip-sp-pulse-soft, .pip-sp-flicker, .pip-sp-tick {
+    animation: none;
+  }
+}
+
+.pip-clu3-speech {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.pip-clu3-line {
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--lcd-ink);
+  min-height: 1.25em;
+}
+
+.pip-clu3-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pip-clu3-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  color: var(--lcd-ink);
+  background: rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+}
+.pip-clu3-chip:active {
+  background: var(--lcd-line);
+}
+
+.pip-clu3-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--lcd-ink-faint);
+}
+.pip-clu3-dismiss:active {
+  background: var(--lcd-line);
+}
+
+.pip-clu3-panel {
+  width: 100%;
+}
+
+/* Mobile: Clu3 sits ABOVE the screen, not buried under it. `display:
+   contents` dissolves the side column so its children become direct flex
+   items of .pip-layout, which lets `order` hoist Clu3 to the top while the
+   same markup still forms the right-hand column on desktop.
+   Laid out horizontally here so a talking cat doesn't push the screen down. */
+@media (max-width: 859px) {
+  .pip-side {
+    display: contents;
+  }
+  .pip-clu3-panel {
+    order: -1;
+    max-width: 900px;
+  }
+  .pip-console {
+    order: 0;
+  }
+  .pip-controls-panel {
+    order: 1;
+  }
+  .pip-wx-panel {
+    order: 2;
+  }
+
+  .pip-clu3-widget {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'face header'
+      'face speech';
+    column-gap: 10px;
+    row-gap: 4px;
+    align-items: start;
+  }
+  .pip-clu3-header {
+    grid-area: header;
+  }
+  .pip-clu3-face {
+    grid-area: face;
+    align-self: center;
+  }
+  .pip-clu3-speech {
+    grid-area: speech;
+  }
+  .pip-clu3-face svg {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* ===== 3-day forecast — bottom of the right column =====
+   Art is hand-authored 12x12 pixel grids (src/lib/weatherArt.js). Motion is
+   pure CSS so it costs nothing per frame. */
+.pip-wx-panel {
+  width: 100%;
+}
+
+.pip-wx-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 0 26px var(--lcd-glow),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.18),
+    0 16px 30px rgba(0, 0, 0, 0.3);
+  padding: 10px 12px 12px;
+  color: var(--lcd-ink);
+  font-family: var(--font-mono);
+}
+
+.pip-wx-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pip-wx-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  flex: 0 0 auto;
+}
+
+.pip-wx-place {
+  font-size: 11px;
+  color: var(--lcd-ink-faint);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pip-wx-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Today: full width, the headline of the panel. */
+.pip-wx-today {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--lcd-ink);
+}
+
+.pip-wx-today.has-alert {
+  border-color: var(--lcd-accent);
+}
+.pip-wx-today.has-alert:active {
+  background: var(--lcd-line);
+}
+
+.pip-wx-today-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.pip-wx-today-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pip-wx-today-high {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.pip-wx-today-low,
+.pip-wx-today-label {
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+}
+
+.pip-wx-daylabel {
+  font-size: 10px;
+  color: var(--lcd-ink-faint);
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* Notification dot for active alerts. */
+.pip-wx-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--lcd-accent);
+  box-shadow: 0 0 6px var(--lcd-accent);
+}
+
+.pip-wx-alert-hint {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-accent);
+  margin-top: 3px;
+}
+
+/* The following two days: half width each, beneath today. */
+.pip-wx-rest {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.pip-wx-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.pip-wx-dayname {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-ink-dim);
+}
+
+.pip-wx-art {
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.pip-wx-art--lg {
+  width: 62px;
+  height: 62px;
+}
+
+.pip-wx-ink rect {
+  fill: var(--lcd-ink);
+}
+
+.pip-wx-dim rect {
+  fill: var(--lcd-ink);
+  opacity: 0.3;
+}
+
+.pip-wx-temps {
+  display: flex;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.pip-wx-low {
+  color: var(--lcd-ink-faint);
+}
+
+.pip-wx-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+  padding: 4px 0;
+}
+
+.pip-wx-link {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  color: var(--lcd-ink);
+  background: rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+}
+.pip-wx-link:active {
+  background: var(--lcd-line);
+}
+
+.pip-wx-stale {
+  font-size: 10px;
+  color: var(--lcd-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ---- weather motion. Transforms are in viewBox units (12x12). ---- */
+@keyframes pip-wx-fall {
+  from {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(4px);
+    opacity: 0;
+  }
+}
+
+@keyframes pip-wx-drift {
+  0%,
+  100% {
+    transform: translateX(-0.5px);
+  }
+  50% {
+    transform: translateX(0.5px);
+  }
+}
+
+@keyframes pip-wx-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pip-wx-flash {
+  0%,
+  92%,
+  100% {
+    opacity: 1;
+  }
+  94%,
+  98% {
+    opacity: 0.15;
+  }
+}
+
+.pip-wx-fall {
+  animation: pip-wx-fall 1.5s linear infinite;
+}
+.pip-wx-fall-slow {
+  animation: pip-wx-fall 3.4s linear infinite;
+}
+.pip-wx-drift {
+  animation: pip-wx-drift 5s ease-in-out infinite;
+}
+.pip-wx-pulse {
+  animation: pip-wx-pulse 3s ease-in-out infinite;
+}
+.pip-wx-flash {
+  animation: pip-wx-flash 4s linear infinite;
+}
+
+/* Respect a stated preference for less motion — the art still reads fine
+   static, so just stop it rather than substituting anything. */
+@media (prefers-reduced-motion: reduce) {
+  .pip-wx-fall,
+  .pip-wx-fall-slow,
+  .pip-wx-drift,
+  .pip-wx-pulse,
+  .pip-wx-flash {
+    animation: none;
+  }
+}
+
+/* ===== app-level modal — glassmorphic backdrop =====
+   Page-level (position: fixed), unlike the in-screen .pip-sheet-scrim used by
+   widget forms, because it's opened from panels outside the screen frame. */
+.pip-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(18, 16, 22, 0.45);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  backdrop-filter: blur(10px) saturate(115%);
+  animation: pip-modal-in 0.16s ease-out;
+}
+
+@keyframes pip-modal-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pip-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  padding: 12px 14px 14px;
+  color: var(--lcd-ink);
+  font-family: var(--font-mono);
+  /* Slightly translucent so the blurred page reads through — glass, not a
+     flat card — while staying legible. */
+  background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
+  opacity: 0.98;
+  box-shadow:
+    inset 0 0 26px var(--lcd-glow),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.18),
+    0 24px 50px rgba(0, 0, 0, 0.45);
+}
+
+.pip-modal-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed var(--lcd-line);
+}
+
+.pip-modal-title {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+.pip-modal-close {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--lcd-ink-dim);
+}
+.pip-modal-close:active {
+  background: var(--lcd-line);
+}
+
+.pip-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pip-modal-footer {
+  flex: 0 0 auto;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px dashed var(--lcd-line);
+}
+
+.pip-modal-note {
+  font-size: 10px;
+  color: var(--lcd-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ---- alert cards inside the modal ---- */
+.pip-modal-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.pip-modal-alert-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pip-modal-alert-event {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pip-modal-alert-sev {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: var(--lcd-line);
+  color: var(--lcd-ink-dim);
+}
+.pip-modal-alert-sev[data-severity='extreme'],
+.pip-modal-alert-sev[data-severity='severe'] {
+  background: var(--lcd-accent);
+  color: #fff8f4;
+}
+
+.pip-modal-alert-headline {
+  font-size: 13px;
+}
+
+.pip-modal-alert-meta {
+  font-size: 11px;
+  color: var(--lcd-ink-faint);
+}
+
+.pip-modal-alert-desc,
+.pip-modal-alert-instruction {
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+  white-space: pre-wrap;
+  line-height: 1.35;
+}
+
+.pip-modal-alert-instruction {
+  padding-top: 6px;
+  border-top: 1px dashed var(--lcd-line);
+}
+
 /* ===== desktop search panel (outside the screen frame) ===== */
 .pip-search-panel {
   display: none;
@@ -224,10 +963,16 @@
     width: auto;
     flex: 0 0 300px;
   }
+  .pip-clu3-panel {
+    flex: 0 0 auto;
+  }
   .pip-search-panel {
     display: block;
     flex: 1 1 auto;
     min-height: 0;
+  }
+  .pip-wx-panel {
+    flex: 0 0 auto;
   }
 }
 

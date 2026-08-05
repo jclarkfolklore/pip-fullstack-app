@@ -65,7 +65,16 @@ src/               frontend source
 docs/CLAUDE-INTEGRATION.md   for a Claude session WITHOUT local shell access
                               (e.g. a cloud Cowork session) — read that
                               instead of this file in that situation.
+docs/CLU3.md                 Clu3, the companion panel — how the rules engine,
+                              sprite/scene system and message queue work, and
+                              how to extend them. READ THIS before changing
+                              anything under server/clu3/ or the Clu3 art.
 ```
+
+Beyond the four entities there's also **Clu3** (`server/clu3/`, the panel at the
+top-right) and a **3-day forecast** (`server/weather/`, Open-Meteo + NWS
+alerts, no API keys). Both are chrome rather than work content: they live in
+the shell, not the dashboard grid, and neither writes to `activity_log`.
 
 `data/` (the live `pip.sqlite` and the `drops/` folder) lives inside this
 repo, at `data/pip.sqlite` / `data/drops/`, and is tracked in git. This is a

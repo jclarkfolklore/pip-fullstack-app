@@ -54,7 +54,7 @@ actual integration point:
 
 1. Stage `data/pip.sqlite` into your workspace via the device bridge.
 2. Query or modify it directly — Python's built-in `sqlite3` module, or
-   Node's `better-sqlite3` (already a dependency in `todo-app/`), both work
+   Node's `better-sqlite3` (already a dependency in this repo), both work
    fine on a plain `.sqlite` file. Use a short-lived connection, not a
    long-held one.
 3. If you wrote to it, commit the file back via the device bridge.

@@ -7,11 +7,11 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/key/Documents/Claude/Projects/ToDo/todo-app/scripts/pip-start.sh</string>
+    <string>/Users/key/Documents/Claude/Projects/ToDo/scripts/pip-start.sh</string>
   </array>
 
   <key>WorkingDirectory</key>
-  <string>/Users/key/Documents/Claude/Projects/ToDo/todo-app</string>
+  <string>/Users/key/Documents/Claude/Projects/ToDo</string>
 
   <!-- launchd agents get a minimal PATH — this covers the usual Homebrew
        (Apple Silicon and Intel) and system Node install locations. If your

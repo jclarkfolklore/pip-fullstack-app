@@ -2,6 +2,7 @@ const path = require('path');
 const express = require('express');
 const { DB_PATH } = require('./db');
 const { startDropsWatcher, DROPS_DIR } = require('./dropsWatcher');
+const { startWeatherPoller } = require('./weather/service');
 
 const PORT = Number(process.env.PIP_PORT) || 4288;
 const HOST = '127.0.0.1'; // deliberately local-only — never bind 0.0.0.0
@@ -14,6 +15,8 @@ app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/journal', require('./routes/journal'));
+app.use('/api/clu3', require('./routes/clu3'));
+app.use('/api/weather', require('./routes/weather'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/metrics', require('./routes/metrics'));
 app.use('/api/activity', require('./routes/activity'));
@@ -45,10 +48,12 @@ const server = app.listen(PORT, HOST, () => {
 });
 
 const stopDropsWatcher = startDropsWatcher();
+const stopWeatherPoller = startWeatherPoller();
 
 function shutdown() {
   console.log('[pip] shutting down...');
   stopDropsWatcher();
+  stopWeatherPoller();
   server.close(() => process.exit(0));
 }
 process.on('SIGINT', shutdown);

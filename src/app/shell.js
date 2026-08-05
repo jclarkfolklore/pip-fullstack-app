@@ -2,6 +2,8 @@ import { h } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { goHome } from './router.js';
 import { mountDesktopSearchPanel, openMobileSearchOverlay } from './searchPanel.js';
+import { mountClu3Panel } from './clu3Panel.js';
+import { mountWeatherPanel } from './weatherPanel.js';
 import { THEMES, getTheme, setTheme } from '../lib/theme.js';
 
 function btn(name, { accent = false, extraClass = '', onClick, title }) {
@@ -53,9 +55,13 @@ export function buildShell() {
   ]);
 
   const consoleEl = h('div', { class: 'pip-console' }, [screen]);
+  const clu3Host = h('div', { class: 'pip-clu3-panel' });
   const controlsPanel = h('div', { class: 'pip-controls-panel' }, [controls]);
   const searchPanelHost = h('aside', { class: 'pip-search-panel' });
-  const sideCol = h('div', { class: 'pip-side' }, [controlsPanel, searchPanelHost]);
+  const weatherHost = h('div', { class: 'pip-wx-panel' });
+  // Desktop reading order: nav, Clu3, forecast, then search (which grows to
+  // fill whatever height is left). Mobile re-orders via CSS `order`.
+  const sideCol = h('div', { class: 'pip-side' }, [controlsPanel, clu3Host, weatherHost, searchPanelHost]);
   const layout = h('div', { class: 'pip-layout' }, [consoleEl, sideCol]);
 
   // Applied directly to the local reference (not via setTheme()'s
@@ -71,6 +77,11 @@ export function buildShell() {
     setCtx(ctx) {
       ctxHolder.current = ctx;
       mountDesktopSearchPanel(searchPanelHost, ctx);
+      // Clu3 and the forecast route via the router directly rather than
+      // through ctx, but they mount here so they land after the layout is in
+      // the document.
+      mountClu3Panel(clu3Host);
+      mountWeatherPanel(weatherHost);
     }
   };
 }
