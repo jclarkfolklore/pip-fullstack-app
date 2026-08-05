@@ -6,7 +6,25 @@
 //
 // Reference: https://open-meteo.com/en/docs (WMO Weather interpretation codes)
 
-const KINDS = ['clear', 'partly', 'cloudy', 'fog', 'drizzle', 'rain', 'snow', 'storm'];
+// Rain and snow keep their three WMO intensity grades rather than collapsing
+// to one kind each, and thunderstorms split by whether hail is falling — the
+// difference between light rain and a downpour, or a storm and a hailstorm,
+// is exactly what you want a glanceable icon to tell you.
+const KINDS = [
+  'clear',
+  'partly',
+  'cloudy',
+  'fog',
+  'drizzle',
+  'rainLight',
+  'rain',
+  'rainHeavy',
+  'snowLight',
+  'snow',
+  'snowHeavy',
+  'storm',
+  'hail'
+];
 
 const CODE_MAP = {
   0: { kind: 'clear', label: 'Clear' },
@@ -20,23 +38,26 @@ const CODE_MAP = {
   55: { kind: 'drizzle', label: 'Heavy drizzle' },
   56: { kind: 'drizzle', label: 'Freezing drizzle' },
   57: { kind: 'drizzle', label: 'Freezing drizzle' },
-  61: { kind: 'rain', label: 'Light rain' },
+  61: { kind: 'rainLight', label: 'Light rain' },
   63: { kind: 'rain', label: 'Rain' },
-  65: { kind: 'rain', label: 'Heavy rain' },
-  66: { kind: 'rain', label: 'Freezing rain' },
-  67: { kind: 'rain', label: 'Freezing rain' },
-  71: { kind: 'snow', label: 'Light snow' },
+  65: { kind: 'rainHeavy', label: 'Heavy rain' },
+  // Freezing rain has no icon of its own — it borrows the matching intensity
+  // and relies on the label to say "freezing". Worth splitting out if it ever
+  // matters more than the intensity does.
+  66: { kind: 'rainLight', label: 'Freezing rain' },
+  67: { kind: 'rainHeavy', label: 'Freezing rain' },
+  71: { kind: 'snowLight', label: 'Light snow' },
   73: { kind: 'snow', label: 'Snow' },
-  75: { kind: 'snow', label: 'Heavy snow' },
-  77: { kind: 'snow', label: 'Snow grains' },
-  80: { kind: 'rain', label: 'Showers' },
+  75: { kind: 'snowHeavy', label: 'Heavy snow' },
+  77: { kind: 'snowLight', label: 'Snow grains' },
+  80: { kind: 'rainLight', label: 'Light showers' },
   81: { kind: 'rain', label: 'Showers' },
-  82: { kind: 'rain', label: 'Heavy showers' },
-  85: { kind: 'snow', label: 'Snow showers' },
-  86: { kind: 'snow', label: 'Snow showers' },
+  82: { kind: 'rainHeavy', label: 'Violent showers' },
+  85: { kind: 'snowLight', label: 'Light snow showers' },
+  86: { kind: 'snowHeavy', label: 'Heavy snow showers' },
   95: { kind: 'storm', label: 'Thunderstorm' },
-  96: { kind: 'storm', label: 'Storm, hail' },
-  99: { kind: 'storm', label: 'Storm, hail' }
+  96: { kind: 'hail', label: 'Storm, hail' },
+  99: { kind: 'hail', label: 'Storm, heavy hail' }
 };
 
 const UNKNOWN = { kind: 'cloudy', label: 'Unknown' };

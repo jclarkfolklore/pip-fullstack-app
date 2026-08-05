@@ -903,13 +903,49 @@
   }
 }
 
+/* Travel is in viewBox units (12 wide). At +/-0.5 this was under a pixel on
+   screen and read as static — +/-1.5 is a visible slide while still staying
+   inside the viewBox for any sprite that's inset from the edges. Full-width
+   sprites (the main cloud) use bob instead, since they'd clip. */
 @keyframes pip-wx-drift {
   0%,
   100% {
-    transform: translateX(-0.5px);
+    transform: translateX(-1.5px);
   }
   50% {
-    transform: translateX(0.5px);
+    transform: translateX(1.5px);
+  }
+}
+
+@keyframes pip-wx-drift-rev {
+  0%,
+  100% {
+    transform: translateX(1.5px);
+  }
+  50% {
+    transform: translateX(-1.5px);
+  }
+}
+
+@keyframes pip-wx-bob {
+  0%,
+  100% {
+    transform: translateY(-0.6px);
+  }
+  50% {
+    transform: translateY(0.6px);
+  }
+}
+
+/* A hard on/off swing. Two ray sets alternating on this read as the sun
+   turning; a gentle opacity fade on both at once just looked still. */
+@keyframes pip-wx-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.08;
   }
 }
 
@@ -952,16 +988,36 @@
   animation: pip-wx-fall 3.4s linear infinite;
   animation-delay: -1.7s;
 }
+.pip-wx-fall-fast {
+  animation: pip-wx-fall 0.85s linear infinite;
+}
+.pip-wx-fall-fast-late {
+  animation: pip-wx-fall 0.85s linear infinite;
+  animation-delay: -0.42s;
+}
 .pip-wx-drift {
-  animation: pip-wx-drift 5s ease-in-out infinite;
+  animation: pip-wx-drift 4s ease-in-out infinite;
+}
+.pip-wx-drift-rev {
+  animation: pip-wx-drift-rev 5.5s ease-in-out infinite;
 }
 .pip-wx-drift-slow {
   animation: pip-wx-drift 8s ease-in-out infinite;
   animation-delay: -2s;
 }
-.pip-wx-drift-late {
-  animation: pip-wx-drift 5s ease-in-out infinite;
-  animation-delay: -2.5s;
+.pip-wx-bob {
+  animation: pip-wx-bob 3.2s ease-in-out infinite;
+}
+.pip-wx-bob-slow {
+  animation: pip-wx-bob 5s ease-in-out infinite;
+  animation-delay: -1.5s;
+}
+.pip-wx-blink {
+  animation: pip-wx-blink 2.2s ease-in-out infinite;
+}
+.pip-wx-blink-late {
+  animation: pip-wx-blink 2.2s ease-in-out infinite;
+  animation-delay: -1.1s;
 }
 
 /* The sun disc. Scaling from the shape's own centre, not the SVG origin —
@@ -979,7 +1035,7 @@
     transform: scale(1);
   }
   50% {
-    transform: scale(1.08);
+    transform: scale(1.16);
   }
 }
 .pip-wx-pulse {
@@ -1000,9 +1056,15 @@
   .pip-wx-fall-slow,
   .pip-wx-fall-late,
   .pip-wx-fall-slow-late,
+  .pip-wx-fall-fast,
+  .pip-wx-fall-fast-late,
   .pip-wx-drift,
+  .pip-wx-drift-rev,
   .pip-wx-drift-slow,
-  .pip-wx-drift-late,
+  .pip-wx-bob,
+  .pip-wx-bob-slow,
+  .pip-wx-blink,
+  .pip-wx-blink-late,
   .pip-wx-breathe,
   .pip-wx-pulse,
   .pip-wx-pulse-late,
