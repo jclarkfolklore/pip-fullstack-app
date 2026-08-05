@@ -509,35 +509,19 @@
     height: auto;
   }
 
-  /* The next two days were hidden outright on mobile, which is what left the
-     forecast panel looking half-empty — it's a 3-day forecast showing one
-     day. They're back, in a compact single-line form: day, art, temperatures.
-     The condition word drops; the icon already says it. */
-  .pip-wx-rest {
-    display: grid;
+  /* Today's card fills whatever height the panel has, so the forecast and
+     Clu3 read as a matched pair rather than one being visibly stunted.
+     (The rule hiding the other two days has to live in the later mobile
+     block — the base `.pip-wx-rest` declaration sits below this one in the
+     file, and a media query adds no specificity, so from here it would lose
+     on source order.) */
+  .pip-wx-body {
+    flex: 1 1 auto;
+    display: flex;
   }
-  .pip-wx-day {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 2px 6px;
-    padding: 6px 8px;
-  }
-  .pip-wx-day .pip-wx-dayname {
-    grid-column: 1 / -1;
-  }
-  .pip-wx-daylabel {
-    display: none;
-  }
-  .pip-wx-day .pip-wx-art {
-    width: 26px;
-    height: 26px;
-  }
-  .pip-wx-high {
-    font-size: 21px;
-  }
-  .pip-wx-low {
-    font-size: 14px;
+  .pip-wx-today {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }
 
@@ -898,24 +882,79 @@
    (same specificity, later source order) rather than being overridden by
    them. */
 @media (max-width: 859px) {
+  /* Every row the forecast gives up here is a row the work area gets, so the
+     today card is squeezed hard: the day name shares the stats row instead of
+     owning one, and the divider goes. Readability is preserved by keeping the
+     temperature large — that's the one number worth a glance. */
   .pip-wx-widget {
-    padding: 8px 10px 9px;
+    padding: 7px 9px 8px;
+    gap: 5px;
+  }
+  /* Today only below desktop. The forecast is the secondary panel here — it
+     shares a row (tablet) or the stack (mobile) with Clu3, and matching
+     Clu3's height matters more than a third day of lookahead. The full
+     3-day view is one breakpoint away. */
+  .pip-wx-rest {
+    display: none;
+  }
+
+  /* Clu3 and the forecast are a matched pair below desktop: one explicit
+     height for both. Left to their content they landed 9px apart, which is
+     close enough to look like a mistake rather than a choice — and stacked
+     flex siblings can't equalise themselves. Every pixel here is a pixel the
+     work area doesn't get, so this is deliberately tight. */
+  .pip-clu3-panel,
+  .pip-wx-panel {
+    height: 120px;
+  }
+  .pip-clu3-widget,
+  .pip-wx-widget {
+    height: 100%;
+    overflow: hidden;
   }
   .pip-wx-today {
-    padding: 7px 9px;
+    padding: 5px 8px;
+    gap: 2px;
+  }
+  /* Hide the day NAME, not the head row — the alert badge lives in there and
+     must survive. With its only visible child gone the row collapses to
+     nothing anyway. */
+  .pip-wx-today .pip-wx-dayname {
+    display: none;
+  }
+  .pip-wx-today-head {
+    justify-content: flex-end;
+  }
+  .pip-wx-today-main {
+    gap: 7px;
   }
   .pip-wx-art--lg {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
   }
   .pip-wx-today-temp {
-    font-size: 30px;
+    font-size: 28px;
   }
   .pip-wx-today-cond {
-    font-size: 14px;
+    font-size: 13px;
+  }
+  .pip-wx-today-stats {
+    padding-top: 0;
+    border-top: none;
   }
   .pip-wx-today-hl {
-    font-size: 15px;
+    font-size: 14px;
+  }
+  .pip-wx-aqi {
+    font-size: 13px;
+  }
+  .pip-wx-aqi-value {
+    font-size: 14px;
+  }
+  .pip-wx-updated,
+  .pip-clu3-updated {
+    font-size: 8px;
+    padding-top: 0;
   }
 }
 
@@ -1776,4 +1815,55 @@
 .pip-search-overlay .pip-search-widget {
   height: 100%;
   min-height: 0;
+}
+
+/* ===== tablet: Clu3 and the forecast share a row =====
+   Between phone and desktop there's width for two panels but not for a full
+   side column. `.pip-side` is already display:contents here (see the mobile
+   block), so its children are direct children of .pip-layout and a grid can
+   pair them — which flex couldn't do, since only two of the four siblings
+   should share a row.
+
+   Both panels keep their compact mobile forms; the point of compacting them
+   was to give the work area room, and side by side they cost one row instead
+   of two. Placed last so it wins over the max-width:859px rules above. */
+@media (min-width: 600px) and (max-width: 859px) {
+  .pip-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'clu3 wx'
+      'console console'
+      'nav nav';
+    /* The base rule centres items (it's a flex column elsewhere). Left as-is
+       that centres every panel inside its grid cell, which is what leaves
+       voids above and below the console instead of it filling the row. */
+    align-items: stretch;
+    justify-items: stretch;
+    align-content: stretch;
+  }
+  .pip-clu3-panel {
+    grid-area: clu3;
+    max-width: none;
+  }
+  .pip-wx-panel {
+    grid-area: wx;
+  }
+  .pip-console {
+    grid-area: console;
+    min-height: 0;
+  }
+  .pip-controls-panel {
+    grid-area: nav;
+    /* margin-top:auto pinned nav to the bottom of the mobile flex column;
+       in the grid its row already does that, and the margin would push it
+       out of its cell. */
+    margin-top: 0;
+  }
+  /* Equal-height panels, so a short forecast doesn't leave Clu3 floating. */
+  .pip-clu3-widget,
+  .pip-wx-widget {
+    height: 100%;
+  }
 }
