@@ -1,6 +1,7 @@
 import { marked } from 'marked';
 import { h, fmtDateTime } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
+import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listEntries, createEntry, updateEntry, deleteEntry, entryCount } from '../../api/journalRepo.js';
@@ -12,11 +13,13 @@ marked.setOptions({ breaks: true });
 
 export async function renderTile(ctx) {
   const { total } = await entryCount();
-  return h('button', { class: 'pip-tile', dataset: { widget: 'journal' }, onClick: (e) => ctx.open('journal', e.currentTarget) }, [
-    icon('book', { size: 20, className: 'pip-tile-icon' }),
-    h('div', { class: 'pip-tile-sub' }, total ? `${total} entr${total === 1 ? 'y' : 'ies'}` : 'nothing recorded'),
-    h('div', { class: 'pip-tile-label' }, 'JOURNAL')
-  ]);
+  return tile({
+    kind: 'journal',
+    glyph: 'bookLg',
+    label: 'JOURNAL',
+    sub: total ? `${total} entr${total === 1 ? 'y' : 'ies'}` : 'nothing recorded',
+    ctx
+  });
 }
 
 export function renderFull(ctx) {

@@ -1,5 +1,6 @@
 import { h } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
+import { tile } from '../../app/tile.js';
 import { THEMES, getTheme, setTheme, themeLabel, onThemeChange } from '../../lib/theme.js';
 import { getTone, setTone } from '../../api/clu3Repo.js';
 import { weatherSettings, searchPlaces, updateWeatherSettings } from '../../api/weatherRepo.js';
@@ -13,15 +14,13 @@ const TONES = [
 ];
 
 export async function renderTile(ctx) {
-  return h(
-    'button',
-    { class: 'pip-tile', dataset: { widget: 'settings' }, onClick: (e) => ctx.open('settings', e.currentTarget) },
-    [
-      icon('theme', { size: 20, className: 'pip-tile-icon' }),
-      h('div', { class: 'pip-tile-sub' }, `${themeLabel(getTheme())} theme`),
-      h('div', { class: 'pip-tile-label' }, 'SETTINGS')
-    ]
-  );
+  return tile({
+    kind: 'settings',
+    glyph: 'themeLg',
+    label: 'SETTINGS',
+    sub: `${themeLabel(getTheme())} theme`,
+    ctx
+  });
 }
 
 function card(title, children) {

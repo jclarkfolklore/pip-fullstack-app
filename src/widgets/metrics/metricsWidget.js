@@ -1,5 +1,6 @@
 import { h } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
+import { tile } from '../../app/tile.js';
 import { onChange } from '../../api/client.js';
 import { getMetrics } from '../../api/metricsRepo.js';
 
@@ -8,11 +9,13 @@ export const kind = 'metrics';
 export async function renderTile(ctx) {
   const metrics = await getMetrics();
   const total = metrics.last7DaysResolved.reduce((a, d) => a + d.resolved, 0);
-  return h('button', { class: 'pip-tile', dataset: { widget: 'metrics' }, onClick: (e) => ctx.open('metrics', e.currentTarget) }, [
-    icon('metrics', { size: 20, className: 'pip-tile-icon' }),
-    h('div', { class: 'pip-tile-sub' }, total ? `${total} resolved / 7d` : 'no activity yet'),
-    h('div', { class: 'pip-tile-label' }, 'METRICS')
-  ]);
+  return tile({
+    kind: 'metrics',
+    glyph: 'metricsLg',
+    label: 'METRICS',
+    sub: total ? `${total} resolved / 7d` : 'no activity yet',
+    ctx
+  });
 }
 
 function bar(label, value, max) {

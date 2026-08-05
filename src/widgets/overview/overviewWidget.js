@@ -1,5 +1,6 @@
 import { h } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
+import { tile } from '../../app/tile.js';
 import { onChange } from '../../api/client.js';
 import { stageCounts } from '../../api/inboxRepo.js';
 import { taskCounts } from '../../api/tasksRepo.js';
@@ -11,11 +12,13 @@ export const kind = 'overview';
 export async function renderTile(ctx) {
   const [inbox, tasks] = await Promise.all([stageCounts(), taskCounts()]);
   const openish = inbox.new + inbox.active + tasks.open + tasks.doing;
-  return h('button', { class: 'pip-tile', dataset: { widget: 'overview' }, onClick: (e) => ctx.open('overview', e.currentTarget) }, [
-    icon('link', { size: 20, className: 'pip-tile-icon' }),
-    h('div', { class: 'pip-tile-sub' }, openish ? `${openish} in motion` : 'all clear'),
-    h('div', { class: 'pip-tile-label' }, 'STATUS')
-  ]);
+  return tile({
+    kind: 'overview',
+    glyph: 'linkLg',
+    label: 'STATUS',
+    sub: openish ? `${openish} in motion` : 'all clear',
+    ctx
+  });
 }
 
 export function renderFull(ctx) {

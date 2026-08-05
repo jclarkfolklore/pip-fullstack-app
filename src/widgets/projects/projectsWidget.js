@@ -1,5 +1,6 @@
 import { h, showSheetError } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
+import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listProjects, createProject, updateProject, deleteProject } from '../../api/projectsRepo.js';
@@ -9,11 +10,13 @@ export const kind = 'projects';
 
 export async function renderTile(ctx) {
   const projects = await listProjects();
-  return h('button', { class: 'pip-tile', dataset: { widget: 'projects' }, onClick: (e) => ctx.open('projects', e.currentTarget) }, [
-    icon('folder', { size: 20, className: 'pip-tile-icon' }),
-    h('div', { class: 'pip-tile-sub' }, projects.length ? `${projects.length} active` : 'no projects yet'),
-    h('div', { class: 'pip-tile-label' }, 'PROJECTS')
-  ]);
+  return tile({
+    kind: 'projects',
+    glyph: 'folderLg',
+    label: 'PROJECTS',
+    sub: projects.length ? `${projects.length} active` : 'no projects yet',
+    ctx
+  });
 }
 
 export function renderFull(ctx) {

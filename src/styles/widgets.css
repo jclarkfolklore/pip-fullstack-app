@@ -61,24 +61,31 @@
   margin-bottom: 6px;
 }
 
+/* auto-fit rather than a hard 1fr 1fr: tiles are now icon-beside-text, which
+   needs real width. Two per row where there's room, one where there isn't —
+   a fixed two-column grid overflowed the screen on a phone. */
 .pip-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
   gap: 10px;
 }
 
+/* Glyph column on the left at full tile height, label + summary beside it.
+   Stacking them vertically (the old arrangement) meant the icon was small and
+   the label was an 8px pixel-font afterthought — neither survived a glance. */
 .pip-tile {
   position: relative;
   text-align: left;
   border-radius: 12px;
-  padding: 12px 10px 10px;
+  padding: 12px;
   background: rgba(255, 255, 255, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.35);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
   min-height: 92px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
   color: var(--lcd-ink);
 }
 
@@ -86,16 +93,37 @@
   opacity: 0.5;
 }
 
+.pip-tile-glyph {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+}
+
 .pip-tile-icon {
   display: block;
   color: var(--lcd-ink);
 }
 
+/* Centred against the glyph, and right-padded so a long summary can't run
+   under the badges. */
+.pip-tile-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding-right: 28px;
+}
+
 .pip-tile-label {
   font-family: var(--font-pixel);
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: 0.5px;
-  margin-top: 8px;
+  line-height: 1.2;
 }
 
 .pip-tile-badge {
@@ -136,7 +164,8 @@
 }
 
 .pip-tile-sub {
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.25;
   color: var(--lcd-ink-dim);
 }
 

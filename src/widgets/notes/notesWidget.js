@@ -1,6 +1,7 @@
 import { marked } from 'marked';
 import { h, fmtDate } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
+import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listNotes, createNote, updateNote, deleteNote, noteCounts, SOURCE_TYPES } from '../../api/notesRepo.js';
@@ -19,12 +20,14 @@ const SOURCE_LABEL = { manual: 'manual', chat: 'chat', monday: 'Monday', ado: 'A
 export async function renderTile(ctx) {
   const counts = await noteCounts();
   const badge = counts.pinned > 0 ? h('div', { class: 'pip-tile-badge' }, String(counts.pinned)) : null;
-  return h('button', { class: 'pip-tile', dataset: { widget: 'notes' }, onClick: (e) => ctx.open('notes', e.currentTarget) }, [
-    badge,
-    icon('note', { size: 20, className: 'pip-tile-icon' }),
-    h('div', { class: 'pip-tile-sub' }, counts.total ? `${counts.total} note${counts.total === 1 ? '' : 's'}` : 'nothing yet'),
-    h('div', { class: 'pip-tile-label' }, 'NOTES')
-  ]);
+  return tile({
+    kind: 'notes',
+    glyph: 'noteLg',
+    label: 'NOTES',
+    sub: counts.total ? `${counts.total} note${counts.total === 1 ? '' : 's'}` : 'nothing yet',
+    badges: [badge],
+    ctx
+  });
 }
 
 export function renderFull(ctx) {

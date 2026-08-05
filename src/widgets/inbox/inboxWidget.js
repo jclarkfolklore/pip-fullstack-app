@@ -1,6 +1,7 @@
 import { marked } from 'marked';
 import { h, fmtDate } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
+import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import {
@@ -49,16 +50,14 @@ export async function renderTile(ctx) {
     counts.deactivated > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--inactive' }, String(counts.deactivated)) : null,
     activeCount > 0 ? h('div', { class: 'pip-tile-badge' }, String(activeCount)) : null
   ].filter(Boolean);
-  return h(
-    'button',
-    { class: 'pip-tile', dataset: { widget: 'inbox' }, onClick: (e) => ctx.open('inbox', e.currentTarget) },
-    [
-      badges.length ? h('div', { class: 'pip-tile-badge-row' }, badges) : null,
-      icon('inbox', { size: 20, className: 'pip-tile-icon' }),
-      h('div', { class: 'pip-tile-sub' }, activeCount ? `${activeCount} in progress` : 'nothing pending'),
-      h('div', { class: 'pip-tile-label' }, 'INBOX')
-    ]
-  );
+  return tile({
+    kind: 'inbox',
+    glyph: 'inboxLg',
+    label: 'INBOX',
+    sub: activeCount ? `${activeCount} in progress` : 'nothing pending',
+    badges,
+    ctx
+  });
 }
 
 const STAGE_LABEL = { new: 'NEW', active: 'ACTIVE', resolved: 'RESOLVED', archived: 'ARCHIVED' };

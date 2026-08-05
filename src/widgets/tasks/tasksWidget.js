@@ -1,5 +1,6 @@
 import { h, fmtDate } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
+import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listTasks, createTask, setTaskStatus, deleteTask, taskCounts } from '../../api/tasksRepo.js';
@@ -14,12 +15,14 @@ export async function renderTile(ctx) {
   const counts = await taskCounts();
   const open = counts.open + counts.doing;
   const badge = open > 0 ? h('div', { class: 'pip-tile-badge' }, String(open)) : null;
-  return h('button', { class: 'pip-tile', dataset: { widget: 'tasks' }, onClick: (e) => ctx.open('tasks', e.currentTarget) }, [
-    badge,
-    icon('tasks', { size: 20, className: 'pip-tile-icon' }),
-    h('div', { class: 'pip-tile-sub' }, open ? `${open} open` : 'nothing due'),
-    h('div', { class: 'pip-tile-label' }, 'TASKS')
-  ]);
+  return tile({
+    kind: 'tasks',
+    glyph: 'tasksLg',
+    label: 'TASKS',
+    sub: open ? `${open} open` : 'nothing due',
+    badges: [badge],
+    ctx
+  });
 }
 
 // Ordered the way you actually read a board: what's underway, then what's
