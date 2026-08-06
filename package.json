@@ -20,7 +20,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:mutation": "node scripts/pip-mutation-check.js"
+    "test:mutation": "node scripts/pip-mutation-check.js",
+    "ingest:assets": "node scripts/pip-ingest-assets.js"
   },
   "devDependencies": {
     "css-loader": "^7.1.2",

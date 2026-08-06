@@ -50,6 +50,8 @@ quietly it breaks, and how expensive the damage is.
 | `activity_log`     | 6     | A missed log corrupts history permanently and invisibly.                          |
 | Search / snapshot  | 8     | Both drift silently when something new is added.                                  |
 | E2E                | 21    | Whether any of it actually works in a browser.                                    |
+| Asset ingest       | 8     | Idempotency a skill can only promise in prose.                                    |
+| Skills             | 7     | Whether a skill's claims are still true.                                          |
 
 ## Conventions
 
@@ -116,6 +118,28 @@ The runner in `server/db.js` was hardened instead:
 3. Indexes go in `SCHEMA_INDEXES`, which runs _after_ migrations.
 4. Never edit an applied migration — the checksum will warn, and two databases
    claiming the same version can end up different shapes.
+
+## Testing skills
+
+A skill is a prompt, so it can never be deterministic the way a function is —
+the model's interpretation is not testable. But most of what actually goes
+wrong with one isn't interpretation. It's the skill confidently referencing a
+script that was renamed, an endpoint that moved, or a snippet that stopped
+working, and those are all checkable. Two levers:
+
+**Move mechanical work into scripts.** Anything a skill describes step by step
+is work that drifts. `scripts/pip-ingest-assets.js` replaced roughly a page of
+prose about attaching and inlining images; the skill now says "run this", and
+`tests/ingest-assets.test.mjs` pins behaviour prose could only hope for —
+idempotency, validate-before-write, rejecting a caption that's just a filename.
+
+**Test the seam** (`tests/skills.test.mjs`). Every referenced path exists,
+every referenced endpoint is mounted, frontmatter matches the directory, and
+the JS snippets embedded in the markdown are _executed against fixtures_ — not
+merely parsed. That last one immediately caught a real bug in `ado-sync`: the
+discussion extractor called `d.replace(...)` without assigning the result, so
+every extracted comment kept its editor boilerplate. The snippet read correctly
+and had been wrong since it was written.
 
 ## Adding tests
 

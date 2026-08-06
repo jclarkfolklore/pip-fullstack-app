@@ -157,7 +157,7 @@ reference each image at the point it appeared:
 ```markdown
 ![State dropdown open — native option list renders at ~2x the site type scale](/api/attachments/<id>/raw)
 
-*State dropdown open — native option list renders at ~2x the site type scale*
+_State dropdown open — native option list renders at ~2x the site type scale_
 ```
 
 The `src` is `/api/attachments/<id>/raw`, returned as `src` on the attachment.
@@ -171,7 +171,7 @@ delete an attachment without also removing its inline reference, or the
 markdown points at nothing.
 
 **Caption by content, not filename.** `title` should say what the asset shows
-— *"Annotated mockup: revised CTA placement"* — never
+— _"Annotated mockup: revised CTA placement"_ — never
 `Screenshot_2026-04-16.png`. If the update body around the asset explains it,
 use that wording.
 
@@ -182,7 +182,7 @@ The update thread is monday's discussion, and on client boards it is frequently
 land as replies while the item's own fields go stale.
 
 Fold what matters into `detailsMd` under a `## Updates` heading, each entry
-attributed and dated (*"Corey Singleton, 2026-08-05: ..."*). Include anything
+attributed and dated (_"Corey Singleton, 2026-08-05: ..."_). Include anything
 that changes scope, priority, acceptance or ownership; skip acknowledgements
 and reaction-only replies.
 
@@ -191,7 +191,7 @@ than quietly preferring one. A ticket that disagrees with itself is exactly
 what the person doing the work needs to be told.
 
 Mentions of Key inside updates are already handled in step 3 — this is about
-capturing the surrounding thread as *context* on the item, not creating another
+capturing the surrounding thread as _context_ on the item, not creating another
 inbox entry for it.
 
 ### 5. Report

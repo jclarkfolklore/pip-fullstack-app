@@ -127,44 +127,35 @@ for (let k = 0; k < g.length; k++) {
 > Settings → Automatic downloads, or the address-bar icon). Never change that
 > setting yourself.
 
-Then attach each to the PIP task, reading the file from disk so the bytes never
-pass through the conversation:
+Then hand the files to **`scripts/pip-ingest-assets.js`**, which attaches them,
+places them inline and refuses to do either twice:
 
 ```bash
-node -e "
-const fs=require('fs');
-const b64=fs.readFileSync(process.argv[1]).toString('base64');
-fetch('http://127.0.0.1:4288/api/attachments',{method:'POST',headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({entityType:'task',entityId:'ado-<id>',kind:'image',data:b64,mime:'image/png',
-    title:'<what the image actually shows>',source:'ado'})}).then(r=>console.log(r.status));
-" ~/Downloads/pip-ado-<id>-1.png
+cat > /tmp/assets.json <<'JSON'
+[
+  {
+    "entityType": "task",
+    "entityId": "ado-183767",
+    "file": "/Users/key/Downloads/pip-ado-183767-1.png",
+    "title": "State dropdown open — native option list at ~2x the site type scale"
+  }
+]
+JSON
+node scripts/pip-ingest-assets.js --dry-run < /tmp/assets.json   # inspect first
+node scripts/pip-ingest-assets.js < /tmp/assets.json
 ```
 
-**Place them inline, where they sat upstream.** Attaching an image is only half
-the job — a PIP card should read like the source ticket, not like a wall of
-text with a gallery bolted underneath. After attaching, rewrite `detailsMd` to
-reference each image at the point it appeared:
+Use the script rather than posting to `/api/attachments` by hand. It reads
+bytes from disk (so images never pass through the conversation), is idempotent
+on (entity, caption) so a re-sync can't duplicate, validates every record
+before writing anything so a bad one can't half-ingest, and **rejects a caption
+that is just the filename**. Its behaviour is pinned by
+`tests/ingest-assets.test.mjs`; prose describing the same steps is not.
 
-```markdown
-![State dropdown open — native option list renders at ~2x the site type scale](/api/attachments/<id>/raw)
-
-*State dropdown open — native option list renders at ~2x the site type scale*
-```
-
-The `src` is `/api/attachments/<id>/raw`, returned as `src` on the attachment.
-The italic line under the image renders as its caption.
-
-The detail modal skips any attachment already referenced inline, so an inline
-image appears **once, in position** — while anything not referenced still shows
-in the gallery below. That's deliberate: an attachment that renders nowhere is
-a floating asset, which is the thing to avoid even when the row is valid. Never
-delete an attachment without also removing its inline reference, or the
-markdown points at nothing.
-
-**Caption them properly.** `title` must say what the image *shows*, not repeat
+**Caption them properly.** `title` must say what the image _shows_, not repeat
 the filename — "Screenshot 2026-04-16 at 10.16.21 AM.png" tells a future reader
-nothing. Look at the image and describe it: *"State dropdown rendering at ~2x
-the width of the adjacent Sort dropdown"*. If ADO has caption text near the
+nothing. Look at the image and describe it: _"State dropdown rendering at ~2x
+the width of the adjacent Sort dropdown"_. If ADO has caption text near the
 image, use that instead. Someone reading the PIP card should know which
 screenshot is which without opening all of them.
 
@@ -182,7 +173,7 @@ examples from this board:
 
 - QA re-testing and finding **only one of the two reported issues reproduces**
   — half the ticket evaporated in a comment.
-- QA pinning the true cause: *"tied to iOS 26, not iPhone 17 Pro hardware"* —
+- QA pinning the true cause: _"tied to iOS 26, not iPhone 17 Pro hardware"_ —
   which changes the entire test matrix.
 - A reporter pasting a **rewritten description** into a comment because the
   original was wrong. The body is stale; the comment is the real ticket.
@@ -195,14 +186,14 @@ const i = t.lastIndexOf('\nDiscussion\n');
 let d = i >= 0 ? t.slice(i + 12) : '';
 const j = d.indexOf('\nDetails\n');
 if (j >= 0) d = d.slice(0, j);
-d.replace(/Markdown supported\.|Paste or select files to insert\.|switch to HTML editor/g, '').trim();
+d = d.replace(/Markdown supported\.|Paste or select files to insert\.|switch to HTML editor/g, '').trim();
 ```
 
 Existing comments carry no distinctive CSS class — don't try to select them by
 class, slice the page text.
 
 Fold what matters into `detailsMd` under a `## Discussion` heading, attributed
-and dated (*"QA (Kyle Johnson), 2026-08-05: ..."*). Skip acknowledgements and
+and dated (_"QA (Kyle Johnson), 2026-08-05: ..."_). Skip acknowledgements and
 thanks; include anything that changes scope, reproduction, environment or
 priority. **Where a comment contradicts the description, say so explicitly**
 rather than silently preferring one — the person doing the work needs to know

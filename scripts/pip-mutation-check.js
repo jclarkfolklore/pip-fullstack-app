@@ -67,6 +67,30 @@ const MUTATIONS = [
     expect: 'tests/workflows.test.mjs'
   },
   {
+    name: 'asset ingest stops being idempotent',
+    guards: 'a re-sync silently duplicating every screenshot',
+    file: 'scripts/pip-ingest-assets.js',
+    find: 'if (seen.has(title)) {',
+    replace: 'if (false) {',
+    expect: 'tests/ingest-assets.test.mjs'
+  },
+  {
+    name: 'a caption that is just the filename is accepted',
+    guards: 'captions that tell a future reader nothing',
+    file: 'scripts/pip-ingest-assets.js',
+    find: 'problems.push(`[${i}] title is just the filename',
+    replace: 'void 0 && problems.push(`[${i}] title is just the filename',
+    expect: 'tests/ingest-assets.test.mjs'
+  },
+  {
+    name: "ado-sync's discussion extractor stops stripping editor boilerplate",
+    guards: 'QA comments arriving with UI chrome baked in',
+    file: '.claude/skills/ado-sync/SKILL.md',
+    find: 'd = d.replace(/Markdown supported',
+    replace: 'd = d.replace(/NOTHING_MATCHES_THIS',
+    expect: 'tests/skills.test.mjs'
+  },
+  {
     name: 'a failing migration is swallowed instead of aborting',
     guards: 'a half-applied migration recorded as complete',
     file: 'server/db.js',
