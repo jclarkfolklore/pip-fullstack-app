@@ -31,7 +31,13 @@
      inside (a URL, say) then gets its own horizontal scrollbar here rather
      than wrapping. The main display area should never scroll sideways. */
   overflow-x: hidden;
-  padding-right: 2px;
+  /* Room between the content and the scrollbar. At 2px the cards sat right
+     against the track and the column read as cramped; the scrollbar is 6px,
+     so this clears it with breathing space either side. */
+  padding-right: 14px;
+  /* Keep the gutter reserved whether or not the bar is showing, so content
+     doesn't shift horizontally the moment a list gets long enough to scroll. */
+  scrollbar-gutter: stable;
 }
 
 .pip-back {

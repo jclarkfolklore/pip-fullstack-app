@@ -2,6 +2,7 @@ import { h } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
 import { tile } from '../../app/tile.js';
 import { THEMES, getTheme, setTheme, themeLabel, onThemeChange } from '../../lib/theme.js';
+import { getNavVisible, setNavVisible } from '../../lib/navBar.js';
 import { getTone, setTone } from '../../api/clu3Repo.js';
 import { weatherSettings, searchPlaces, updateWeatherSettings } from '../../api/weatherRepo.js';
 
@@ -51,6 +52,7 @@ export function renderFull(ctx) {
     appearanceHost.innerHTML = '';
     appearanceHost.appendChild(
       card('Appearance', [
+        h('div', { class: 'pip-set-label' }, 'Theme'),
         h(
           'div',
           { class: 'pip-card-actions' },
@@ -67,7 +69,35 @@ export function renderFull(ctx) {
               themeLabel(name)
             )
           )
-        )
+        ),
+        // Desktop only — on a phone this same bar is the bottom tab bar and
+        // holds the only way into search, so it always stays.
+        h('div', { class: 'pip-set-label' }, 'Nav bar (desktop)'),
+        h('div', { class: 'pip-set-hint' }, 'Hidden by default to give Clu3, the forecast and search more room.'),
+        h('div', { class: 'pip-card-actions' }, [
+          h(
+            'button',
+            {
+              class: `pip-action-btn ${getNavVisible() ? 'pip-action-btn--primary' : 'pip-action-btn--ghost'}`,
+              onClick: () => {
+                setNavVisible(true);
+                renderAppearance();
+              }
+            },
+            'SHOWN'
+          ),
+          h(
+            'button',
+            {
+              class: `pip-action-btn ${!getNavVisible() ? 'pip-action-btn--primary' : 'pip-action-btn--ghost'}`,
+              onClick: () => {
+                setNavVisible(false);
+                renderAppearance();
+              }
+            },
+            'HIDDEN'
+          )
+        ])
       ])
     );
   }

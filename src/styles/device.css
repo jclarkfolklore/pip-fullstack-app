@@ -2174,3 +2174,19 @@ body.pip-is-static .pip-layout {
     animation: none;
   }
 }
+
+/* ===== nav panel visibility (desktop only) =====
+   Off by default: those four buttons cost a whole panel at the top of the
+   right column, and everything they do is reachable elsewhere — HOME from
+   each view's own back button, back/forward from the browser, theme from
+   Settings. Toggle in Settings; see lib/navBar.js.
+
+   Scoped to the desktop breakpoint on purpose. Below it the same markup is
+   the bottom tab bar and holds the ONLY route into search (the side panel is
+   hidden there and search opens as an overlay), so hiding it would strand
+   you. */
+@media (min-width: 860px) {
+  .pip-layout[data-nav='hidden'] .pip-controls-panel {
+    display: none;
+  }
+}

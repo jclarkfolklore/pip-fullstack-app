@@ -2,6 +2,7 @@ import { h } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { goHome } from './router.js';
 import { mountDesktopSearchPanel, openMobileSearchOverlay } from './searchPanel.js';
+import { getNavVisible } from '../lib/navBar.js';
 import { mountClu3Panel } from './clu3Panel.js';
 import { mountWeatherPanel } from './weatherPanel.js';
 import { THEMES, getTheme, setTheme } from '../lib/theme.js';
@@ -63,6 +64,9 @@ export function buildShell() {
   // fill whatever height is left). Mobile re-orders via CSS `order`.
   const sideCol = h('div', { class: 'pip-side' }, [controlsPanel, clu3Host, weatherHost, searchPanelHost]);
   const layout = h('div', { class: 'pip-layout' }, [consoleEl, sideCol]);
+  // Desktop nav panel is hidden unless switched on in Settings — see
+  // lib/navBar.js for why it's off by default and why mobile is exempt.
+  layout.dataset.nav = getNavVisible() ? 'shown' : 'hidden';
 
   // Applied directly to the local reference (not via setTheme()'s
   // document.querySelector) since `layout` isn't attached to the document
