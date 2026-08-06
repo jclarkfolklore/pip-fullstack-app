@@ -8,6 +8,9 @@ import { listNotes, createNote, updateNote, deleteNote, noteCounts, SOURCE_TYPES
 import { allTagNames } from '../../api/tagsRepo.js';
 import { listProjects } from '../../api/projectsRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
+import { openTicketModal } from '../../app/ticketModal.js';
+import { contentCard, contentGrid } from '../../app/contentCard.js';
+import { listAttachmentsForMany } from '../../api/attachmentsRepo.js';
 import { consumeHighlight, applyHighlight } from '../../lib/highlight.js';
 
 export const kind = 'notes';
@@ -130,67 +133,80 @@ export function renderFull(ctx) {
   }
 
   function card(note) {
-    const cardEl = h('div', { class: 'pip-card', dataset: { id: note.id } });
     const project = note.project_id ? projectsById[note.project_id] : null;
-    const sourceIcon = icon(SOURCE_ICON[note.source_type] || 'tag', { size: 11 });
-    const metaEl = h('div', { class: 'pip-card-meta' }, [
-      h('span', { class: 'pip-card-meta-source' }, [sourceIcon, ` ${SOURCE_LABEL[note.source_type] || note.source_type}`]),
-      project ? ` · ${project.name}` : '',
-      ` · ${fmtDate(note.updated_at)}`
-    ]);
-    if (note.source_url) {
-      metaEl.appendChild(h('a', { class: 'pip-card-source-link', href: note.source_url, target: '_blank', rel: 'noopener' }, [icon('link', { size: 10 }), ' open source']));
-    }
-    cardEl.append(
-      ...[
-        h('div', { class: 'pip-card-top' }, [
-          h('div', { class: 'pip-card-title', style: 'display:flex;align-items:center;gap:6px;' }, [
-            note.pinned ? icon('pin', { size: 11 }) : null,
-            note.title || '(untitled)'
-          ])
-        ]),
-        h('div', { class: 'pip-card-body', html: marked.parse(note.body_md || '') }),
-        note.tags.length ? h('div', { class: 'pip-tag-row' }, note.tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`))) : null,
-        metaEl,
-        h('div', { class: 'pip-card-actions' }, [
-          h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(note) }, 'EDIT'),
-          h(
-            'button',
-            { class: 'pip-action-btn pip-action-btn--ghost', onClick: async () => { await updateNote(note.id, { pinned: !note.pinned }); renderList(); } },
-            note.pinned ? 'UNPIN' : 'PIN'
-          ),
-          h(
-            'button',
-            {
-              class: 'pip-action-btn pip-action-btn--ghost',
-              onClick: async () => {
-                const ok = await confirmDestructive({
-                  title: 'Delete this note?',
-                  what: note.title || 'Untitled note',
-                  consequence: 'Notes are reference material with no archive stage — this is permanent and cannot be undone.',
-                  confirmLabel: 'DELETE NOTE'
-                });
-                if (!ok) return;
-                await collapseOut(cardEl);
-                await deleteNote(note.id);
-              }
-            },
-            'DELETE'
-          )
-        ])
-      ].filter(Boolean)
-    );
+    const metaBits = [
+      SOURCE_LABEL[note.source_type] || note.source_type,
+      project ? project.name : null,
+      fmtDate(note.updated_at)
+    ].filter(Boolean);
+
+    const cardEl = contentCard({
+      id: note.id,
+      lead: note.pinned
+        ? h('div', { class: 'pip-content-card-lead' }, [icon('pin', { size: 10 }), ' PINNED'])
+        : null,
+      title: note.title || '(untitled)',
+      bodyMd: note.body_md,
+      meta: metaBits.join(' · '),
+      tags: note.tags || [],
+      attachments: attachmentsById[note.id] || [],
+      dataset: { pinned: note.pinned ? 'true' : 'false' },
+      onOpen: () =>
+        openTicketModal(note, {
+          entityType: 'note',
+          extra: { project: project ? project.name : null, updated: fmtDate(note.updated_at) }
+        }),
+      actions: [
+        h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(note) }, 'EDIT'),
+        h(
+          'button',
+          {
+            class: 'pip-action-btn pip-action-btn--ghost',
+            onClick: async () => {
+              await updateNote(note.id, { pinned: !note.pinned });
+              renderList();
+            }
+          },
+          note.pinned ? 'UNPIN' : 'PIN'
+        ),
+        h(
+          'button',
+          {
+            class: 'pip-action-btn pip-action-btn--ghost',
+            title: 'Delete',
+            onClick: async () => {
+              const ok = await confirmDestructive({
+                title: 'Delete this note?',
+                what: note.title || 'Untitled note',
+                consequence:
+                  'Notes are reference material with no archive stage — this is permanent and cannot be undone. Any images attached to it are deleted too.',
+                confirmLabel: 'DELETE NOTE'
+              });
+              if (!ok) return;
+              await collapseOut(cardEl);
+              await deleteNote(note.id);
+              renderList();
+            }
+          },
+          [icon('close', { size: 9 })]
+        )
+      ]
+    });
     return cardEl;
   }
 
+  // Attachments for the whole page in one request — see listForMany.
+  let attachmentsById = {};
+
   async function renderList() {
     const items = await listNotes(filters);
+    attachmentsById = await listAttachmentsForMany('note', items.map((n) => n.id)).catch(() => ({}));
     listContainer.innerHTML = '';
     if (!items.length) {
       listContainer.appendChild(h('div', { class: 'pip-empty' }, [icon('note', { size: 24, className: 'pip-empty-glyph' }), h('div', {}, 'No notes yet.')]));
       return;
     }
-    const list = h('div', { class: 'pip-card-list' }, items.map(card));
+    const list = contentGrid(items.map(card));
     listContainer.appendChild(list);
     staggerIn(list.children);
 

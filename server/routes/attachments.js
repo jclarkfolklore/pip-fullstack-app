@@ -6,10 +6,17 @@ const router = express.Router();
 
 // Everything hanging off one entity.
 //   GET /api/attachments?entityType=task&entityId=ado-183767
+// `entityIds` (comma-separated) returns a map keyed by id instead — so a list
+// of cards can show thumbnails in one request rather than one per card.
 router.get('/', (req, res) => {
-  const { entityType, entityId } = req.query;
-  if (!entityType || !entityId) return res.status(400).json({ error: 'entityType and entityId are required' });
+  const { entityType, entityId, entityIds } = req.query;
+  if (!entityType) return res.status(400).json({ error: 'entityType is required' });
   try {
+    if (entityIds !== undefined) {
+      const ids = String(entityIds).split(',').map((s) => s.trim()).filter(Boolean);
+      return res.json(attachments.listForMany(entityType, ids));
+    }
+    if (!entityId) return res.status(400).json({ error: 'entityId or entityIds is required' });
     res.json(attachments.listFor(entityType, entityId));
   } catch (err) {
     res.status(400).json({ error: err.message });

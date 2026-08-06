@@ -6,6 +6,9 @@ import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listEntries, createEntry, updateEntry, deleteEntry, entryCount } from '../../api/journalRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
+import { openTicketModal } from '../../app/ticketModal.js';
+import { contentCard, contentGrid } from '../../app/contentCard.js';
+import { listAttachmentsForMany } from '../../api/attachmentsRepo.js';
 
 export const kind = 'journal';
 
@@ -85,38 +88,51 @@ export function renderFull(ctx) {
   }
 
   function card(entry) {
-    const cardEl = h('div', { class: 'pip-card' });
-    cardEl.append(
-      h('div', { class: 'pip-card-top' }, [h('div', { class: 'pip-card-meta' }, fmtDateTime(entry.created_at))]),
-      h('div', { class: 'pip-card-body', html: marked.parse(entry.body_md || '') }),
-      h('div', { class: 'pip-card-actions' }, [
+    const cardEl = contentCard({
+      id: entry.id,
+      // A journal entry has no title — the date IS its identity.
+      title: fmtDateTime(entry.created_at),
+      bodyMd: entry.body_md,
+      meta: entry.updated_at !== entry.created_at ? `edited ${fmtDateTime(entry.updated_at)}` : '',
+      attachments: attachmentsById[entry.id] || [],
+      onOpen: () =>
+        openTicketModal(entry, {
+          entityType: 'journal',
+          title: fmtDateTime(entry.created_at)
+        }),
+      actions: [
         h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(entry) }, 'EDIT'),
         h(
           'button',
           {
             class: 'pip-action-btn pip-action-btn--ghost',
+            title: 'Delete',
             onClick: async () => {
               const ok = await confirmDestructive({
                 title: 'Delete this journal entry?',
                 what: fmtDateTime(entry.created_at),
                 consequence:
-                  'Journal entries are your own written record — this one is gone permanently and cannot be recovered.',
+                  'Journal entries are your own written record — this one is gone permanently and cannot be recovered. Any images attached to it are deleted too.',
                 confirmLabel: 'DELETE ENTRY'
               });
               if (!ok) return;
               await collapseOut(cardEl);
               await deleteEntry(entry.id);
+              renderList();
             }
           },
-          'DELETE'
+          [icon('close', { size: 9 })]
         )
-      ])
-    );
+      ]
+    });
     return cardEl;
   }
 
+  let attachmentsById = {};
+
   async function renderList() {
     const items = await listEntries(filters);
+    attachmentsById = await listAttachmentsForMany('journal', items.map((e) => e.id)).catch(() => ({}));
     listContainer.innerHTML = '';
     if (!items.length) {
       listContainer.appendChild(
@@ -124,7 +140,7 @@ export function renderFull(ctx) {
       );
       return;
     }
-    const list = h('div', { class: 'pip-card-list' }, items.map(card));
+    const list = contentGrid(items.map(card));
     listContainer.appendChild(list);
     staggerIn(list.children);
   }
