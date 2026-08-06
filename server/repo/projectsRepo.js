@@ -10,11 +10,22 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function listProjects({ includeArchived = false } = {}) {
-  const rows = includeArchived
-    ? db.prepare('SELECT * FROM projects ORDER BY sort_order ASC, name ASC').all()
-    : db.prepare('SELECT * FROM projects WHERE archived = 0 ORDER BY sort_order ASC, name ASC').all();
-  return rows.map((p) => ({ ...p, counts: projectCounts(p.id) }));
+const STATUSES = ['open', 'closed'];
+
+// Closed projects are still listed by default — closing says the work is
+// finished, not that you never want to see it again. That's what `archived`
+// is for, and it stays the thing that hides a project.
+function listProjects({ includeArchived = false, status = null } = {}) {
+  const where = [];
+  const params = [];
+  if (!includeArchived) where.push('archived = 0');
+  if (status) {
+    where.push('status = ?');
+    params.push(status);
+  }
+  const sql = `SELECT * FROM projects ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+     ORDER BY status ASC, sort_order ASC, name ASC`;
+  return db.prepare(sql).all(...params).map((p) => ({ ...p, counts: projectCounts(p.id) }));
 }
 
 function projectCounts(projectId) {
@@ -25,7 +36,8 @@ function projectCounts(projectId) {
     .prepare("SELECT COUNT(*) AS n FROM tasks WHERE project_id = ? AND status != 'done'")
     .get(projectId).n;
   const notes = db.prepare('SELECT COUNT(*) AS n FROM notes WHERE project_id = ?').get(projectId).n;
-  return { inbox, tasks, notes };
+  const journal = db.prepare('SELECT COUNT(*) AS n FROM journal_entries WHERE project_id = ?').get(projectId).n;
+  return { inbox, tasks, notes, journal };
 }
 
 function getProject(id) {
@@ -48,19 +60,23 @@ function createProject({ name, color = 'default' } = {}) {
   return id;
 }
 
-function updateProject(id, { name, color, archived, sortOrder } = {}) {
+function updateProject(id, { name, color, archived, sortOrder, status } = {}) {
   const existing = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
   if (!existing) return null;
+  if (status !== undefined && !STATUSES.includes(status)) {
+    throw new Error(`status must be one of ${STATUSES.join(', ')}`);
+  }
   db.prepare(
-    'UPDATE projects SET name = ?, color = ?, archived = ?, sort_order = ? WHERE id = ?'
+    'UPDATE projects SET name = ?, color = ?, archived = ?, sort_order = ?, status = ? WHERE id = ?'
   ).run(
     name !== undefined ? name : existing.name,
     color !== undefined ? color : existing.color,
     archived !== undefined ? (archived ? 1 : 0) : existing.archived,
     sortOrder !== undefined ? sortOrder : existing.sort_order,
+    status !== undefined ? status : existing.status,
     id
   );
-  logEvent('project', id, 'project_updated', { name, color, archived, sortOrder });
+  logEvent('project', id, 'project_updated', { name, color, archived, sortOrder, status });
   return getProject(id);
 }
 
@@ -81,6 +97,7 @@ function findOrCreateByName(name) {
 }
 
 module.exports = {
+  STATUSES,
   listProjects,
   getProject,
   createProject,

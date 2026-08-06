@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
-const { SCHEMA_VERSION, SCHEMA_SQL, SEED_WIDGETS, SEED_PROJECTS, MIGRATIONS } = require('./schema');
+const { SCHEMA_VERSION, SCHEMA_SQL, SCHEMA_INDEXES, SEED_WIDGETS, SEED_PROJECTS, MIGRATIONS } = require('./schema');
 
 // The live database file lives in <repo-root>/data/pip.sqlite, tracked in
 // git alongside the code (this is a personal/private app, not shipped
@@ -61,6 +61,9 @@ function runMigrations() {
 db.exec(SCHEMA_SQL);
 seedIfEmpty();
 runMigrations();
+// After migrations, so an index can safely reference a column a migration
+// added. See the note on SCHEMA_INDEXES in schema.js.
+db.exec(SCHEMA_INDEXES);
 
 // PRAGMA data_version bumps whenever ANY connection to this file — including
 // Claude editing it directly with a separate script/CLI, entirely outside

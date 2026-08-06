@@ -4,13 +4,18 @@
 // file on disk (server/db.js opens it with better-sqlite3), plus a first-
 // class Project entity and a standalone Notes table.
 
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   color TEXT NOT NULL DEFAULT 'default',
+  -- open | closed. Distinct from the archived flag below: archiving hides
+  -- clutter, closing is a statement about the work, and a closed project
+  -- should still be browsable. (No backticks in here — SCHEMA_SQL is a
+  -- template literal and they would terminate it.)
+  status TEXT NOT NULL DEFAULT 'open',
   archived INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
@@ -77,6 +82,9 @@ CREATE TABLE IF NOT EXISTS notes (
 CREATE TABLE IF NOT EXISTS journal_entries (
   id TEXT PRIMARY KEY,
   body_md TEXT NOT NULL DEFAULT '',
+  -- Optional: the journal is a personal log first, but a project view that
+  -- can't surface its journal entries is missing half the story.
+  project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -103,7 +111,7 @@ CREATE TABLE IF NOT EXISTS clu3_messages (
 -- Stored files live under data/attachments/<entity_type>/<entity_id>/.
 CREATE TABLE IF NOT EXISTS attachments (
   id TEXT PRIMARY KEY,
-  entity_type TEXT NOT NULL CHECK (entity_type IN ('inbox','task','note','journal')),
+  entity_type TEXT NOT NULL CHECK (entity_type IN ('inbox','task','note','journal','project')),
   entity_id TEXT NOT NULL,
   kind TEXT NOT NULL CHECK (kind IN ('image','link')),
   rel TEXT,
@@ -114,6 +122,19 @@ CREATE TABLE IF NOT EXISTS attachments (
   bytes INTEGER,
   sort_order INTEGER NOT NULL DEFAULT 0,
   source TEXT NOT NULL DEFAULT 'manual',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS project_contacts (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  role TEXT,
+  org TEXT,
+  email TEXT,
+  handle TEXT,
+  notes_md TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
 );
 
@@ -154,7 +175,14 @@ CREATE TABLE IF NOT EXISTS app_meta (
   key TEXT PRIMARY KEY,
   value TEXT
 );
+`;
 
+// Indexes live apart from the table definitions because they run at a
+// different TIME: tables are created before migrations, indexes after.
+// An index on a column that a migration adds would otherwise fail on every
+// existing database — SCHEMA_SQL runs first, the column isn't there yet, and
+// because db.exec() takes the whole script, one failure aborts the rest.
+const SCHEMA_INDEXES = `
 CREATE INDEX IF NOT EXISTS idx_inbox_stage ON inbox_items(stage);
 CREATE INDEX IF NOT EXISTS idx_inbox_created ON inbox_items(created_at);
 CREATE INDEX IF NOT EXISTS idx_inbox_project ON inbox_items(project_id);
@@ -163,12 +191,15 @@ CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_notes_project ON notes(project_id);
 CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at);
 CREATE INDEX IF NOT EXISTS idx_journal_created ON journal_entries(created_at);
+CREATE INDEX IF NOT EXISTS idx_journal_project ON journal_entries(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_contacts ON project_contacts(project_id);
 CREATE INDEX IF NOT EXISTS idx_clu3_created ON clu3_messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_entity_tags_entity ON entity_tags(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_entity ON activity_log(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_occurred ON activity_log(occurred_at);
 `;
+
 
 // group_name buckets tiles on the dashboard grid — see GROUPS in
 // widgetRegistry.js for the display order/labels. Purely a layout
@@ -321,7 +352,65 @@ const MIGRATIONS = [
        )`,
       `CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type, entity_id)`
     ]
+  },
+  {
+    // Projects become first-class enough to hold their own context.
+    //
+    // `status` is open|closed. Kept separate from the existing `archived`
+    // flag: archiving is about hiding clutter, closing is a statement about
+    // the work itself, and a closed project should still be browsable.
+    //
+    // journal_entries gains an optional project_id. The journal was
+    // deliberately un-projected ("a personal log, not project work"), and
+    // that's still its default — but a project view that can't surface the
+    // journal entries about that project is missing the most useful half of
+    // the story. Optional, so an untagged entry still behaves as before.
+    //
+    // attachments' entity_type CHECK has to be rebuilt to admit 'project';
+    // SQLite can't ALTER a constraint in place.
+    version: 11,
+    statements: [
+      `ALTER TABLE projects ADD COLUMN status TEXT NOT NULL DEFAULT 'open'`,
+      `ALTER TABLE journal_entries ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_journal_project ON journal_entries(project_id)`,
+
+      `CREATE TABLE IF NOT EXISTS attachments_v11 (
+         id TEXT PRIMARY KEY,
+         entity_type TEXT NOT NULL CHECK (entity_type IN ('inbox','task','note','journal','project')),
+         entity_id TEXT NOT NULL,
+         kind TEXT NOT NULL CHECK (kind IN ('image','link')),
+         rel TEXT,
+         title TEXT,
+         url TEXT,
+         file_path TEXT,
+         mime TEXT,
+         bytes INTEGER,
+         sort_order INTEGER NOT NULL DEFAULT 0,
+         source TEXT NOT NULL DEFAULT 'manual',
+         created_at TEXT NOT NULL
+       )`,
+      `INSERT INTO attachments_v11 SELECT * FROM attachments`,
+      `DROP TABLE attachments`,
+      `ALTER TABLE attachments_v11 RENAME TO attachments`,
+      `CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type, entity_id)`,
+
+      // Stakeholders and key contacts, per project. Free-form `role` rather
+      // than an enum — job titles vary too much between clients to constrain.
+      `CREATE TABLE IF NOT EXISTS project_contacts (
+         id TEXT PRIMARY KEY,
+         project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+         name TEXT NOT NULL,
+         role TEXT,
+         org TEXT,
+         email TEXT,
+         handle TEXT,
+         notes_md TEXT,
+         sort_order INTEGER NOT NULL DEFAULT 0,
+         created_at TEXT NOT NULL
+       )`,
+      `CREATE INDEX IF NOT EXISTS idx_project_contacts ON project_contacts(project_id)`
+    ]
   }
 ];
 
-module.exports = { SCHEMA_VERSION, SCHEMA_SQL, SEED_WIDGETS, SEED_PROJECTS, MIGRATIONS };
+module.exports = { SCHEMA_VERSION, SCHEMA_SQL, SCHEMA_INDEXES, SEED_WIDGETS, SEED_PROJECTS, MIGRATIONS };
