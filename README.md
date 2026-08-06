@@ -87,17 +87,27 @@ inline and a rule down the side that reads as a timeline.
 
 ### Projects
 
-A project ties everything together. Opening one shows its stakeholders,
-links and images, and every related inbox item, task, note and journal entry —
-each opening its own detail view. There's a filter for narrowing once you're
-inside.
+A project is what ties everything else together — inbox items, tasks, notes
+and journal entries can all belong to one.
+
+![Projects](docs/screens/projects.png)
+
+Projects are **open** or **closed**. Closed ones sink to the bottom of the
+list and grey out entirely — desaturated rather than merely faded, so finished
+work reads as finished at a glance, while staying one click from reopening.
+That's deliberately distinct from archiving, which hides a project outright:
+closing is a statement about the work, not a wish to never see it again.
+
+Opening one shows everything about it — stakeholders, links and images, and
+every related item grouped by type, each opening its own detail view. There's
+a filter for narrowing once you're inside.
 
 ![Project detail](docs/screens/project-modal.png)
 
-Closed projects sink to the bottom of the list and grey out entirely —
-desaturated rather than merely faded, so finished work reads as finished at a
-glance. That's still distinct from archived, which hides them: closing is a
-statement about the work, not a wish to never see it again.
+That view reads from the project's own contents rather than the search index,
+on purpose: search answers *what matches these words*, this answers *what
+belongs here*, and a project whose items contain no matching text still has
+its work.
 
 ---
 
@@ -148,6 +158,29 @@ grades each of rain and snow, hail separate from thunderstorm. The preview
 proves the mapping is complete and that no layer is sitting static.
 
 ![Weather art and codes](docs/screens/weather-codes.png)
+
+---
+
+## Settings
+
+Theme, how much Clu3 talks, weather location and units, and a one-click
+`.sqlite` backup export.
+
+![Settings](docs/screens/settings.png)
+
+Two notes on what's here:
+
+The **nav bar is hidden by default on desktop.** Those four buttons cost a
+whole panel at the top of the right column, and everything they do is
+reachable elsewhere — HOME from each view's own back button, back/forward from
+the browser, theme from right here. The toggle is desktop-only and says so:
+on phones and tablets that same bar is the bottom tab bar and holds the only
+route into search, so it always stays.
+
+**Clu3's tone** is a real dial, not decoration — `sparse` speaks only when
+something matters, `chatty` keeps you company. It feeds the same rules engine
+that decides what Clu3 says, by filtering which observations are allowed to
+surface at all.
 
 ---
 

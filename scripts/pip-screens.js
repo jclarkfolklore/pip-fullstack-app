@@ -35,7 +35,7 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
   await go('#/dashboard');
   await shot('dashboard');
 
-  for (const view of ['tasks', 'notes', 'journal', 'projects']) {
+  for (const view of ['tasks', 'notes', 'journal', 'projects', 'settings']) {
     await go(`#/${view}`);
     await shot(view);
   }
