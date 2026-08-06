@@ -4,3 +4,4 @@ node_modules/
 server/public/
 data/pip.sqlite-wal
 data/pip.sqlite-shm
+snapshot/

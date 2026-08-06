@@ -4,7 +4,9 @@ import './styles/base.css';
 import './styles/device.css';
 import './styles/widgets.css';
 
+import { h } from './lib/dom.js';
 import { buildShell } from './app/shell.js';
+import { isStatic, staticInfo } from './api/client.js';
 import { mountDashboard } from './app/dashboard.js';
 import { navigateTo, goHome } from './app/router.js';
 import { clearHighlightNow } from './lib/highlight.js';
@@ -16,6 +18,28 @@ async function main() {
   // src/api/client.js's onChange) instead of an in-process pub/sub.
   const root = document.getElementById('pip-root');
   const { layout, app, setCtx } = buildShell();
+
+  // A snapshot looks exactly like the live app, which is precisely why it has
+  // to say it isn't. Buttons still respond; their writes are dropped. Without
+  // this banner that reads as the app being broken.
+  if (isStatic()) {
+    document.body.classList.add('pip-is-static');
+    const info = staticInfo() || {};
+    const when = info.generatedAt ? new Date(info.generatedAt) : null;
+    root.appendChild(
+      h('div', { class: 'pip-readonly-bar' }, [
+        h('span', { class: 'pip-readonly-tag' }, 'READ ONLY'),
+        h(
+          'span',
+          { class: 'pip-readonly-text' },
+          when
+            ? `Static snapshot of PIP — ${when.toLocaleString()}. Nothing here saves.`
+            : 'Static snapshot of PIP. Nothing here saves.'
+        )
+      ])
+    );
+  }
+
   root.appendChild(layout);
 
   const ctx = {

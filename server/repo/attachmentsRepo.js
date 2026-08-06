@@ -24,7 +24,7 @@ const path = require('path');
 const { db, DB_PATH } = require('../db');
 const { logEvent } = require('./activityRepo');
 
-const ENTITY_TYPES = ['inbox', 'task', 'note', 'journal'];
+const ENTITY_TYPES = ['inbox', 'task', 'note', 'journal', 'project'];
 const KINDS = ['image', 'link'];
 
 // Well-known link relationships, mostly so synced tickets can carry their
@@ -268,6 +268,7 @@ function deleteForEntity(entityType, entityId) {
 }
 
 const PARENT_TABLE = {
+  project: 'projects',
   inbox: 'inbox_items',
   task: 'tasks',
   note: 'notes',

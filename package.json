@@ -2,12 +2,14 @@
   "name": "pip-todo",
   "version": "0.3.0",
   "private": true,
-  "description": "PIP — a personal/team work-log dashboard. Full-stack: Express + SQLite backend, LED-pixel frontend.",
+  "description": "PIP \u2014 a personal/team work-log dashboard. Full-stack: Express + SQLite backend, LED-pixel frontend.",
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch",
     "dev": "webpack --mode development --watch & node server/index.js",
-    "server": "node server/index.js"
+    "server": "node server/index.js",
+    "snapshot": "node scripts/pip-snapshot.js",
+    "snapshot:deploy": "node scripts/pip-snapshot.js && npx --yes netlify-cli deploy --dir snapshot --prod"
   },
   "devDependencies": {
     "css-loader": "^7.1.2",
