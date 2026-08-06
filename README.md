@@ -10,6 +10,10 @@ work in is this one.
 
 ![PIP dashboard](docs/screens/dashboard.png)
 
+**[Live read-only snapshot →](https://pip-workspace-snapshot.netlify.app)**
+A static, point-in-time copy of the real workspace. Everything works —
+including search — but nothing saves, and it says so at the top.
+
 It's a real full-stack app — Express + better-sqlite3 on the backend, a
 webpack-bundled frontend talking to it over `fetch()` and Server-Sent Events.
 It replaced an earlier static/`file://`-only version specifically so Claude
@@ -89,9 +93,10 @@ inside.
 
 ![Project detail](docs/screens/project-modal.png)
 
-Closed projects stay listed but recede. That's distinct from archived, which
-hides them: closing is a statement about the work, not a wish to never see it
-again.
+Closed projects sink to the bottom of the list and grey out entirely —
+desaturated rather than merely faded, so finished work reads as finished at a
+glance. That's still distinct from archived, which hides them: closing is a
+statement about the work, not a wish to never see it again.
 
 ---
 
@@ -196,7 +201,9 @@ npm run snapshot:deploy   # build, then deploy to Netlify
 
 Produces a serverless, read-only copy that runs anywhere — for handing someone
 a link without standing up infrastructure. It's clearly labelled read-only,
-and nothing in it can write back.
+and nothing in it can write back. The current one is live at
+**[pip-workspace-snapshot.netlify.app](https://pip-workspace-snapshot.netlify.app)**;
+re-run the command to refresh it.
 
 It survives change because it doesn't reimplement the app: it runs the real
 bundle and captures the real API's responses. Search is the exception — a
