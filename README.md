@@ -1,196 +1,265 @@
-# PIP — a universal organization + work-log tool
+# PIP — a personal work operating system
 
-A personal/team dashboard for staying on top of things across multiple
-projects and workboards: an Inbox (triage lifecycle), Tasks, Notes
-(reference material), and Projects, plus a Metrics view built from a real
-work-history log. Styled as a pixelated, LED-lit device screen.
+A local-first dashboard that aggregates work from every system Key actually
+works in, and keeps a durable record of what happened. Styled as a pixelated,
+LED-lit device screen.
 
-This is a **full-stack app**: a real Express + SQLite server running
-locally, and a browser frontend that talks to it. It replaced an earlier
-static/file://-only version specifically so Claude could get direct, live
-access to the data.
+The underlying idea: treat **monday.com and Azure DevOps as datasources, not
+as the interface**. They stay the system of record; the surface you actually
+work in is this one.
 
-If you're working on this with Claude Code, it reads `CLAUDE.md` at this
-repo's root automatically — commands, architecture, conventions, and how it
-should interact with the running app all live there. This README is the
-human-facing tour; `CLAUDE.md` is the agent-facing one. (For a Claude
-session without local shell access to this machine — e.g. cloud Cowork —
-see `docs/CLAUDE-INTEGRATION.md` instead.)
+![PIP dashboard](docs/screens/dashboard.png)
+
+It's a real full-stack app — Express + better-sqlite3 on the backend, a
+webpack-bundled frontend talking to it over `fetch()` and Server-Sent Events.
+It replaced an earlier static/`file://`-only version specifically so Claude
+could get direct, live access to the data.
+
+If you're working on this with Claude Code, it reads `CLAUDE.md` automatically
+— commands, architecture, conventions, and how it should interact with the
+running app all live there. This README is the human-facing tour.
+
+---
 
 ## Running it
 
-First time only:
-
-```
-npm install
-```
-
-Then either:
-
-- **One-off**: `npm run server`, then open `http://127.0.0.1:4288` in a
-  browser.
-- **Always on (recommended)**: install the LaunchAgent so it starts on
-  login and restarts itself if it ever crashes:
-  ```
-  cp scripts/com.folklore.pip.plist ~/Library/LaunchAgents/
-  launchctl load ~/Library/LaunchAgents/com.folklore.pip.plist
-  ```
-  After that, `http://127.0.0.1:4288` is just always there. Bookmark it.
-
-If you change the frontend source and want the build to update:
-`npm run build` (one-off) or `npm run watch` (rebuilds on save).
-
-## What's actually in here
-
-```
-server/            the backend — Express + better-sqlite3
-  index.js         entrypoint: binds 127.0.0.1 only, serves the built
-                    frontend, mounts the API, starts the drops watcher
-  db.js            opens data/pip.sqlite (WAL mode), runs schema + migrations
-  schema.js         the data model — table definitions + migrations
-  repo/             one file per entity — projects, inbox, tasks, notes,
-                    tags, activity, search, layout. Routes call these,
-                    never raw SQL directly.
-  routes/           REST endpoints, one file per resource, + events.js (SSE)
-  dropsWatcher.js   auto-imports data/drops/*.md every few seconds
-  lib/frontmatter.js  minimal YAML-frontmatter parser (CommonJS twin of
-                       src/lib/frontmatter.js — Node backend vs. bundled
-                       frontend can't share an ESM module directly)
-  public/           built frontend lands here (webpack output) — gitignored
-
-src/                frontend source
-  index.js          boots the app, mounts the shell
-  api/              fetch-based client — one file per entity, mirrors
-                     server/repo/ function names. client.js also owns the
-                     shared SSE connection (onChange) that makes the UI
-                     live-refresh.
-  app/
-    shell.js        console chrome — screen, status bar, bottom nav
-    dashboard.js    home-screen grid + tile↔full-view transitions
-    widgetRegistry.js  maps a widget "kind" to its module
-    searchPanel.js  cross-entity search — desktop side panel + mobile overlay
-  widgets/          one folder per widget: inbox/, tasks/, notes/,
-                     projects/, metrics/, overview/
-  lib/              dom helpers, animejs helpers, frontmatter parser, the
-                     pixel icon system
-
-data/               tracked in git (personal/private app — see CLAUDE.md)
-  pip.sqlite         the real, live database
-  drops/             drop .md files here — auto-imported, no button needed
+```bash
+npm install       # once — better-sqlite3 is a native addon
+npm run server    # http://127.0.0.1:4288
 ```
 
-The data model (`server/`) doesn't know the UI exists, and the UI
-(`src/widgets/`, `src/app/`) never writes SQL — it calls the fetch-based
-`src/api/` client, which mirrors the server's `repo/` functions. That split
-is what makes it safe to keep reshaping either side without risking the
-other.
+Then either bookmark it, or install the LaunchAgent so it's always up:
+
+```bash
+cp scripts/com.folklore.pip.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.folklore.pip.plist
+```
+
+Frontend changes need `npm run build` (or `npm run watch`).
+
+---
 
 ## The five entities
 
-- **Inbox** — things to triage. Lifecycle: **new → active → resolved →
-  archived** (with a reopen path back). Resolving can spawn any number of
-  linked Tasks. Carries tags, a project, a markdown body, and a source
-  (see below).
-- **Tasks** — status: **open → doing → done**. Can belong to a project,
-  and can trace back to the inbox item they were decomposed from.
-- **Notes** — plain reference material. No lifecycle — just create, edit,
-  pin, delete. For the "store notes and whatnot" use case that doesn't fit
-  a triage flow.
-- **Journal** — a personal work journal: free-form, dated entries for
-  recording experiences, interactions, or reflections. No title, no
-  lifecycle, not tied to a project — distinct from Notes (reference
-  material).
-- **Projects** — first-class, not just a tag. Everything above (except
-  Journal) can optionally belong to one; a Projects widget shows counts
-  per project. Deleting a project un-assigns its items rather than
-  deleting them.
+The distinction between them is the whole point.
 
-Inbox/Tasks/Notes share one tag system (`entity_tags`) and one
-cross-entity search. Journal entries aren't tagged or searched alongside
-them — they're a private log, not work content to triage or reference.
+| Entity | What belongs here | Lifecycle |
+|---|---|---|
+| **Inbox** | Anything needing triage | new → active → resolved → archived |
+| **Tasks** | Concrete work with a definition of done | open → doing → done |
+| **Notes** | Reference material, disconnected blurbs | none |
+| **Journal** | A dated work log, written as the day goes | none — read in sequence |
+| **Projects** | What everything else can belong to | open / closed |
 
-## Multi-source ingestion
+If you're unsure between Notes and Journal: a **note** is something you'll go
+looking for later; a **journal entry** is something you'll read in order.
 
-Every inbox item and note carries a `source_type` — `manual`, `chat`,
-`monday`, `ado`, `email`, `screenshot` — which drives its pixel icon and
-feeds the Metrics "by source" breakdown, plus an optional `source_url` that
-renders as a clickable "open source" link on the card.
+### Tasks
 
-The **drops** folder (`data/drops/`) is how Claude turns something you hand
-it — a Monday item, an ADO work item, a screenshot, an email, or you just
-describing something in chat — into a real Inbox item or Note: Claude
-writes a small markdown file with frontmatter, and the running server
-auto-imports it within a few seconds. No button, no manual step. See
-`data/drops/README.md` for the exact format.
+Grouped the way you actually read a board — in progress, then queued, then
+history. Done collapses by default because it's the biggest group and the
+least actionable. Synced tickets lead with their number, linked back upstream.
 
-For anything beyond creating a new item — resolving something, changing a
-status, correcting a typo, bulk cleanup — Claude edits `data/pip.sqlite`
-directly. It's a real SQLite file; see `docs/CLAUDE-INTEGRATION.md`.
+![Tasks](docs/screens/tasks.png)
 
-## Work log & Metrics
+Clicking a card opens the full ticket: upstream description, acceptance
+criteria, metadata, images and links.
 
-Every meaningful state change is appended to `activity_log` — separate from
-the mutable "current state" columns, so it survives an item's state
-changing again later. That's the basis for Metrics:
+![Task detail](docs/screens/task-modal.png)
 
-- resolved-per-day bar chart, last 7 days
-- average time-to-resolve (from the log, not an overwritable column)
-- current inbox/task/note snapshot counts
-- breakdown by project and by source type
-- top tags
+### Notes and Journal
 
-Intentionally a first pass, not a finished analytics suite — the natural
-place to grow as more kinds of data flow in.
+Notes are cards with a clamped preview and a detail modal — they're
+disconnected things you scan for one item.
+
+![Notes](docs/screens/notes.png)
+
+The Journal is deliberately **not** cards. It's written as the day goes and
+reviewed in sequence, so entries stack chronologically with their full text
+inline and a rule down the side that reads as a timeline.
+
+![Journal](docs/screens/journal.png)
+
+### Projects
+
+A project ties everything together. Opening one shows its stakeholders,
+links and images, and every related inbox item, task, note and journal entry —
+each opening its own detail view. There's a filter for narrowing once you're
+inside.
+
+![Project detail](docs/screens/project-modal.png)
+
+Closed projects stay listed but recede. That's distinct from archived, which
+hides them: closing is a statement about the work, not a wish to never see it
+again.
+
+---
+
+## Clu3
+
+The companion in the top right. Not a chatbot — it reflects real workspace
+state through a deterministic rules engine over real signals, with no LLM in
+the render loop. If it looks alarmed, something actually is overdue.
+
+![Clu3](docs/screens/clu3-panel.png)
+
+Clu3 performs from a **121-pose sprite sheet**. The pipeline is deliberately
+two stages so it stays tunable: extraction produces raw indexed grids, and a
+separate style filter maps them into the app's palette. The raw data is
+committed, so the look can be re-tuned without re-extracting.
+
+Every pose has a stable reference number. Clicking one shows every sequence it
+appears in.
+
+![Clu3 sprite sheet](docs/screens/clu3-poses.png)
+
+Meaning is a graph, not a lookup. 35 authored combos each carry a **weighted
+web of associations** rather than one fixed label, so the same run reads
+differently depending on context.
+
+![Clu3 combos](docs/screens/clu3-combos.png)
+
+Those combos double as training data: per-pose meaning and frame adjacency are
+*derived* from them, which lets Clu3 **improvise sequences nobody authored**.
+Above that sits a narrative layer that shapes performances into arcs with a
+setup, a turn, and a landing — some deliberately unresolved, because a problem
+doesn't go away just because Clu3 finished emoting about it.
+
+![Clu3 sequencer](docs/screens/clu3-sequencer.png)
+
+---
+
+## Weather
+
+Open-Meteo plus NWS alerts and air quality — all free, no API keys. Today
+shows **current** conditions (distinct from the daily forecast), high/low, and
+AQI. Active alerts get a counted badge.
+
+![Weather](docs/screens/weather-panel.png)
+
+**13 drawn conditions** cover all 28 WMO codes the API can return — three
+grades each of rain and snow, hail separate from thunderstorm. The preview
+proves the mapping is complete and that no layer is sitting static.
+
+![Weather art and codes](docs/screens/weather-codes.png)
+
+---
 
 ## Search
 
-One implementation (`src/app/searchPanel.js` + `server/repo/searchRepo.js`,
-via `GET /api/search`), mounted two ways: an always-visible panel on the
-right at ≥860px viewport width, or a full-screen overlay on mobile opened
-via the bottom-nav search icon. Searches inbox items, tasks, notes, and
-tags in one unified list. Known limitation: a result opens the right widget
-but doesn't yet deep-link to that specific card.
+One box, covering Inbox, Tasks, Notes, Journal and tags. Results carry a type
+chip — four entity types share one list, and a note and an inbox item are
+otherwise indistinguishable by title alone. Clicking a result deep-links to
+that exact card.
 
-## Visual design: pixel icons, no emoji, unbounded LED screen
+---
 
-Every glyph — nav buttons, tile icons, source badges — is a hand-authored
-8×8 pixel icon (`src/lib/icons.js`), rendered as SVG rather than emoji.
-Custom-built rather than an actual "Carbon" icon pack, for licensing/fit
-reasons; swapping is a one-file change if you'd rather use a real pack.
+## Syncing
 
-The screen is unbounded — no device bezel/shell — and responsive: a single
-column with the screen on top and a bottom icon-button nav bar below 860px,
-becoming a row with a search side panel on the right at ≥860px. Aspect
-ratio is 4:3 below that breakpoint and true 16:9 at/above it (16:9 at every
-width would letterbox down to a cramped strip on a typical phone) — a
-one-line change in `src/styles/device.css` if you'd rather have strict 16:9
-everywhere.
+```
+/ado-sync        pull assigned Azure DevOps work items
+/monday-sync     pull monday items and mentions
+```
 
-## Live refresh
+Both **pull by default**. Pushing back is visible to colleagues and clients,
+so it requires explicit per-change confirmation.
 
-The frontend holds one shared Server-Sent Events connection
-(`GET /api/events`). The server polls SQLite's own `PRAGMA data_version` —
-which changes on ANY commit to the file, from any process — and pushes a
-refresh signal to every open tab. This is what makes the UI update live
-when Claude edits the database directly, with no reload needed.
+Every synced item carries its **ticket number and a link back** — enforced in
+`scripts/pip-upsert.js`, which refuses records missing them, because a ticket
+you can't navigate back to is a dead end. Upstream description and acceptance
+criteria land in a separate field from your own notes, so a re-sync can never
+overwrite what you wrote.
 
-## Backups
+---
 
-**EXPORT BACKUP .sqlite** at the bottom of the dashboard downloads a
-timestamped copy of the live database (flushing the WAL first, so it's a
-complete, openable-anywhere file) — for whenever you want a point-in-time
-backup, separate from the live `data/pip.sqlite`.
+## Attachments
 
-## Theming
+Images and links attach to any entity. Links carry a relationship
+(design / testing / spec / source), so a ticket's design links are
+first-class rather than buried in prose. Images can be uploaded or fetched;
+anything behind auth — most monday and ADO attachments — degrades to a link
+with the reason recorded rather than rendering broken.
 
-Tap the theme icon in the bottom nav to cycle screen tints (sage → amber →
-mono → night). CSS custom properties in `src/styles/variables.css` — add a
-`[data-theme='name']` block there to add one.
+The parent reference is polymorphic, so SQLite can't cascade the delete.
+Cleanup is therefore explicit and deliberate: files are stored per-entity so
+removal is one directory, every delete path calls `deleteForEntity()`, and
+`sweepOrphans()` catches the rest.
 
-## This is meant to evolve
+---
 
-Nothing here is precious. Tell Claude what's missing or wrong about how you
-actually use it, and it'll reshape the relevant widget/table — hand it a
-Monday item, an ADO work item, a screenshot, an email, or a rough note in
-chat, and it can turn that into a drop file and/or extend the app if the
-current widgets don't already fit.
+## Sharing a static snapshot
+
+```bash
+npm run snapshot          # build -> ./snapshot
+npm run snapshot:deploy   # build, then deploy to Netlify
+```
+
+Produces a serverless, read-only copy that runs anywhere — for handing someone
+a link without standing up infrastructure. It's clearly labelled read-only,
+and nothing in it can write back.
+
+It survives change because it doesn't reimplement the app: it runs the real
+bundle and captures the real API's responses. Search is the exception — a
+query can't be captured as a fixed response — so the snapshot ships the
+server's own shaped search index and filters it in the browser.
+
+---
+
+## Responsive
+
+The companion panels compact below desktop, because the work area is the point
+of the screen. On tablet they share a row; on mobile they stack.
+
+<p align="center">
+  <img src="docs/screens/mobile.png" width="30%" alt="Mobile">
+  <img src="docs/screens/tablet.png" width="45%" alt="Tablet">
+</p>
+
+---
+
+## Standards that keep the data trustworthy
+
+- **Everything on screen is real.** No estimated, padded or placeholder
+  numbers, anywhere. If something can't be known, it says so.
+- **Every mutation goes through the API**, never raw SQL — that's the only
+  path that writes `activity_log`, which Metrics is derived from.
+- **Schema changes go through `MIGRATIONS`** in `server/schema.js`.
+- **Destructive actions confirm first**, and say what is actually lost.
+- **No emoji anywhere** — every glyph is hand-authored pixel art.
+
+---
+
+## Layout
+
+```
+server/            Express + better-sqlite3
+  schema.js        the data model — tables, indexes, migrations
+  repo/            one file per entity; the only layer touching SQL
+  routes/          REST endpoints + events.js (SSE)
+  clu3/            Clu3's signals, rules and decision engine
+  weather/         Open-Meteo + NWS + air quality
+src/
+  api/             fetch client, mirrors server/repo. Static mode lives here.
+  app/             shell, dashboard, modals, panels
+  widgets/         one folder per widget
+  lib/             dom helpers, pixel icons, sprite engine, Clu3's art + brain
+scripts/           sync upsert, snapshot, screenshots
+data/              pip.sqlite, drops/, attachments/  (tracked in git)
+docs/              CLU3.md, CLAUDE-INTEGRATION.md, screens/
+```
+
+`docs/CLU3.md` covers the companion in depth. `docs/CLAUDE-INTEGRATION.md` is
+for a Claude session without shell access to this machine.
+
+---
+
+## Known gaps
+
+Tracked honestly rather than quietly:
+
+- **Insights (Metrics, Status) need a graphic-first pass.** They're numbers in
+  a list. Tracked as an inbox item.
+- **No automated test suite.** Verification is by running the app and
+  exercising it.
+- **Attachments have no upload UI yet** — the API is complete and used, but
+  adding one means the API or a drop file.

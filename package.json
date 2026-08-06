@@ -9,12 +9,14 @@
     "dev": "webpack --mode development --watch & node server/index.js",
     "server": "node server/index.js",
     "snapshot": "node scripts/pip-snapshot.js",
-    "snapshot:deploy": "node scripts/pip-snapshot.js && npx --yes netlify-cli deploy --dir snapshot --prod"
+    "snapshot:deploy": "node scripts/pip-snapshot.js && npx --yes netlify-cli deploy --dir snapshot --prod",
+    "screens": "node scripts/pip-screens.js"
   },
   "devDependencies": {
     "css-loader": "^7.1.2",
     "html-webpack-plugin": "^5.6.3",
     "mini-css-extract-plugin": "^2.9.2",
+    "playwright-core": "^1.62.1",
     "webpack": "^5.95.0",
     "webpack-cli": "^5.1.4"
   },
