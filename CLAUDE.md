@@ -29,9 +29,29 @@ npm run watch      # rebuild frontend on save (no server)
 npm run server     # start the backend at http://127.0.0.1:4288
 ```
 
-There is no automated test suite in this repo yet. Verify changes by
-running the server and exercising it directly (curl the API, open the URL,
-or write a throwaway Playwright script) — don't assume `npm test` exists.
+```
+npm test           # unit + integration, ~1s, no browser or build needed
+npm run test:e2e   # real browser against a real server (build first)
+npm run lint       # correctness only; Prettier owns formatting
+npm run format     # apply Prettier
+npm run test:all   # lint + format:check + unit + e2e
+```
+
+**Run `npm test` after any change to `server/` or `src/lib/`.** It's fast
+enough to run constantly. Run `npm run test:e2e` before committing UI work.
+
+See `docs/TESTING.md` for what's covered and why. Three things worth knowing
+before you write a test here:
+
+- Tests run against **real SQLite** via `PIP_DB_PATH`, never mocks — the bugs
+  worth catching are in migrations, CHECK constraints and cascade behaviour,
+  and a mock reproduces all three incorrectly.
+- **Never assert art.** Structure (grids rectangular, every mood drawable) is
+  fair game; appearance is not.
+- If you fix a bug, add a matching entry to `scripts/pip-mutation-check.js`.
+  `npm run test:mutation` breaks the code deliberately and fails if the suite
+  stays green — it caught a test of mine that was passing for the wrong
+  reason.
 
 ## Repository layout
 
@@ -139,10 +159,13 @@ transient and gitignored; only the main `.sqlite` file is tracked.
   rely solely on the SSE round-trip, which has a small poll interval
   (`server/routes/events.js`).
 - **Schema changes** go through `MIGRATIONS` in `server/schema.js`
-  (`{version, statements[]}`, each statement wrapped so a partial/re-run
-  migration doesn't crash boot) plus a `SQLITE_VERSION`/`SCHEMA_VERSION`
-  bump — don't hand-edit the live `data/pip.sqlite` schema without a
-  matching migration entry, or a fresh database won't match.
+  (`{version, statements[]}`) plus a `SCHEMA_VERSION` bump, AND a matching
+  update to `SCHEMA_SQL` so fresh databases get the same shape. Indexes belong
+  in `SCHEMA_INDEXES`, which runs _after_ migrations — an index on a
+  migration-added column in `SCHEMA_SQL` breaks every existing database while
+  passing on a fresh one. Migrations apply in a transaction and abort on any
+  error that isn't a known idempotent no-op; never edit one that's already
+  applied. See `docs/TESTING.md`.
 
 ## Interacting with the running app
 

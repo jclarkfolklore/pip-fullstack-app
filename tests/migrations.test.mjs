@@ -155,13 +155,29 @@ test('existing rows survive migration', () => {
   }
 });
 
+// A database where journal_entries ALREADY EXISTS without project_id — i.e.
+// any real v10 install. This distinction matters: with no journal_entries at
+// all, SCHEMA_SQL's CREATE TABLE IF NOT EXISTS creates it complete, the index
+// succeeds, and the test passes for the wrong reason. Caught by
+// scripts/pip-mutation-check.js, which is exactly what that script is for.
+const V10_SQL =
+  V1_SQL +
+  `CREATE TABLE journal_entries (
+     id TEXT PRIMARY KEY, body_md TEXT NOT NULL DEFAULT '',
+     created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+   );`;
+
 test('indexes are created after migrations, not before', () => {
   // Direct regression test for today's startup bug: idx_journal_project
-  // references a column that migration v11 adds. If indexes ran with the
-  // table definitions, booting a pre-v11 database would throw here.
-  const ctx = dbAtVersion(V1_SQL, 1);
+  // references a column that migration v11 adds. Booting a database whose
+  // journal_entries predates that column must still work.
+  const ctx = dbAtVersion(V10_SQL, 10);
   try {
     const { db } = ctx.migrate();
+    assert.ok(
+      columnsOf(db, 'journal_entries').includes('project_id'),
+      'the migration added the column the index needs'
+    );
     const idx = db
       .prepare("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%'")
       .all()

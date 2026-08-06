@@ -191,10 +191,25 @@ Appended as work lands. `-` pending, `~` in progress, `x` done.
         **Phase 2 total: 32 tests.**
 - [ ] Phase 3 — workflows
 - [ ] Phase 4 — pure logic
-- [ ] Phase 5 — migration hardening
-- [ ] Phase 6 — E2E
-- [ ] Phase 7 — lint/format
-- [ ] Phase 8 — quality gate
+- [x] Phase 3 — workflows (10 tests)
+- [x] Phase 4 — pure logic: Clu3 engine (17), search parity + snapshot drift +
+      frontmatter (8). **Exposed a 4th real bug**: clu3Quantize's JSON import
+      lacked the spec-required `with { type: 'json' }`. Webpack tolerates its
+      absence, so the module simply could not load outside the bundler.
+- [x] Phase 5 — migration hardening. No tool (see rationale above). Runner is
+      now transactional, fails loudly on non-idempotent errors, and records
+      version + checksum in `schema_migrations`, backfilled for the live DB.
+- [x] Phase 6 — E2E (21 tests): real Chrome, real server, throwaway seeded DB.
+- [x] Phase 7 — lint + format. Zero errors. Found and removed 5 pieces of dead
+      code; checked `activeModule` in case it meant a missing destroy() (it
+      didn't). Formatting landed as its own commit; verified the pixel art
+      survived by hashing the combo pose sequences.
+- [x] Phase 8 — quality gate. ALL CRITERIA MET, including the important one:
+      `npm run test:mutation` breaks the code 6 ways and all 6 are caught.
+      **It immediately found a test passing for the wrong reason** — the
+      index-ordering fixture had no `journal_entries` table, so SCHEMA_SQL
+      created it complete and the index never had the chance to fail. Fixture
+      corrected to a v10 shape where the table predates the column.
 
 ---
 

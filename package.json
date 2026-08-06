@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:mutation": "node scripts/pip-mutation-check.js"
   },
   "devDependencies": {
     "css-loader": "^7.1.2",
