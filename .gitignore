@@ -5,3 +5,6 @@ server/public/
 data/pip.sqlite-wal
 data/pip.sqlite-shm
 snapshot/
+
+# local secrets — see .env.example
+.env

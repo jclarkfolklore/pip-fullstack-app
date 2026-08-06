@@ -11,8 +11,9 @@ work in is this one.
 ![PIP dashboard](docs/screens/dashboard.png)
 
 **[Live read-only snapshot →](https://pip-workspace-snapshot.netlify.app)**
-A static, point-in-time copy of the real workspace. Everything works —
-including search — but nothing saves, and it says so at the top.
+A static, point-in-time copy of the real workspace, behind a password. Ask
+Key for it. Everything works — including search — but nothing saves, and it
+says so at the top.
 
 It's a real full-stack app — Express + better-sqlite3 on the backend, a
 webpack-bundled frontend talking to it over `fetch()` and Server-Sent Events.
@@ -205,10 +206,26 @@ and nothing in it can write back. The current one is live at
 **[pip-workspace-snapshot.netlify.app](https://pip-workspace-snapshot.netlify.app)**;
 re-run the command to refresh it.
 
+### The gate
+
+Set `PIP_SNAPSHOT_PASSWORD` in a local `.env` (gitignored — see
+`.env.example`) and the snapshot ships with a password screen in front of the
+dashboard. Only a SHA-256 of the password is embedded, so the plaintext never
+appears in the built output.
+
+Be clear-eyed about what that is: **a deterrent, not access control.** The
+check runs in the browser, and the captured JSON under `/api/` stays fetchable
+directly by anyone who knows a URL. It stops a shared link opening straight
+into someone's workspace; it does not protect the contents. Netlify's own
+site-level password protection is the real answer if that matters.
+
 It survives change because it doesn't reimplement the app: it runs the real
 bundle and captures the real API's responses. Search is the exception — a
 query can't be captured as a fixed response — so the snapshot ships the
-server's own shaped search index and filters it in the browser.
+server's own shaped search index and filters it in the browser. Clu3's and the
+forecast's polling are switched off in a snapshot, since the data is frozen by
+definition and re-fetching a captured file on a timer only risks breaking the
+widget.
 
 ---
 

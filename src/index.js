@@ -7,11 +7,21 @@ import './styles/widgets.css';
 import { h } from './lib/dom.js';
 import { buildShell } from './app/shell.js';
 import { isStatic, staticInfo } from './api/client.js';
+import { showPasswordGate, alreadyUnlocked } from './app/passwordGate.js';
 import { mountDashboard } from './app/dashboard.js';
 import { navigateTo, goHome } from './app/router.js';
 import { clearHighlightNow } from './lib/highlight.js';
 
 async function main() {
+  // A deployed snapshot can carry a gate (see scripts/pip-snapshot.js). It's
+  // front-end only and stops nothing determined — the captured JSON is still
+  // fetchable — but it keeps a shared link from opening straight into the
+  // workspace. Nothing renders until it's cleared.
+  const gate = (staticInfo() || {}).gate;
+  if (isStatic() && gate && !alreadyUnlocked(gate)) {
+    await showPasswordGate(gate);
+  }
+
   // No client-side database anymore — the real SQLite file lives on the
   // server (server/db.js), reached over the same-origin fetch API in
   // src/api/*. Live refresh comes from a shared SSE connection (see

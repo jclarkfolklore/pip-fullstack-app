@@ -16,6 +16,7 @@ import { h, fmtDateTime, fmtTime } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { renderWeatherArt } from '../lib/weatherArt.js';
 import { weatherNow, refreshWeather } from '../api/weatherRepo.js';
+import { isStatic } from '../api/client.js';
 import { navigateTo } from './router.js';
 import { openModal } from './modal.js';
 import { openWeatherSheetModal } from './weatherSheetModal.js';
@@ -65,6 +66,9 @@ export function mountWeatherPanel(container) {
   const body = h('div', { class: 'pip-wx-body' });
   const placeEl = h('span', { class: 'pip-wx-place' }, '');
   const refreshBtn = h('button', { class: 'pip-wx-refresh', title: 'Get latest now' }, [icon('refresh', { size: 15 })]);
+  // In a snapshot there's nothing to refresh FROM: the button posts, which
+  // returns null with no server, and the panel would then try to render it.
+  if (isStatic()) refreshBtn.style.display = 'none';
   const sheetBtn = h('button', { class: 'pip-clu3-sheet-btn', title: 'Preview weather art & codes' }, [
     icon('grid', { size: 15 })
   ]);
@@ -230,13 +234,15 @@ export function mountWeatherPanel(container) {
   });
 
   refresh();
-  const tick = setInterval(refresh, REFRESH_MS);
+  // No poll in a snapshot — the data is frozen by definition, so re-fetching
+  // the same captured file on a timer is pure noise.
+  const tick = isStatic() ? null : setInterval(refresh, REFRESH_MS);
 
   return {
     el: widget,
     destroy() {
       destroyed = true;
-      clearInterval(tick);
+      if (tick) clearInterval(tick);
     }
   };
 }

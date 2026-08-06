@@ -26,6 +26,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const BASE = process.env.PIP_BASE || 'http://127.0.0.1:4288';
@@ -57,6 +58,24 @@ const ENDPOINTS = [
   { path: '/api/weather/codes' },
   { path: '/api/search/index' }
 ];
+
+// Optional gate password, from a gitignored .env. Only a SHA-256 of it is
+// ever written into the snapshot — the plaintext never ships, so it isn't
+// sitting in view-source. This is a deterrent, not access control: the
+// captured JSON under /api/ stays directly fetchable.
+function readGateHash() {
+  const envFile = path.join(ROOT, '.env');
+  if (!fs.existsSync(envFile)) return null;
+  const line = fs
+    .readFileSync(envFile, 'utf8')
+    .split('\n')
+    .map((l) => l.trim())
+    .find((l) => l.startsWith('PIP_SNAPSHOT_PASSWORD='));
+  if (!line) return null;
+  const value = line.slice('PIP_SNAPSHOT_PASSWORD='.length).trim().replace(/^["']|["']$/g, '');
+  if (!value) return null;
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
 
 function log(msg) {
   process.stdout.write(`${msg}\n`);
@@ -196,15 +215,18 @@ async function main() {
   // 4. the flag that puts the app in read-only mode. Injected into index.html
   //    rather than probed at runtime, so there's no request race and a local
   //    dev load never pays for it.
+  const gate = readGateHash();
   const indexFile = path.join(OUT, 'index.html');
   let html = fs.readFileSync(indexFile, 'utf8');
   html = html.replace(
     '<head>',
     `<head><script>window.__PIP_STATIC__ = ${JSON.stringify({
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
+      ...(gate ? { gate } : {})
     })};</script>`
   );
   fs.writeFileSync(indexFile, html);
+  log(gate ? 'gate: enabled (password from .env)' : 'gate: none (no PIP_SNAPSHOT_PASSWORD in .env)');
 
   // Netlify: serve the SPA for real routes, but never rewrite /api/*, or the
   // snapshot JSON would come back as index.html.
@@ -217,7 +239,8 @@ async function main() {
     generatedAt: new Date().toISOString(),
     responses: count,
     images: attachmentIds.length,
-    readOnly: true
+    readOnly: true,
+    gated: Boolean(gate)
   };
   fs.writeFileSync(path.join(OUT, 'snapshot.json'), JSON.stringify(manifest, null, 2));
 

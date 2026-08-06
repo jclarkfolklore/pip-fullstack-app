@@ -22,7 +22,7 @@ import { icon } from '../lib/icons.js';
 import { renderClu3Visual, knownScene } from '../lib/clu3Scenes.js';
 import { createStorySequencer, contextForMood, FRAME_MS, COMBO_GAP_MS } from '../lib/clu3Sequencer.js';
 import { chooseArc, buildArc } from '../lib/clu3Narrative.js';
-import { onChange } from '../api/client.js';
+import { onChange, isStatic } from '../api/client.js';
 import { clu3State, dismissMessage } from '../api/clu3Repo.js';
 import { navigateTo } from './router.js';
 import { openClu3SheetModal } from './clu3SheetModal.js';
@@ -43,6 +43,9 @@ export function mountClu3Panel(container) {
 
   const sheetBtn = h('button', { class: 'pip-clu3-sheet-btn', title: 'Preview sprite sheet' }, [icon('grid', { size: 15 })]);
   const refreshBtn = h('button', { class: 'pip-clu3-refresh', title: 'Get latest now' }, [icon('refresh', { size: 15 })]);
+  // Nothing to re-read in a snapshot — Clu3's line was computed when the
+  // snapshot was taken and can't change.
+  if (isStatic()) refreshBtn.style.display = 'none';
 
   sheetBtn.addEventListener('click', () => openClu3SheetModal());
 
@@ -182,14 +185,14 @@ export function mountClu3Panel(container) {
   refresh();
   scheduleNextFrame();
 
-  const tick = setInterval(refresh, TICK_MS);
+  const tick = isStatic() ? null : setInterval(refresh, TICK_MS);
   const unsubscribe = onChange(refresh);
 
   return {
     el: widget,
     destroy() {
       destroyed = true;
-      clearInterval(tick);
+      if (tick) clearInterval(tick);
       clearTimeout(frameTimer);
       unsubscribe();
     }

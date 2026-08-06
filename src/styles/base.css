@@ -5,12 +5,19 @@
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  /* min-height, not height: a fixed 100% pins the scroll container to the
+     viewport, so when the app holds its minimum height in a shorter window
+     the overflow simply gets clipped with no way to reach it. */
+  min-height: 100%;
   /* The app is one fixed-height screen, not a scrolling page — every widget
      that needs to scroll does so internally (.pip-view-body etc.). Without
      this, a long list just grows the whole page instead of using that
-     internal scroll chain. */
-  overflow: hidden;
+     internal scroll chain.
+     overflow-y is auto rather than hidden ONLY so the app can keep its
+     minimum height in a very short window (see --pip-min-h): below that,
+     scrolling the page beats crushing the panels into nothing. */
+  overflow-x: hidden;
+  overflow-y: auto;
   background: radial-gradient(ellipse at 50% -10%, #3a3352 0%, #1b1826 55%, #100e17 100%);
   font-family: var(--font-mono);
   -webkit-tap-highlight-color: transparent;
@@ -19,6 +26,9 @@ html, body {
 
 #pip-root {
   height: 100vh;
+  /* Floor for the whole app. Under this the right column can't hold Clu3, the
+     forecast AND a usable search box, so the window scrolls instead. */
+  min-height: var(--pip-min-h, 620px);
   display: flex;
   align-items: center;
   justify-content: center;
