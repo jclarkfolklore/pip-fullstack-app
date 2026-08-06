@@ -54,7 +54,11 @@ export function mountDashboard(container, ctx) {
         ])
       );
 
-    return h('div', {}, [clockNode(), h('div', { class: 'pip-tile-groups' }, sections)]);
+    // pip-home is the dashboard's own scroll container. Widget views get one
+    // for free via .pip-view-body; the dashboard renders straight into
+    // .pip-app, which is overflow:hidden — so without this its lower tiles
+    // were simply unreachable on a short screen.
+    return h('div', { class: 'pip-home' }, [clockNode(), h('div', { class: 'pip-tile-groups' }, sections)]);
   }
 
   function teardownActive() {

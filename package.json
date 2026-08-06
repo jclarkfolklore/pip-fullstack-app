@@ -10,7 +10,8 @@
     "server": "node server/index.js",
     "snapshot": "node scripts/pip-snapshot.js",
     "snapshot:deploy": "node scripts/pip-snapshot.js && npx --yes netlify-cli deploy --dir snapshot --prod",
-    "screens": "node scripts/pip-screens.js"
+    "screens": "node scripts/pip-screens.js",
+    "test:touch": "node scripts/pip-touch-test.js"
   },
   "devDependencies": {
     "css-loader": "^7.1.2",

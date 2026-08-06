@@ -1211,3 +1211,16 @@
 .pip-card[data-inactive='true'] .pip-card-title {
   color: var(--lcd-ink-dim);
 }
+
+/* The dashboard's own scroll container. Widget views scroll via
+   .pip-view-body; the dashboard renders directly into .pip-app, which is
+   overflow:hidden — so on a phone its lower tiles (Insights, System) had no
+   way to be reached. Same gutter treatment as a view body. */
+.pip-home {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 14px;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
