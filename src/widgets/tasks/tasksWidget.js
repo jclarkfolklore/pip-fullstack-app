@@ -13,10 +13,10 @@ export const kind = 'tasks';
 
 export async function renderTile(ctx) {
   const counts = await taskCounts();
-  // Same convention as the inbox tile: yellow = waiting on you, red = in
-  // flight. Done isn't badged — it isn't pending, so a count of it on the
-  // home screen would just be noise.
+  // Ordered by lifecycle progress, furthest along first — same rule as the
+  // Inbox tile. Colours come from the shared lifecycle system in widgets.css.
   const badges = [
+    counts.done > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--done' }, String(counts.done)) : null,
     counts.doing > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--doing' }, String(counts.doing)) : null,
     counts.open > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--todo' }, String(counts.open)) : null
   ].filter(Boolean);
@@ -200,7 +200,10 @@ export function renderFull(ctx) {
             h(
               'button',
               {
-                class: `pip-action-btn ${move.primary ? 'pip-action-btn--primary' : 'pip-action-btn--ghost'}`,
+                class: 'pip-action-btn',
+                // Coloured by destination — see .pip-action-btn[data-to] in
+                // widgets.css.
+                dataset: { to: move.to },
                 title: `Move to ${move.label}`,
                 onClick: async () => {
                   await setTaskStatus(task.id, move.to);

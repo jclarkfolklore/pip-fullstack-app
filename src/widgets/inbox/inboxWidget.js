@@ -43,16 +43,12 @@ const SOURCE_LABEL = {
 
 export async function renderTile(ctx) {
   const counts = await stageCounts();
-  // Three states worth a count, each its own colour so the tile says what
-  // KIND of attention the inbox needs, not just how much:
-  //   yellow  NEW      arrived, not yet triaged
-  //   red     ACTIVE   picked up, in flight
-  //   blue    INACTIVE looked at and parked
-  // Held items are excluded from the active count — that's the point of
-  // holding them.
+  // Ordered by lifecycle progress, furthest along first, parked last — the
+  // same rule the Tasks tile uses, so the two read alike. Colours come from
+  // the shared lifecycle system in widgets.css.
   const badges = [
+    counts.active > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--active' }, String(counts.active)) : null,
     counts.new > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--new' }, String(counts.new)) : null,
-    counts.active > 0 ? h('div', { class: 'pip-tile-badge' }, String(counts.active)) : null,
     counts.deactivated > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--inactive' }, String(counts.deactivated)) : null
   ].filter(Boolean);
 
@@ -363,7 +359,14 @@ export function renderFull(ctx) {
   function card(item) {
     const cardEl = h('div', {
       class: 'pip-card',
-      dataset: { id: item.id, inactive: item.deactivated_at ? 'true' : 'false' }
+      // `state` drives the card's accent edge, and collapses the hold and the
+      // stage into the single thing the card should be showing — same value
+      // the badge uses, so the two can't disagree.
+      dataset: {
+        id: item.id,
+        inactive: item.deactivated_at ? 'true' : 'false',
+        state: item.deactivated_at ? 'inactive' : item.stage
+      }
     });
     const actionsWrap = h('div', { class: 'pip-card-actions' });
     const sourceIcon = icon(SOURCE_ICON[item.source_type] || 'tag', { size: 11 });

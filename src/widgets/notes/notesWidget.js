@@ -22,7 +22,10 @@ const SOURCE_LABEL = { manual: 'manual', chat: 'chat', monday: 'Monday', ado: 'A
 
 export async function renderTile(ctx) {
   const counts = await noteCounts();
-  const badge = counts.pinned > 0 ? h('div', { class: 'pip-tile-badge' }, String(counts.pinned)) : null;
+  // Pinned isn't a problem, so it doesn't get the red default — red is
+  // reserved for overdue work and weather alerts.
+  const badge =
+    counts.pinned > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--pinned' }, String(counts.pinned)) : null;
   return tile({
     kind: 'notes',
     glyph: 'noteLg',

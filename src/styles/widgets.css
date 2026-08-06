@@ -138,13 +138,15 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
+  /* Small on purpose: up to three sit side by side on a tile, and at the
+     previous 16px they crowded the label. */
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
   border-radius: 999px;
   background: var(--lcd-accent);
   color: #fff8f4;
-  font-size: 9px;
+  font-size: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -159,7 +161,7 @@
   right: 8px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 .pip-tile-badge-row .pip-tile-badge {
   position: static;
@@ -270,10 +272,8 @@
   border-color: var(--lcd-accent-2);
 }
 
-/* Underway work gets a little more presence; finished work recedes. */
-.pip-task-card[data-status='doing'] {
-  border-color: var(--lcd-accent);
-}
+/* Finished work recedes. The status colour itself lives in the shared
+   lifecycle block near the bottom of this file. */
 .pip-task-card[data-status='done'] {
   opacity: 0.62;
 }
@@ -389,9 +389,6 @@
   white-space: nowrap;
   color: #fff;
 }
-.pip-stage[data-stage='active'] { background: var(--lcd-accent); }
-.pip-stage[data-stage='resolved'] { background: #6a9f5a; }
-.pip-stage[data-stage='archived'] { background: var(--lcd-ink-faint); }
 /* On hold — orthogonal to stage, so it's a second chip rather than replacing
    the stage one (see .pip-card-top-tags below). */
 .pip-stage[data-stage='inactive'] { background: var(--lcd-accent-2); }
@@ -1243,32 +1240,108 @@
   background: var(--lcd-accent-3);
 }
 
-/* Task cards carry the same language: a left edge in the status colour, and
-   a matching section heading, so a glance down the grid reads as lifecycle
-   rather than as undifferentiated cards. */
+/* ===== one lifecycle colour system, shared by Inbox and Tasks =====
+   The two lifecycles are the same shape, so they get the same language rather
+   than two ad-hoc palettes:
+
+     blue    QUEUED    not started      NEW (inbox)       TODO (tasks)
+     amber   ACTIVE    in flight        ACTIVE (inbox)    IN PROGRESS (tasks)
+     green   DONE      finished         RESOLVED (inbox)  DONE (tasks)
+     grey    PARKED    set aside        INACTIVE, ARCHIVED
+
+   RED IS DELIBERATELY NOT IN THIS SET. It already means "a problem" elsewhere
+   in the app — overdue tasks, weather alerts — and that meaning has to stay
+   unambiguous. A green "done" is also what almost every other tool uses, which
+   matters because this gets shared as a read-only snapshot with people who
+   have never seen it before.
+
+   One set of tokens, so chips, card edges, section headings, tile badges and
+   action buttons cannot drift apart. */
+.pip-stage[data-stage='new'],
+.pip-task-card,
+.pip-task-section-label[data-status='open'],
+.pip-tile-badge--todo,
+.pip-tile-badge--new,
+.pip-action-btn[data-to='open'] {
+  --state-color: var(--lcd-accent-2);
+}
+
+.pip-stage[data-stage='active'],
+.pip-task-card[data-status='doing'],
+.pip-task-section-label[data-status='doing'],
+.pip-tile-badge--doing,
+.pip-tile-badge--active,
+.pip-action-btn[data-to='doing'] {
+  --state-color: var(--lcd-accent-3);
+}
+
+.pip-stage[data-stage='resolved'],
+.pip-task-card[data-status='done'],
+.pip-task-section-label[data-status='done'],
+.pip-tile-badge--done,
+.pip-action-btn[data-to='done'] {
+  --state-color: var(--lcd-green);
+}
+
+.pip-stage[data-stage='inactive'],
+.pip-stage[data-stage='archived'],
+.pip-tile-badge--inactive {
+  --state-color: var(--lcd-ink-faint);
+}
+
+.pip-stage[data-stage] {
+  background: var(--state-color);
+}
+
 .pip-task-card {
-  border-left: 3px solid var(--lcd-accent-3);
-}
-.pip-task-card[data-status='doing'] {
-  border-left-color: var(--lcd-accent);
-}
-.pip-task-card[data-status='done'] {
-  border-left-color: #6a9f5a;
+  border-left: 3px solid var(--state-color);
 }
 
-.pip-task-section-label[data-status='open'] {
-  color: var(--lcd-accent-3);
-}
-.pip-task-section-label[data-status='doing'] {
-  color: var(--lcd-accent);
-}
-.pip-task-section-label[data-status='done'] {
-  color: #6a9f5a;
+.pip-task-section-label[data-status] {
+  color: var(--state-color);
 }
 
-.pip-tile-badge--doing {
-  background: var(--lcd-accent);
+.pip-tile-badge--todo,
+.pip-tile-badge--doing,
+.pip-tile-badge--done,
+.pip-tile-badge--new,
+.pip-tile-badge--active,
+.pip-tile-badge--inactive {
+  background: var(--state-color);
 }
-.pip-tile-badge--todo {
-  background: var(--lcd-accent-3);
+
+/* Action buttons take the colour of the state they move TO, so the button
+   says where it lands rather than only what it's called. */
+.pip-action-btn[data-to] {
+  color: #fff;
+  background: var(--state-color);
+  border-color: transparent;
+}
+.pip-action-btn[data-to]:active {
+  opacity: 0.82;
+}
+
+/* Inbox cards get the same accent edge as task cards, from the same tokens.
+   `data-state` folds the hold and the stage into one value, so the edge and
+   the badge can never disagree about what an item is. */
+.pip-card[data-state] {
+  border-left: 3px solid var(--state-color);
+}
+.pip-card[data-state='new'] {
+  --state-color: var(--lcd-accent-2);
+}
+.pip-card[data-state='active'] {
+  --state-color: var(--lcd-accent-3);
+}
+.pip-card[data-state='resolved'] {
+  --state-color: var(--lcd-green);
+}
+.pip-card[data-state='inactive'],
+.pip-card[data-state='archived'] {
+  --state-color: var(--lcd-ink-faint);
+}
+
+/* Pinned notes — emphasis, not a problem. */
+.pip-tile-badge--pinned {
+  background: var(--lcd-accent-2);
 }

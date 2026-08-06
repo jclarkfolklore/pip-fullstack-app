@@ -16,6 +16,7 @@
      (live/urgent) and accent-2 (held). Tuned per theme — one fixed yellow
      would disappear against the amber background. */
   --lcd-accent-3: #b8860b;
+  --lcd-green: #4e8f3f;
   --lcd-glow: rgba(60, 74, 53, 0.18);
   --lcd-line: rgba(60, 74, 53, 0.14);
 
@@ -44,6 +45,7 @@
   --lcd-accent: #c9502e;
   --lcd-accent-2: #4e6b8a;
   --lcd-accent-3: #8a6a12;
+  --lcd-green: #5a7a2e;
 }
 
 [data-theme='mono'] {
@@ -55,6 +57,7 @@
   --lcd-accent: #b34747;
   --lcd-accent-2: #3e6b6b;
   --lcd-accent-3: #8a7320;
+  --lcd-green: #4a7a45;
 }
 
 [data-theme='night'] {
@@ -66,6 +69,7 @@
   --lcd-accent: #ff8a7a;
   --lcd-accent-2: #7fd8e8;
   --lcd-accent-3: #e8cf7f;
+  --lcd-green: #7fe0a0;
   --lcd-glow: rgba(127, 224, 160, 0.14);
   --lcd-line: rgba(127, 224, 160, 0.1);
 }
