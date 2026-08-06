@@ -24,8 +24,10 @@ function listProjects({ includeArchived = false, status = null } = {}) {
     where.push('status = ?');
     params.push(status);
   }
+  // Explicit CASE rather than ORDER BY status: alphabetically 'closed' sorts
+  // BEFORE 'open', which put finished work at the top of the list.
   const sql = `SELECT * FROM projects ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-     ORDER BY status ASC, sort_order ASC, name ASC`;
+     ORDER BY CASE status WHEN 'closed' THEN 1 ELSE 0 END, sort_order ASC, name ASC`;
   return db.prepare(sql).all(...params).map((p) => ({ ...p, counts: projectCounts(p.id) }));
 }
 

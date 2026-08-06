@@ -1099,3 +1099,17 @@
 .pip-card[data-status='closed'] {
   opacity: 0.6;
 }
+
+/* Closed projects sink to the bottom of the list (see projectsRepo) and grey
+   out entirely — desaturated, not just faded, so a closed project reads as
+   finished at a glance rather than merely de-emphasised. */
+.pip-card[data-status='closed'] {
+  opacity: 0.55;
+  filter: grayscale(1);
+}
+.pip-card[data-status='closed'] .pip-card-title {
+  color: var(--lcd-ink-dim);
+}
+.pip-card[data-status='closed']:hover {
+  opacity: 0.8;
+}
