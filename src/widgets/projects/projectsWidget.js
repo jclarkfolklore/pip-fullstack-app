@@ -11,11 +11,23 @@ export const kind = 'projects';
 
 export async function renderTile(ctx) {
   const projects = await listProjects();
+  const open = projects.filter((p) => (p.status || 'open') === 'open').length;
+  const closed = projects.length - open;
+
+  // Same lifecycle language as Inbox and Tasks: furthest along first, so
+  // closed leads. An open project is live work (amber); a closed one is
+  // finished (green).
+  const badges = [
+    closed > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--closed' }, String(closed)) : null,
+    open > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--open' }, String(open)) : null
+  ].filter(Boolean);
+
   return tile({
     kind: 'projects',
     glyph: 'folderLg',
     label: 'PROJECTS',
-    sub: projects.length ? `${projects.length} active` : 'no projects yet',
+    sub: open ? `${open} open${closed ? `, ${closed} closed` : ''}` : `${closed} closed`,
+    badges,
     ctx
   });
 }

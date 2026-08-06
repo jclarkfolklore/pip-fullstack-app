@@ -1345,3 +1345,48 @@
 .pip-tile-badge--pinned {
   background: var(--lcd-accent-2);
 }
+
+/* ===== projects and notes join the lifecycle system =====
+   Projects map cleanly: open is live work, closed is finished. Closed cards
+   keep the desaturation asked for earlier, so the green renders muted — the
+   token is still the honest one, and it reads correctly if that filter is
+   ever lifted. */
+.pip-project-status,
+.pip-tile-badge--open {
+  --state-color: var(--lcd-accent-3);
+}
+.pip-project-status[data-status='closed'],
+.pip-tile-badge--closed {
+  --state-color: var(--lcd-green);
+}
+
+.pip-project-status {
+  background: var(--state-color);
+  color: #fff;
+}
+
+.pip-tile-badge--open,
+.pip-tile-badge--closed {
+  background: var(--state-color);
+}
+
+.pip-card[data-status='open'],
+.pip-card[data-status='closed'] {
+  border-left: 3px solid var(--state-color);
+}
+.pip-card[data-status='open'] {
+  --state-color: var(--lcd-accent-3);
+}
+.pip-card[data-status='closed'] {
+  --state-color: var(--lcd-green);
+}
+
+/* Notes have no lifecycle — pinned is the only state they have, so that's
+   the only thing worth colouring. Unpinned notes get a neutral edge rather
+   than a fake status, so the accent still reads as meaningful. */
+.pip-content-card[data-pinned] {
+  border-left: 3px solid var(--lcd-line);
+}
+.pip-content-card[data-pinned='true'] {
+  border-left-color: var(--lcd-accent-2);
+}

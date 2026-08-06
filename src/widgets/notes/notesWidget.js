@@ -30,7 +30,11 @@ export async function renderTile(ctx) {
     kind: 'notes',
     glyph: 'noteLg',
     label: 'NOTES',
-    sub: counts.total ? `${counts.total} note${counts.total === 1 ? '' : 's'}` : 'nothing yet',
+    sub: counts.pinned
+      ? `${counts.pinned} pinned of ${counts.total}`
+      : counts.total
+        ? `${counts.total} note${counts.total === 1 ? '' : 's'}`
+        : 'nothing yet',
     badges: [badge],
     ctx
   });
@@ -153,6 +157,9 @@ export function renderFull(ctx) {
       meta: metaBits.join(' · '),
       tags: note.tags || [],
       attachments: attachmentsById[note.id] || [],
+      // Notes have no lifecycle, so there's nothing to colour-code by state.
+      // Pinned is the only distinction that exists, and it gets the same
+      // accent edge treatment the other card types use.
       dataset: { pinned: note.pinned ? 'true' : 'false' },
       onOpen: () =>
         openTicketModal(note, {
