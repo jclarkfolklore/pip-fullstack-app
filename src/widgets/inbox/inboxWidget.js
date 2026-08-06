@@ -346,7 +346,10 @@ export function renderFull(ctx) {
   }
 
   function card(item) {
-    const cardEl = h('div', { class: 'pip-card', dataset: { id: item.id } });
+    const cardEl = h('div', {
+      class: 'pip-card',
+      dataset: { id: item.id, inactive: item.deactivated_at ? 'true' : 'false' }
+    });
     const actionsWrap = h('div', { class: 'pip-card-actions' });
     const sourceIcon = icon(SOURCE_ICON[item.source_type] || 'tag', { size: 11 });
     const project = item.project_id ? projectsById[item.project_id] : null;
@@ -369,8 +372,14 @@ export function renderFull(ctx) {
         h('div', { class: 'pip-card-top' }, [
           h('div', { class: 'pip-card-title' }, item.title || '(untitled)'),
           h('div', { class: 'pip-card-top-tags' }, [
-            item.deactivated_at ? h('div', { class: 'pip-stage', dataset: { stage: 'inactive' } }, 'PAUSED') : null,
-            h('div', { class: 'pip-stage', dataset: { stage: item.stage } }, STAGE_LABEL[item.stage])
+            // ONE badge, not two. An item on hold used to show "PAUSED"
+            // beside its stage — so a held item read "PAUSED ACTIVE", which
+            // is a contradiction on its face. The hold is what you need to
+            // know; the stage is preserved underneath and comes back on
+            // reactivate, which is the whole point of modelling it separately.
+            item.deactivated_at
+              ? h('div', { class: 'pip-stage', dataset: { stage: 'inactive' } }, 'INACTIVE')
+              : h('div', { class: 'pip-stage', dataset: { stage: item.stage } }, STAGE_LABEL[item.stage])
           ])
         ]),
         h('div', { class: 'pip-card-body', html: marked.parse(item.body_md || '') }),

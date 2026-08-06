@@ -35,6 +35,8 @@
      against the track and the column read as cramped; the scrollbar is 6px,
      so this clears it with breathing space either side. */
   padding-right: 14px;
+  /* Momentum scrolling on older iOS; harmless everywhere else. */
+  -webkit-overflow-scrolling: touch;
   /* Keep the gutter reserved whether or not the bar is showing, so content
      doesn't shift horizontally the moment a list gets long enough to scroll. */
   scrollbar-gutter: stable;
@@ -1193,4 +1195,19 @@
 .pip-att-link {
   font-size: 13px;
   padding: 7px 9px;
+}
+
+/* An inbox item on hold recedes and sorts last (see inboxRepo). It carries a
+   single INACTIVE badge rather than its stage — a held item showing "PAUSED"
+   next to "ACTIVE" contradicted itself. The stage is still there underneath
+   and returns on reactivate; it just isn't what you need to see while it's
+   parked. */
+.pip-card[data-inactive='true'] {
+  opacity: 0.62;
+}
+.pip-card[data-inactive='true']:hover {
+  opacity: 0.85;
+}
+.pip-card[data-inactive='true'] .pip-card-title {
+  color: var(--lcd-ink-dim);
 }

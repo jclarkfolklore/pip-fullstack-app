@@ -122,9 +122,12 @@ function listInboxItems({ stage = null, tag = null, project = null, search = '',
       title_asc: 'i.title COLLATE NOCASE ASC'
     }[sort] || 'i.created_at DESC';
 
+  // Inactive items always sort last, whatever the chosen sort. Being on hold
+  // is orthogonal to the lifecycle, but it does mean "not what you're working
+  // on" — so it belongs out of the way rather than interleaved by date.
   const sql = `SELECT i.* FROM inbox_items i ${
     where.length ? 'WHERE ' + where.join(' AND ') : ''
-  } ORDER BY ${orderBy}`;
+  } ORDER BY (i.deactivated_at IS NOT NULL), ${orderBy}`;
 
   return db.prepare(sql).all(...params).map(hydrate);
 }
