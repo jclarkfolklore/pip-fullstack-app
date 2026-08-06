@@ -48,6 +48,16 @@ router.patch('/:id', (req, res) => {
   res.json(updated);
 });
 
+router.post('/:id/reassign', (req, res) => {
+  try {
+    const updated = tasksRepo.reassignTask(req.params.id, req.body || {});
+    if (!updated) return res.status(404).json({ error: 'not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 router.post('/:id/status', (req, res) => {
   tasksRepo.setTaskStatus(req.params.id, req.body.status);
   res.json(tasksRepo.getTask(req.params.id));

@@ -192,3 +192,43 @@ test('tags are shared across entity types without collision', async () => {
     assert.equal(links, 2, 'two links to the one tag');
   });
 });
+
+test('reassigning a task closes it without crediting it as a completion', async () => {
+  // Handing work to a colleague is terminal for you, so it must leave the
+  // actionable count — but Metrics derives throughput from `task_completed`,
+  // and counting someone else's work as yours is exactly the invented number
+  // this app exists to prevent.
+  await withDb(({ db, load }) => {
+    const tasks = load('server/repo/tasksRepo.js');
+    const id = tasks.createTask({ title: 'Handed off' });
+
+    const after = tasks.reassignTask(id, { to: 'Tyler Knight', note: 'conflicts with his ticket' });
+    assert.equal(after.status, 'done', 'terminal — out of the actionable list');
+
+    const events = db
+      .prepare('SELECT event_type, detail_json FROM activity_log WHERE entity_id = ?')
+      .all(id)
+      .map((r) => ({ type: r.event_type, detail: JSON.parse(r.detail_json) }));
+
+    assert.ok(
+      events.some((e) => e.type === 'task_reassigned' && e.detail.to === 'Tyler Knight'),
+      'logged as a reassignment, naming the recipient'
+    );
+    assert.equal(
+      events.filter((e) => e.type === 'task_completed').length,
+      0,
+      'NOT logged as a completion — Metrics must not credit it'
+    );
+  });
+});
+
+test('reassigning requires a recipient', async () => {
+  // "Reassigned" with nobody to reassign it to is a deletion wearing a nicer
+  // word, and would leave an unexplained closed task.
+  await withDb(({ load }) => {
+    const tasks = load('server/repo/tasksRepo.js');
+    const id = tasks.createTask({ title: 'T' });
+    assert.throws(() => tasks.reassignTask(id, {}), /recipient/);
+    assert.throws(() => tasks.reassignTask(id, { to: '  ' }), /recipient/);
+  });
+});

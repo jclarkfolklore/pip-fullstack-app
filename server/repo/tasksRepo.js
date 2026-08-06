@@ -120,6 +120,26 @@ function setTaskStatus(id, status) {
   logEvent('task', id, status === 'done' ? 'task_completed' : 'task_status_changed', { status });
 }
 
+// Work that left your plate by being handed to someone else, rather than by
+// being finished.
+//
+// Stored as `done` because it IS terminal for you — it should leave the
+// actionable count and stop appearing as work in flight. But it is logged as
+// `task_reassigned`, deliberately NOT `task_completed`: Metrics derives
+// throughput from completion events, and crediting yourself with a colleague's
+// work is precisely the kind of invented number this app exists to prevent.
+//
+// The recipient is required. "Reassigned" with no one to reassign it to is
+// just a deletion wearing a nicer word.
+function reassignTask(id, { to, note = null } = {}) {
+  if (!to || !String(to).trim()) throw new Error('reassignTask requires a recipient (to)');
+  const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+  if (!existing) return null;
+  db.prepare("UPDATE tasks SET status = 'done', completed_at = ? WHERE id = ?").run(nowIso(), id);
+  logEvent('task', id, 'task_reassigned', { to: String(to).trim(), note, title: existing.title });
+  return getTask(id);
+}
+
 function updateFields(id, fields = {}) {
   const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
   if (!existing) return null;
@@ -188,6 +208,7 @@ module.exports = {
   listTasks,
   getTask,
   setTaskStatus,
+  reassignTask,
   updateFields,
   deleteTask,
   taskCounts,

@@ -59,6 +59,14 @@ const MUTATIONS = [
     expect: 'tests/search-and-snapshot.test.mjs'
   },
   {
+    name: 'reassigning a task logs it as a completion',
+    guards: 'Metrics crediting you with a colleague’s work',
+    file: 'server/repo/tasksRepo.js',
+    find: "logEvent('task', id, 'task_reassigned'",
+    replace: "logEvent('task', id, 'task_completed'",
+    expect: 'tests/workflows.test.mjs'
+  },
+  {
     name: 'a failing migration is swallowed instead of aborting',
     guards: 'a half-applied migration recorded as complete',
     file: 'server/db.js',
