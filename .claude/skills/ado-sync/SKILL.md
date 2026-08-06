@@ -140,6 +140,27 @@ fetch('http://127.0.0.1:4288/api/attachments',{method:'POST',headers:{'Content-T
 " ~/Downloads/pip-ado-<id>-1.png
 ```
 
+**Place them inline, where they sat upstream.** Attaching an image is only half
+the job — a PIP card should read like the source ticket, not like a wall of
+text with a gallery bolted underneath. After attaching, rewrite `detailsMd` to
+reference each image at the point it appeared:
+
+```markdown
+![State dropdown open — native option list renders at ~2x the site type scale](/api/attachments/<id>/raw)
+
+*State dropdown open — native option list renders at ~2x the site type scale*
+```
+
+The `src` is `/api/attachments/<id>/raw`, returned as `src` on the attachment.
+The italic line under the image renders as its caption.
+
+The detail modal skips any attachment already referenced inline, so an inline
+image appears **once, in position** — while anything not referenced still shows
+in the gallery below. That's deliberate: an attachment that renders nowhere is
+a floating asset, which is the thing to avoid even when the row is valid. Never
+delete an attachment without also removing its inline reference, or the
+markdown points at nothing.
+
 **Caption them properly.** `title` must say what the image *shows*, not repeat
 the filename — "Screenshot 2026-04-16 at 10.16.21 AM.png" tells a future reader
 nothing. Look at the image and describe it: *"State dropdown rendering at ~2x
@@ -147,7 +168,11 @@ the width of the adjacent Sort dropdown"*. If ADO has caption text near the
 image, use that instead. Someone reading the PIP card should know which
 screenshot is which without opening all of them.
 
-PIP caps images at 8MB. Anything larger stays a link — and say so in the report.
+PIP caps images at 8MB, and the API body limit is 12mb to hold that once
+base64 inflates it by ~4/3. A payload over the limit returns **413 with the
+actual sizes** — if you see a bare 500 "internal error" instead, something else
+is wrong and the server log has it. Anything genuinely over 8MB stays a link,
+and say so in the report.
 
 ## 2c. Read the discussion — it often changes the work
 

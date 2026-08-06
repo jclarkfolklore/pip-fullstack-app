@@ -9,7 +9,12 @@ const PORT = Number(process.env.PIP_PORT) || 4288;
 const HOST = '127.0.0.1'; // deliberately local-only — never bind 0.0.0.0
 
 const app = express();
-app.use(express.json({ limit: '2mb' }));
+// Must comfortably exceed attachmentsRepo's MAX_IMAGE_BYTES (8MB), because
+// images arrive base64-encoded — which inflates them by ~4/3. An 8MB image is
+// a ~10.7MB body, so 2MB here silently contradicted the documented image cap:
+// anything over ~1.5MB was rejected by the body parser long before the repo's
+// own size check ever ran.
+app.use(express.json({ limit: '12mb' }));
 
 // Broadcast a live-refresh to every open tab after any successful mutating API
 // request. This is what makes the UI update without a manual reload: SQLite's
@@ -60,6 +65,14 @@ app.get('*', (req, res, next) => {
 });
 
 app.use((err, req, res, _next) => {
+  // A payload that's too large is a client error with an obvious fix, not an
+  // "internal error" — reporting it as 500 sent me hunting through server logs
+  // for something the response could have just said.
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: `payload too large (${err.length} bytes, limit ${err.limit})`
+    });
+  }
   console.error('[pip] unhandled error:', err);
   res.status(500).json({ error: 'internal error' });
 });

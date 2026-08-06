@@ -115,8 +115,13 @@ export function openTicketModal(record, { extra = {}, entityType = null, title =
         if (!attachHost.isConnected || !list.length) return;
         // Clicking a thumbnail opens it full-size in its own tab; a
         // lightbox inside a modal is a second overlay for little gain.
+        //
+        // `inlineIn` is every body of markdown this modal already rendered, so
+        // an image placed inline (where it sat on the source ticket) isn't
+        // repeated in the gallery below it.
         for (const node of attachmentSections(list, {
-          onOpenImage: (a) => window.open(a.src, '_blank', 'noopener')
+          onOpenImage: (a) => window.open(a.src, '_blank', 'noopener'),
+          inlineIn: [record.details_md, record.notes_md, record.body_md].filter(Boolean).join('\n')
         })) {
           attachHost.appendChild(node);
         }

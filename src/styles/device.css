@@ -1698,6 +1698,29 @@
   overflow-wrap: anywhere;
 }
 
+/* Screenshots from a ticket arrive at their native size — often 4000px+ wide,
+   which overflows the modal and clips. Scale to the container, never up. */
+.pip-ticket-prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 8px 0 4px;
+  border-radius: 8px;
+  border: 1px solid var(--lcd-line);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* The italic line following an inline image is its caption, not emphasis. */
+.pip-ticket-prose img + em,
+.pip-ticket-prose p > em:only-child {
+  display: block;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--lcd-ink-faint);
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+
 .pip-ticket-prose p,
 .pip-ticket-prose ul,
 .pip-ticket-prose ol {

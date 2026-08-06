@@ -38,6 +38,27 @@ export function splitAttachments(list = []) {
   };
 }
 
+// Which attachments are already rendered inline in a body of markdown.
+//
+// Synced tickets place their images inline, at the position they appeared
+// upstream, so a PIP card reads like the source. Those must NOT also appear in
+// the gallery below — the same screenshot twice is worse than either choice.
+//
+// Anything NOT referenced inline still shows in the gallery. That's deliberate:
+// an attachment that renders nowhere is the "floating asset" case, which is the
+// thing to avoid even when the row itself is perfectly valid.
+export function referencedInline(list = [], md = '') {
+  const body = String(md || '');
+  const ids = new Set();
+  for (const a of list) {
+    // Match either the served path or a bare id, so a hand-written reference
+    // still counts.
+    if (a.src && body.includes(a.src)) ids.add(a.id);
+    else if (a.id && body.includes(a.id)) ids.add(a.id);
+  }
+  return ids;
+}
+
 // Compact strip for a card: a few thumbnails and a count of everything else.
 export function attachmentStrip(list = []) {
   if (!list.length) return null;
@@ -57,8 +78,14 @@ export function attachmentStrip(list = []) {
 
 // Full treatment for a modal. `onOpenImage` gets the attachment when a
 // thumbnail is clicked, so the caller decides what "view larger" means.
-export function attachmentSections(list = [], { onOpenImage = null } = {}) {
-  const { images, links } = splitAttachments(list);
+//
+// `inlineIn` is the markdown the modal is also rendering; any image already
+// referenced there is skipped, so it appears once — in position — rather than
+// twice.
+export function attachmentSections(list = [], { onOpenImage = null, inlineIn = '' } = {}) {
+  const inline = referencedInline(list, inlineIn);
+  const visible = list.filter((a) => !inline.has(a.id));
+  const { images, links } = splitAttachments(visible);
   const out = [];
 
   if (images.length) {
@@ -75,7 +102,11 @@ export function attachmentSections(list = [], { onOpenImage = null } = {}) {
     );
     out.push(
       h('div', { class: 'pip-ticket-section' }, [
-        h('div', { class: 'pip-ticket-section-label' }, `IMAGES (${images.length})`),
+        h(
+          'div',
+          { class: 'pip-ticket-section-label' },
+          inline.size ? `MORE IMAGES (${images.length})` : `IMAGES (${images.length})`
+        ),
         grid
       ])
     );

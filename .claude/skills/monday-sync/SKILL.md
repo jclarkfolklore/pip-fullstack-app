@@ -149,6 +149,27 @@ fetch('http://127.0.0.1:4288/api/attachments',{method:'POST',headers:{'Content-T
 Non-image files (PDFs, docs, video) attach as **links** with their name and
 `public_url` — PIP stores images, not arbitrary binaries.
 
+**Place them inline, where they sat upstream.** Attaching an image is only half
+the job — a PIP card should read like the source ticket, not like a wall of
+text with a gallery bolted underneath. After attaching, rewrite `detailsMd` to
+reference each image at the point it appeared:
+
+```markdown
+![State dropdown open — native option list renders at ~2x the site type scale](/api/attachments/<id>/raw)
+
+*State dropdown open — native option list renders at ~2x the site type scale*
+```
+
+The `src` is `/api/attachments/<id>/raw`, returned as `src` on the attachment.
+The italic line under the image renders as its caption.
+
+The detail modal skips any attachment already referenced inline, so an inline
+image appears **once, in position** — while anything not referenced still shows
+in the gallery below. That's deliberate: an attachment that renders nowhere is
+a floating asset, which is the thing to avoid even when the row is valid. Never
+delete an attachment without also removing its inline reference, or the
+markdown points at nothing.
+
 **Caption by content, not filename.** `title` should say what the asset shows
 — *"Annotated mockup: revised CTA placement"* — never
 `Screenshot_2026-04-16.png`. If the update body around the asset explains it,
