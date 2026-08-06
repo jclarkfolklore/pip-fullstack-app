@@ -32,6 +32,22 @@ function stateOf(row) {
   return row.stage || row.status || null;
 }
 
+// Two lines of plain text under the title. Markdown is stripped rather than
+// rendered — at this size headings and bullets are noise, and the point is a
+// sense of what the item is, not a faithful rendering of it.
+function previewOf(row) {
+  const md = row.body_md || row.notes_md || row.details_md || '';
+  return String(md)
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^[-*+]\s+/gm, '')
+    .replace(/[*_`>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function contactRow(contact, onRemoved) {
   const lines = [contact.role, contact.org].filter(Boolean).join(' · ');
   const reach = [
@@ -99,12 +115,21 @@ export function openProjectModal(project, { onChanged = null } = {}) {
             { class: 'pip-project-rows' },
             rows.map((row) => {
               const state = stateOf(row);
+              const preview = previewOf(row);
               const item = h('button', { class: 'pip-project-row' }, [
-                icon(kind.glyph, { size: 11 }),
-                h('span', { class: 'pip-project-row-title' }, kind.title(row)),
-                state ? h('span', { class: 'pip-project-row-state' }, state) : null,
-                h('span', { class: 'pip-project-row-date' }, fmtDate(row.created_at || row.updated_at))
-              ].filter(Boolean));
+                h('div', { class: 'pip-project-row-glyph' }, [icon(kind.glyph, { size: 13 })]),
+                h('div', { class: 'pip-project-row-main' }, [
+                  h('div', { class: 'pip-project-row-top' }, [
+                    h('span', { class: 'pip-project-row-title' }, kind.title(row)),
+                    row.source_ref ? h('span', { class: 'pip-project-row-ref' }, row.source_ref) : null
+                  ].filter(Boolean)),
+                  preview ? h('div', { class: 'pip-project-row-preview' }, preview) : null
+                ].filter(Boolean)),
+                h('div', { class: 'pip-project-row-side' }, [
+                  state ? h('span', { class: 'pip-project-row-state' }, state) : null,
+                  h('span', { class: 'pip-project-row-date' }, fmtDate(row.created_at || row.updated_at))
+                ].filter(Boolean))
+              ]);
               // Each item opens its own detail view, attachments and all.
               item.addEventListener('click', () =>
                 openTicketModal(row, {

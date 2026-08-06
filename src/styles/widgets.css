@@ -1113,3 +1113,78 @@
 .pip-card[data-status='closed']:hover {
   opacity: 0.8;
 }
+
+/* ===== bigger project rows =====
+   A single line of title told you almost nothing about an item. These now
+   carry a two-line preview, the ticket ref where there is one, and state and
+   date pushed to their own column. */
+.pip-project-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 10px;
+}
+
+.pip-project-row-glyph {
+  flex: 0 0 auto;
+  padding-top: 1px;
+  color: var(--lcd-ink-dim);
+}
+
+.pip-project-row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pip-project-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.pip-project-row .pip-project-row-title {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: normal;
+  overflow: visible;
+}
+
+.pip-project-row-ref {
+  flex: 0 0 auto;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-accent-2);
+}
+
+.pip-project-row-preview {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--lcd-ink-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pip-project-row-side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+/* Bigger galleries now that the modal has the width for them. */
+.pip-att-gallery {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.pip-att-link {
+  font-size: 13px;
+  padding: 7px 9px;
+}

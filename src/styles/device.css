@@ -1172,10 +1172,14 @@
   }
 }
 
+/* Roomy on purpose. These carry ticket descriptions, acceptance criteria,
+   image galleries and whole project inventories — at 460px that content was
+   readable but cramped, and everything needed scrolling that didn't have to.
+   Capped in vw as well as px so it never outgrows a small window. */
 .pip-modal {
   width: 100%;
-  max-width: 460px;
-  max-height: 80vh;
+  max-width: min(760px, 92vw);
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   border-radius: 14px;
