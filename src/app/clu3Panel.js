@@ -41,8 +41,12 @@ export function mountClu3Panel(container) {
   const actionHost = h('div', { class: 'pip-clu3-action' });
   const pipsHost = h('div', { class: 'pip-clu3-pips', title: 'energy' });
 
-  const sheetBtn = h('button', { class: 'pip-clu3-sheet-btn', title: 'Preview sprite sheet' }, [icon('grid', { size: 15 })]);
-  const refreshBtn = h('button', { class: 'pip-clu3-refresh', title: 'Get latest now' }, [icon('refresh', { size: 15 })]);
+  const sheetBtn = h('button', { class: 'pip-clu3-sheet-btn', title: 'Preview sprite sheet' }, [
+    icon('grid', { size: 15 })
+  ]);
+  const refreshBtn = h('button', { class: 'pip-clu3-refresh', title: 'Get latest now' }, [
+    icon('refresh', { size: 15 })
+  ]);
   // Nothing to re-read in a snapshot — Clu3's line was computed when the
   // snapshot was taken and can't change.
   if (isStatic()) refreshBtn.style.display = 'none';

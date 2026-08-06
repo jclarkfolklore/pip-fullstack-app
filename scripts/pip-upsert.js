@@ -95,7 +95,8 @@ async function upsertInbox(rec, projectId, index) {
   const doneUpstream = rec.state === 'done';
 
   if (!existing) {
-    if (DRY) return console.log(`  + would create inbox "${rec.title}"${doneUpstream ? ' (already resolved)' : ''}`);
+    if (DRY)
+      return console.log(`  + would create inbox "${rec.title}"${doneUpstream ? ' (already resolved)' : ''}`);
     // The drops importer keys on the caller-supplied id, which is what makes
     // re-running safe — so we go through it rather than POST /api/inbox
     // (which mints a random uuid).
@@ -110,7 +111,8 @@ async function upsertInbox(rec, projectId, index) {
       sourceRef: rec.sourceRef || null,
       projectId: projectId || null
     });
-    if (doneUpstream) await post(`/api/inbox/${rec.id}/resolve`, { outcomeMd: 'Completed upstream.', taskTitles: [] });
+    if (doneUpstream)
+      await post(`/api/inbox/${rec.id}/resolve`, { outcomeMd: 'Completed upstream.', taskTitles: [] });
     return console.log(`  + inbox "${rec.title}"${doneUpstream ? ' (resolved)' : ''}`);
   }
 
@@ -229,7 +231,9 @@ async function main() {
 
   const missing = records.filter((r) => !r.id || !r.title);
   if (missing.length) {
-    console.error(`${missing.length} record(s) missing required id/title — aborting so nothing lands half-synced.`);
+    console.error(
+      `${missing.length} record(s) missing required id/title — aborting so nothing lands half-synced.`
+    );
     process.exit(1);
   }
 

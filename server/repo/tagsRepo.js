@@ -31,7 +31,9 @@ function tagsFor(entityType, entityId) {
 
 function attachTags(entityType, entityId, tagNames = []) {
   db.prepare('DELETE FROM entity_tags WHERE entity_type = ? AND entity_id = ?').run(entityType, entityId);
-  const insert = db.prepare('INSERT OR IGNORE INTO entity_tags (entity_type, entity_id, tag_id) VALUES (?,?,?)');
+  const insert = db.prepare(
+    'INSERT OR IGNORE INTO entity_tags (entity_type, entity_id, tag_id) VALUES (?,?,?)'
+  );
   for (const name of tagNames) {
     const tagId = ensureTag(name);
     if (!tagId) continue;
@@ -40,7 +42,10 @@ function attachTags(entityType, entityId, tagNames = []) {
 }
 
 function allTagNames() {
-  return db.prepare('SELECT name FROM tags ORDER BY name').all().map((r) => r.name);
+  return db
+    .prepare('SELECT name FROM tags ORDER BY name')
+    .all()
+    .map((r) => r.name);
 }
 
 module.exports = { ensureTag, tagsFor, attachTags, allTagNames };

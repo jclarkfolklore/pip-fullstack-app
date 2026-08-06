@@ -51,14 +51,22 @@ export function renderFull(ctx) {
   }
 
   function openComposeSheet(existing = null) {
-    const bodyInput = h('textarea', { rows: '8', placeholder: 'What happened today?' }, existing ? existing.body_md : '');
+    const bodyInput = h(
+      'textarea',
+      { rows: '8', placeholder: 'What happened today?' },
+      existing ? existing.body_md : ''
+    );
 
     const scrim = h('div', { class: 'pip-sheet-scrim' }, [
       h('div', { class: 'pip-sheet' }, [
         h('div', { class: 'pip-sheet-title' }, existing ? 'EDIT ENTRY' : 'NEW ENTRY'),
         h('div', { class: 'pip-field' }, [bodyInput]),
         h('div', { class: 'pip-sheet-actions' }, [
-          h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() }, 'CANCEL'),
+          h(
+            'button',
+            { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() },
+            'CANCEL'
+          ),
           h(
             'button',
             {
@@ -97,15 +105,25 @@ export function renderFull(ctx) {
 
     el.append(
       ...[
-        h('div', { class: 'pip-journal-when' }, [
-          h('span', { class: 'pip-journal-date' }, fmtDateTime(entry.created_at)),
-          edited ? h('span', { class: 'pip-journal-edited' }, `edited ${fmtDateTime(entry.updated_at)}`) : null
-        ].filter(Boolean)),
+        h(
+          'div',
+          { class: 'pip-journal-when' },
+          [
+            h('span', { class: 'pip-journal-date' }, fmtDateTime(entry.created_at)),
+            edited
+              ? h('span', { class: 'pip-journal-edited' }, `edited ${fmtDateTime(entry.updated_at)}`)
+              : null
+          ].filter(Boolean)
+        ),
         h('div', { class: 'pip-journal-body', html: marked.parse(entry.body_md || '') }),
         (attachmentsById[entry.id] || []).length
-          ? h('div', { class: 'pip-journal-att' }, attachmentSections(attachmentsById[entry.id], {
-              onOpenImage: (a) => window.open(a.src, '_blank', 'noopener')
-            }))
+          ? h(
+              'div',
+              { class: 'pip-journal-att' },
+              attachmentSections(attachmentsById[entry.id], {
+                onOpenImage: (a) => window.open(a.src, '_blank', 'noopener')
+              })
+            )
           : null,
         h('div', { class: 'pip-journal-actions' }, [
           h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(entry) }, 'EDIT'),
@@ -141,11 +159,17 @@ export function renderFull(ctx) {
 
   async function renderList() {
     const items = await listEntries(filters);
-    attachmentsById = await listAttachmentsForMany('journal', items.map((e) => e.id)).catch(() => ({}));
+    attachmentsById = await listAttachmentsForMany(
+      'journal',
+      items.map((e) => e.id)
+    ).catch(() => ({}));
     listContainer.innerHTML = '';
     if (!items.length) {
       listContainer.appendChild(
-        h('div', { class: 'pip-empty' }, [icon('book', { size: 24, className: 'pip-empty-glyph' }), h('div', {}, 'Nothing recorded yet.')])
+        h('div', { class: 'pip-empty' }, [
+          icon('book', { size: 24, className: 'pip-empty-glyph' }),
+          h('div', {}, 'Nothing recorded yet.')
+        ])
       );
       return;
     }
@@ -154,7 +178,9 @@ export function renderFull(ctx) {
     staggerIn(list.children);
   }
 
-  const fab = h('button', { class: 'pip-fab', title: 'New entry', onClick: () => openComposeSheet() }, [icon('plus', { size: 18, color: '#fff' })]);
+  const fab = h('button', { class: 'pip-fab', title: 'New entry', onClick: () => openComposeSheet() }, [
+    icon('plus', { size: 18, color: '#fff' })
+  ]);
   el.appendChild(fab);
 
   body.append(toolbarHost, listContainer);

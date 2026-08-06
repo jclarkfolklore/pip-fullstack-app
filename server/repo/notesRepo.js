@@ -125,7 +125,16 @@ function updateFields(id, fields = {}) {
   };
   db.prepare(
     'UPDATE notes SET title=?, body_md=?, source_type=?, source_url=?, project_id=?, pinned=?, updated_at=? WHERE id=?'
-  ).run(next.title, next.body_md, next.source_type, next.source_url, next.project_id, next.pinned, nowIso(), id);
+  ).run(
+    next.title,
+    next.body_md,
+    next.source_type,
+    next.source_url,
+    next.project_id,
+    next.pinned,
+    nowIso(),
+    id
+  );
   if (fields.tags !== undefined) attachTags('note', id, fields.tags);
   logEvent('note', id, 'note_updated', { fields: Object.keys(fields) });
   return getNote(id);
@@ -143,7 +152,10 @@ function deleteNote(id) {
 }
 
 function noteCounts() {
-  return { total: db.prepare('SELECT COUNT(*) AS n FROM notes').get().n, pinned: db.prepare('SELECT COUNT(*) AS n FROM notes WHERE pinned=1').get().n };
+  return {
+    total: db.prepare('SELECT COUNT(*) AS n FROM notes').get().n,
+    pinned: db.prepare('SELECT COUNT(*) AS n FROM notes WHERE pinned=1').get().n
+  };
 }
 
 module.exports = {

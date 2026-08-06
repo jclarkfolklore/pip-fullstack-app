@@ -227,7 +227,11 @@ export function renderFull(ctx) {
     body.appendChild(
       card('Backup', [
         h('div', { class: 'pip-card-actions' }, [
-          h('a', { class: 'pip-action-btn pip-action-btn--primary', href: '/api/export' }, 'EXPORT BACKUP .sqlite')
+          h(
+            'a',
+            { class: 'pip-action-btn pip-action-btn--primary', href: '/api/export' },
+            'EXPORT BACKUP .sqlite'
+          )
         ])
       ])
     );

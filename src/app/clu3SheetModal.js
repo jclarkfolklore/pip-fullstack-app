@@ -25,7 +25,13 @@ import {
   SPRITE_SIZE
 } from '../lib/clu3Quantize.js';
 import { COMBOS } from '../lib/clu3Combos.js';
-import { createSequencer, contextForMood, MOOD_CONTEXT, FRAME_MS, COMBO_GAP_MS } from '../lib/clu3Sequencer.js';
+import {
+  createSequencer,
+  contextForMood,
+  MOOD_CONTEXT,
+  FRAME_MS,
+  COMBO_GAP_MS
+} from '../lib/clu3Sequencer.js';
 import { openModal } from './modal.js';
 
 const VIEWS = ['poses', 'combos', 'sequence'];
@@ -55,7 +61,10 @@ function topField(combo, count = 3) {
 function poseTile({ n, id }, options, onPick) {
   const stage = stageFor(n, options);
   const cell = h('button', { class: 'pip-clu3-sheet-cell is-pickable', title: `pose ${n} — cell ${id}` }, [
-    h('div', { class: 'pip-clu3-sheet-stage' }, [stage, h('span', { class: 'pip-clu3-sheet-num' }, String(n))]),
+    h('div', { class: 'pip-clu3-sheet-stage' }, [
+      stage,
+      h('span', { class: 'pip-clu3-sheet-num' }, String(n))
+    ]),
     h('div', { class: 'pip-clu3-sheet-caption' }, id)
   ]);
   cell.addEventListener('click', () => onPick(n));
@@ -170,7 +179,9 @@ export function openClu3SheetModal() {
         h(
           'div',
           { class: 'pip-clu3-focus-sub' },
-          used.length ? `used in ${used.length} combo${used.length === 1 ? '' : 's'}` : 'not used in any combo yet'
+          used.length
+            ? `used in ${used.length} combo${used.length === 1 ? '' : 's'}`
+            : 'not used in any combo yet'
         ),
         back
       ])
@@ -179,7 +190,9 @@ export function openClu3SheetModal() {
     grid.dataset.view = 'combos';
     for (const combo of used) grid.appendChild(comboTile(combo, state, timers, n));
     if (!used.length) {
-      grid.appendChild(h('div', { class: 'pip-ticket-empty' }, 'No combo covers this pose — it is currently unused.'));
+      grid.appendChild(
+        h('div', { class: 'pip-ticket-empty' }, 'No combo covers this pose — it is currently unused.')
+      );
     }
   }
 

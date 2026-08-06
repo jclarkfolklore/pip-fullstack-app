@@ -16,7 +16,17 @@ const { chromium } = require('playwright-core');
 
 const BASE = process.env.PIP_BASE || 'http://127.0.0.1:4288';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const VIEWS = ['dashboard', 'inbox', 'tasks', 'notes', 'journal', 'projects', 'metrics', 'overview', 'settings'];
+const VIEWS = [
+  'dashboard',
+  'inbox',
+  'tasks',
+  'notes',
+  'journal',
+  'projects',
+  'metrics',
+  'overview',
+  'settings'
+];
 
 async function touchDrag(cdp, x, fromY, toY) {
   const step = fromY > toY ? -12 : 12;
@@ -60,7 +70,12 @@ async function touchDrag(cdp, x, fromY, toY) {
       const el = candidates[0];
       el.dataset.touchTest = '1';
       const r = el.getBoundingClientRect();
-      return { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width), h: Math.round(r.height) };
+      return {
+        top: Math.round(r.top),
+        left: Math.round(r.left),
+        w: Math.round(r.width),
+        h: Math.round(r.height)
+      };
     });
 
     if (!target) {
@@ -93,12 +108,22 @@ async function touchDrag(cdp, x, fromY, toY) {
       if (!el) return null;
       el.dataset.touchTest = '1';
       const r = el.getBoundingClientRect();
-      return { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width), h: Math.round(r.height),
-               scrollable: el.scrollHeight > el.clientHeight + 8 };
+      return {
+        top: Math.round(r.top),
+        left: Math.round(r.left),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+        scrollable: el.scrollHeight > el.clientHeight + 8
+      };
     });
     if (res && res.scrollable) {
       const before = await page.evaluate(() => document.querySelector('[data-touch-test]').scrollTop);
-      await touchDrag(cdp, res.left + Math.round(res.w / 2), res.top + Math.round(res.h * 0.8), res.top + Math.round(res.h * 0.2));
+      await touchDrag(
+        cdp,
+        res.left + Math.round(res.w / 2),
+        res.top + Math.round(res.h * 0.8),
+        res.top + Math.round(res.h * 0.2)
+      );
       await page.waitForTimeout(600);
       const after = await page.evaluate(() => document.querySelector('[data-touch-test]').scrollTop);
       const moved = after > before;

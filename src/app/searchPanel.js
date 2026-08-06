@@ -38,7 +38,11 @@ function resultCard(row, onOpen) {
     h('div', { class: 'pip-search-result-body' }, [
       h('div', { class: 'pip-search-result-titlerow' }, [
         h('span', { class: 'pip-search-result-title' }, row.title),
-        h('span', { class: 'pip-search-result-type', dataset: { type: row.type } }, TYPE_LABEL[row.type] || row.type)
+        h(
+          'span',
+          { class: 'pip-search-result-type', dataset: { type: row.type } },
+          TYPE_LABEL[row.type] || row.type
+        )
       ]),
       h('div', { class: 'pip-search-result-snippet' }, (row.snippet || '').slice(0, 90)),
       h('div', { class: 'pip-search-result-meta' }, metaBits.join(' · '))

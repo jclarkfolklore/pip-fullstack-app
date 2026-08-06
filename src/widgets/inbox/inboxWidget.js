@@ -47,9 +47,13 @@ export async function renderTile(ctx) {
   // same rule the Tasks tile uses, so the two read alike. Colours come from
   // the shared lifecycle system in widgets.css.
   const badges = [
-    counts.active > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--active' }, String(counts.active)) : null,
+    counts.active > 0
+      ? h('div', { class: 'pip-tile-badge pip-tile-badge--active' }, String(counts.active))
+      : null,
     counts.new > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--new' }, String(counts.new)) : null,
-    counts.deactivated > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--inactive' }, String(counts.deactivated)) : null
+    counts.deactivated > 0
+      ? h('div', { class: 'pip-tile-badge pip-tile-badge--inactive' }, String(counts.deactivated))
+      : null
   ].filter(Boolean);
 
   // Lead with what needs triage, since that's the actionable one.
@@ -132,7 +136,10 @@ export function renderFull(ctx) {
           renderList();
         }
       },
-      [h('option', { value: '' }, 'All projects'), ...projects.map((p) => h('option', { value: p.id }, p.name))]
+      [
+        h('option', { value: '' }, 'All projects'),
+        ...projects.map((p) => h('option', { value: p.id }, p.name))
+      ]
     );
 
     const sortSelect = h(
@@ -167,7 +174,9 @@ export function renderFull(ctx) {
     projectSelect.value = filters.project || '';
     sortSelect.value = filters.sort;
 
-    toolbarHost.appendChild(h('div', { class: 'pip-toolbar' }, [stageSelect, projectSelect, tagSelect, sortSelect, search]));
+    toolbarHost.appendChild(
+      h('div', { class: 'pip-toolbar' }, [stageSelect, projectSelect, tagSelect, sortSelect, search])
+    );
   }
 
   function openOutcomeSheet(item) {
@@ -179,7 +188,9 @@ export function renderFull(ctx) {
       input.value = value;
       const row = h('div', { class: 'pip-task-row' }, [
         input,
-        h('button', { class: 'pip-task-row-remove', title: 'Remove', onClick: () => row.remove() }, [icon('close', { size: 10 })])
+        h('button', { class: 'pip-task-row-remove', title: 'Remove', onClick: () => row.remove() }, [
+          icon('close', { size: 10 })
+        ])
       ]);
       taskRows.appendChild(row);
       input.focus();
@@ -195,13 +206,19 @@ export function renderFull(ctx) {
           h('button', { class: 'pip-action-btn', onClick: () => addTaskRow() }, '+ ADD TASK')
         ]),
         h('div', { class: 'pip-sheet-actions' }, [
-          h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() }, 'CANCEL'),
+          h(
+            'button',
+            { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() },
+            'CANCEL'
+          ),
           h(
             'button',
             {
               class: 'pip-action-btn pip-action-btn--primary',
               onClick: async () => {
-                const taskTitles = [...taskRows.querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean);
+                const taskTitles = [...taskRows.querySelectorAll('input')]
+                  .map((i) => i.value.trim())
+                  .filter(Boolean);
                 await resolveInboxItem(item.id, { outcomeMd: outcomeInput.value.trim(), taskTitles });
                 scrim.remove();
                 renderList();
@@ -227,12 +244,14 @@ export function renderFull(ctx) {
       { class: 'pip-chip-select' },
       SOURCE_TYPES.map((s) => h('option', { value: s }, SOURCE_LABEL[s] || s))
     );
-    const sourceUrlInput = h('input', { type: 'url', placeholder: 'https:// link back to the source (optional)' });
-    const projectSelect = h(
-      'select',
-      { class: 'pip-chip-select' },
-      [h('option', { value: '' }, 'No project'), ...Object.values(projectsById).map((p) => h('option', { value: p.id }, p.name))]
-    );
+    const sourceUrlInput = h('input', {
+      type: 'url',
+      placeholder: 'https:// link back to the source (optional)'
+    });
+    const projectSelect = h('select', { class: 'pip-chip-select' }, [
+      h('option', { value: '' }, 'No project'),
+      ...Object.values(projectsById).map((p) => h('option', { value: p.id }, p.name))
+    ]);
 
     const scrim = h('div', { class: 'pip-sheet-scrim' }, [
       h('div', { class: 'pip-sheet' }, [
@@ -244,7 +263,11 @@ export function renderFull(ctx) {
         h('div', { class: 'pip-field' }, [h('label', {}, 'Source'), sourceTypeSelect]),
         h('div', { class: 'pip-field' }, [h('label', {}, 'Source link'), sourceUrlInput]),
         h('div', { class: 'pip-sheet-actions' }, [
-          h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() }, 'CANCEL'),
+          h(
+            'button',
+            { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() },
+            'CANCEL'
+          ),
           h(
             'button',
             {
@@ -328,7 +351,17 @@ export function renderFull(ctx) {
         )
       );
       actions.push(
-        h('button', { class: 'pip-action-btn', onClick: async () => { await collapseOut(cardEl); await archiveItem(item.id); } }, 'ARCHIVE')
+        h(
+          'button',
+          {
+            class: 'pip-action-btn',
+            onClick: async () => {
+              await collapseOut(cardEl);
+              await archiveItem(item.id);
+            }
+          },
+          'ARCHIVE'
+        )
       );
     } else if (item.stage === 'active') {
       actions.push(
@@ -339,18 +372,58 @@ export function renderFull(ctx) {
         )
       );
       actions.push(
-        h('button', { class: 'pip-action-btn', onClick: async () => { await collapseOut(cardEl); await archiveItem(item.id); } }, 'ARCHIVE')
+        h(
+          'button',
+          {
+            class: 'pip-action-btn',
+            onClick: async () => {
+              await collapseOut(cardEl);
+              await archiveItem(item.id);
+            }
+          },
+          'ARCHIVE'
+        )
       );
     } else if (item.stage === 'resolved') {
       actions.push(
-        h('button', { class: 'pip-action-btn', onClick: async () => { await collapseOut(cardEl); await archiveItem(item.id); } }, 'ARCHIVE')
+        h(
+          'button',
+          {
+            class: 'pip-action-btn',
+            onClick: async () => {
+              await collapseOut(cardEl);
+              await archiveItem(item.id);
+            }
+          },
+          'ARCHIVE'
+        )
       );
       actions.push(
-        h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: async () => { await setStage(item.id, 'active'); renderList(); } }, 'REOPEN')
+        h(
+          'button',
+          {
+            class: 'pip-action-btn pip-action-btn--ghost',
+            onClick: async () => {
+              await setStage(item.id, 'active');
+              renderList();
+            }
+          },
+          'REOPEN'
+        )
       );
     } else {
       actions.push(
-        h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: async () => { await setStage(item.id, 'new'); renderList(); } }, 'RESTORE')
+        h(
+          'button',
+          {
+            class: 'pip-action-btn pip-action-btn--ghost',
+            onClick: async () => {
+              await setStage(item.id, 'new');
+              renderList();
+            }
+          },
+          'RESTORE'
+        )
       );
     }
     return actions;
@@ -372,7 +445,10 @@ export function renderFull(ctx) {
     const sourceIcon = icon(SOURCE_ICON[item.source_type] || 'tag', { size: 11 });
     const project = item.project_id ? projectsById[item.project_id] : null;
     const metaParts = [
-      h('span', { class: 'pip-card-meta-source' }, [sourceIcon, ` ${SOURCE_LABEL[item.source_type] || item.source_type}`]),
+      h('span', { class: 'pip-card-meta-source' }, [
+        sourceIcon,
+        ` ${SOURCE_LABEL[item.source_type] || item.source_type}`
+      ]),
       project ? ` · ${project.name}` : '',
       ` · ${fmtDate(item.created_at)}`
     ];
@@ -402,7 +478,10 @@ export function renderFull(ctx) {
         ]),
         h('div', { class: 'pip-card-body', html: marked.parse(item.body_md || '') }),
         item.outcome_md
-          ? h('div', { class: 'pip-card-body', html: `<em>Outcome:</em> ${marked.parseInline(item.outcome_md)}` })
+          ? h('div', {
+              class: 'pip-card-body',
+              html: `<em>Outcome:</em> ${marked.parseInline(item.outcome_md)}`
+            })
           : null,
         item.resolvedTasks && item.resolvedTasks.length
           ? h(
@@ -412,7 +491,11 @@ export function renderFull(ctx) {
             )
           : null,
         item.tags.length
-          ? h('div', { class: 'pip-tag-row' }, item.tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`)))
+          ? h(
+              'div',
+              { class: 'pip-tag-row' },
+              item.tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`))
+            )
           : null,
         metaEl,
         actionsWrap
@@ -448,7 +531,9 @@ export function renderFull(ctx) {
     }
   }
 
-  const fab = h('button', { class: 'pip-fab', title: 'Quick add', onClick: openComposeSheet }, [icon('plus', { size: 18, color: '#fff' })]);
+  const fab = h('button', { class: 'pip-fab', title: 'Quick add', onClick: openComposeSheet }, [
+    icon('plus', { size: 18, color: '#fff' })
+  ]);
   el.appendChild(fab);
 
   // Toolbar (selects + search) is built once, asynchronously (tags/projects

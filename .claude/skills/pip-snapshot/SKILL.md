@@ -71,6 +71,7 @@ Always report the deploy URL back to the user — that's the deliverable.
 ## After deploying
 
 Tell the user:
+
 - the live URL
 - when the snapshot was taken (it's in `snapshot.json` and on the banner)
 - that it's a point-in-time copy — re-run to refresh it

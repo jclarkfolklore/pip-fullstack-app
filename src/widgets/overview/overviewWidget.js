@@ -40,7 +40,12 @@ export function renderFull(ctx) {
     ]);
 
   async function render() {
-    const [inbox, tasks, notes, projects] = await Promise.all([stageCounts(), taskCounts(), noteCounts(), listProjects()]);
+    const [inbox, tasks, notes, projects] = await Promise.all([
+      stageCounts(),
+      taskCounts(),
+      noteCounts(),
+      listProjects()
+    ]);
     body.innerHTML = '';
     body.append(
       row('Inbox — new', inbox.new),

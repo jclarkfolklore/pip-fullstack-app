@@ -17,7 +17,9 @@ export async function renderTile(ctx) {
   // Inbox tile. Colours come from the shared lifecycle system in widgets.css.
   const badges = [
     counts.done > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--done' }, String(counts.done)) : null,
-    counts.doing > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--doing' }, String(counts.doing)) : null,
+    counts.doing > 0
+      ? h('div', { class: 'pip-tile-badge pip-tile-badge--doing' }, String(counts.doing))
+      : null,
     counts.open > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--todo' }, String(counts.open)) : null
   ].filter(Boolean);
 
@@ -100,7 +102,10 @@ export function renderFull(ctx) {
           renderList();
         }
       },
-      [h('option', { value: '' }, 'All projects'), ...projects.map((p) => h('option', { value: p.id }, p.name))]
+      [
+        h('option', { value: '' }, 'All projects'),
+        ...projects.map((p) => h('option', { value: p.id }, p.name))
+      ]
     );
 
     doneToggle.addEventListener('click', () => {
@@ -117,11 +122,10 @@ export function renderFull(ctx) {
     const titleInput = h('input', { type: 'text', placeholder: 'Task title' });
     const notesInput = h('textarea', { rows: '3', placeholder: 'Notes (optional, markdown)' });
     const dueInput = h('input', { type: 'date' });
-    const projectSelect = h(
-      'select',
-      { class: 'pip-chip-select' },
-      [h('option', { value: '' }, 'No project'), ...Object.values(projectsById).map((p) => h('option', { value: p.id }, p.name))]
-    );
+    const projectSelect = h('select', { class: 'pip-chip-select' }, [
+      h('option', { value: '' }, 'No project'),
+      ...Object.values(projectsById).map((p) => h('option', { value: p.id }, p.name))
+    ]);
 
     const scrim = h('div', { class: 'pip-sheet-scrim' }, [
       h('div', { class: 'pip-sheet' }, [
@@ -131,7 +135,11 @@ export function renderFull(ctx) {
         h('div', { class: 'pip-field' }, [h('label', {}, 'Project'), projectSelect]),
         h('div', { class: 'pip-field' }, [h('label', {}, 'Notes'), notesInput]),
         h('div', { class: 'pip-sheet-actions' }, [
-          h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() }, 'CANCEL'),
+          h(
+            'button',
+            { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() },
+            'CANCEL'
+          ),
           h(
             'button',
             {
@@ -194,7 +202,11 @@ export function renderFull(ctx) {
         ref,
         h('div', { class: 'pip-task-card-title' }, task.title),
         task.notes_md ? h('div', { class: 'pip-task-card-notes' }, task.notes_md) : null,
-        h('div', { class: `pip-task-card-meta ${overdue ? 'is-overdue' : ''}`.trim() }, metaParts.join(' · ')),
+        h(
+          'div',
+          { class: `pip-task-card-meta ${overdue ? 'is-overdue' : ''}`.trim() },
+          metaParts.join(' · ')
+        ),
         h('div', { class: 'pip-task-card-actions' }, [
           ...(STATUS_MOVES[task.status] || []).map((move) =>
             h(
@@ -312,7 +324,9 @@ export function renderFull(ctx) {
     }
   }
 
-  const fab = h('button', { class: 'pip-fab', title: 'Add task', onClick: openComposeSheet }, [icon('plus', { size: 18, color: '#fff' })]);
+  const fab = h('button', { class: 'pip-fab', title: 'Add task', onClick: openComposeSheet }, [
+    icon('plus', { size: 18, color: '#fff' })
+  ]);
   el.appendChild(fab);
 
   body.append(toolbarHost, listContainer);

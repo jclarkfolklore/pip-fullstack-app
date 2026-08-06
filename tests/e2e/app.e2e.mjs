@@ -22,7 +22,17 @@ after(async () => {
   if (app) await app.stop();
 });
 
-const VIEWS = ['dashboard', 'inbox', 'tasks', 'notes', 'journal', 'projects', 'metrics', 'overview', 'settings'];
+const VIEWS = [
+  'dashboard',
+  'inbox',
+  'tasks',
+  'notes',
+  'journal',
+  'projects',
+  'metrics',
+  'overview',
+  'settings'
+];
 
 describe('every view renders', () => {
   for (const view of VIEWS) {
@@ -163,13 +173,17 @@ test('theme switching applies and persists', async () => {
   if ((await buttons.count()) === 0) return; // no theme control rendered; nothing to assert
 
   await app.goto('settings');
-  const initial = await app.page.evaluate(() => document.querySelector('.pip-layout')?.dataset.theme || 'default');
+  const initial = await app.page.evaluate(
+    () => document.querySelector('.pip-layout')?.dataset.theme || 'default'
+  );
   await app.page.evaluate(() => {
     const b = [...document.querySelectorAll('button')].find((x) => /AMBER|MONO|NIGHT/i.test(x.textContent));
     if (b) b.click();
   });
   await app.page.waitForTimeout(400);
-  const after = await app.page.evaluate(() => document.querySelector('.pip-layout')?.dataset.theme || 'default');
+  const after = await app.page.evaluate(
+    () => document.querySelector('.pip-layout')?.dataset.theme || 'default'
+  );
   assert.notEqual(after, initial, 'theme changed');
 });
 

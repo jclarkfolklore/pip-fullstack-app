@@ -10,16 +10,16 @@ work is confirmed and the durable parts have moved into `CLAUDE.md` /
 
 Measured, not assumed — 2026-08-06.
 
-| Metric | Value |
-|---|---|
-| JS files (excl. build output) | 97 |
-| Lines of code | 12,452 |
-| API endpoints | 68 across 15 route files |
-| Repo modules | 11 |
-| Mutating repo functions | 40 |
-| Migrations | 10 (v2–v11, no gaps), 36 statements |
-| Existing tests | 1 (`pip-touch-test.js`, written today) |
-| Lint / format config | none |
+| Metric                        | Value                                  |
+| ----------------------------- | -------------------------------------- |
+| JS files (excl. build output) | 97                                     |
+| Lines of code                 | 12,452                                 |
+| API endpoints                 | 68 across 15 route files               |
+| Repo modules                  | 11                                     |
+| Mutating repo functions       | 40                                     |
+| Migrations                    | 10 (v2–v11, no gaps), 36 statements    |
+| Existing tests                | 1 (`pip-touch-test.js`, written today) |
+| Lint / format config          | none                                   |
 
 ### 1.1 Confirmed gaps
 
@@ -33,7 +33,7 @@ audit rather than by use.
 Of the 14 mutating functions without `logEvent`, the other 11 are correct and
 should stay that way — Clu3 messages (chrome, not work history, per
 `CLAUDE.md`), widget layout (UI config), and tag/file helpers that run inside
-an already-logged operation. A test must encode the *intended* set, not
+an already-logged operation. A test must encode the _intended_ set, not
 "everything logs", or it will be wrong in both directions.
 
 **`// prettier-ignore` comments exist in two files with no Prettier
@@ -59,16 +59,16 @@ Worth stating, because these are the places I expected to find rot:
 
 What actually breaks, ordered by (likelihood × silence × cost):
 
-| # | Risk | Why it ranks here |
-|---|---|---|
-| 1 | Migration breaks an existing DB | Killed startup today. Silent on fresh DBs, so local dev never sees it. |
-| 2 | Mutation stops logging | Corrupts history permanently. Nothing surfaces it. |
-| 3 | Attachment orphans | No FK cascade; one missed call leaks files forever. |
-| 4 | Inactive leaks into counts | Enforced in 10 separate places. |
-| 5 | Snapshot drift | New endpoint not in `ENDPOINTS` → silently broken demo. |
-| 6 | Clu3 non-determinism | Built to be deterministic, never verified. |
-| 7 | Mobile scroll regression | Happened today. Passes computed-style checks. |
-| 8 | Search parity | Shared today — a test locks that in. |
+| #   | Risk                            | Why it ranks here                                                      |
+| --- | ------------------------------- | ---------------------------------------------------------------------- |
+| 1   | Migration breaks an existing DB | Killed startup today. Silent on fresh DBs, so local dev never sees it. |
+| 2   | Mutation stops logging          | Corrupts history permanently. Nothing surfaces it.                     |
+| 3   | Attachment orphans              | No FK cascade; one missed call leaks files forever.                    |
+| 4   | Inactive leaks into counts      | Enforced in 10 separate places.                                        |
+| 5   | Snapshot drift                  | New endpoint not in `ENDPOINTS` → silently broken demo.                |
+| 6   | Clu3 non-determinism            | Built to be deterministic, never verified.                             |
+| 7   | Mobile scroll regression        | Happened today. Passes computed-style checks.                          |
+| 8   | Search parity                   | Shared today — a test locks that in.                                   |
 
 ---
 
@@ -103,7 +103,7 @@ that have already regressed once.
 
 **Don't test:** pixel grids, scene composition, exact copy. Asserting art is
 churn — a deliberate redesign would "fail" while looking better. The one
-exception is *structural* checks that catch real breakage: grid rectangularity,
+exception is _structural_ checks that catch real breakage: grid rectangularity,
 and every mood resolving to drawable art.
 
 ---
@@ -112,22 +112,22 @@ and every mood resolving to drawable art.
 
 Six phases. Each ends green before the next starts.
 
-| Phase | Content | Layer |
-|---|---|---|
-| 0 | ESM resolution spike + build verification | infra |
-| 1 | Harness: temp-DB helper, fixtures, `npm test` | infra |
-| 2 | Data integrity — migrations, logging, attachments, inactive | server |
-| 3 | Workflows — lifecycles, sync idempotency, snapshot | server |
-| 4 | Pure logic — Clu3 engine, quantize, frontmatter, search parity | frontend |
-| 5 | Migration hardening — transactional, fail-loud, checksummed | server |
-| 6 | E2E — real browser against a real server | e2e |
-| 7 | Lint + format, honouring `prettier-ignore` | tooling |
-| 8 | Quality gate + docs | — |
+| Phase | Content                                                        | Layer    |
+| ----- | -------------------------------------------------------------- | -------- |
+| 0     | ESM resolution spike + build verification                      | infra    |
+| 1     | Harness: temp-DB helper, fixtures, `npm test`                  | infra    |
+| 2     | Data integrity — migrations, logging, attachments, inactive    | server   |
+| 3     | Workflows — lifecycles, sync idempotency, snapshot             | server   |
+| 4     | Pure logic — Clu3 engine, quantize, frontmatter, search parity | frontend |
+| 5     | Migration hardening — transactional, fail-loud, checksummed    | server   |
+| 6     | E2E — real browser against a real server                       | e2e      |
+| 7     | Lint + format, honouring `prettier-ignore`                     | tooling  |
+| 8     | Quality gate + docs                                            | —        |
 
 ### Phase 5 — why hardening rather than a migration tool
 
 Evaluated umzug, db-migrate and Knex. **Recommendation: no tool.** They
-standardise the *runner*, but the failure we actually hit today was ordering
+standardise the _runner_, but the failure we actually hit today was ordering
 between `SCHEMA_SQL` and `MIGRATIONS` — a property of this codebase's design
 that no tool addresses, and which a test already covers.
 
@@ -152,7 +152,7 @@ warning if an applied migration's checksum changes.
 - **Migrations**: build a DB at each historical version, migrate, assert final
   shape matches a fresh `SCHEMA_SQL` build. Assert idempotency by running
   twice. This is the #1 risk and the test that would have caught today's bug.
-- **Logging contract**: assert the *intended* logging set (see 1.1) rather than
+- **Logging contract**: assert the _intended_ logging set (see 1.1) rather than
   "all mutations log". Will fail on the three delete paths — that's the point;
   fix them as part of this phase.
 - **Attachments**: delete each parent type, assert rows and files both gone;
@@ -177,18 +177,18 @@ Appended as work lands. `-` pending, `~` in progress, `x` done.
         index-before-migration startup bug
   - [x] activity_log contract (6 tests) — **exposed and fixed 3 real bugs**:
         `deleteTask`, `deleteNote`, `deleteItem` wrote no log entry, so deleted
-        work vanished from history. Now log, capturing the title *before*
+        work vanished from history. Now log, capturing the title _before_
         deleting so the entry is useful.
   - [x] attachments (12 tests) — all 5 parents delete rows AND files; sweep
         finds orphans and spares live rows; repo ENTITY_TYPES compared
-        *directly against the DB CHECK* rather than restating it, since those
+        _directly against the DB CHECK_ rather than restating it, since those
         two drifted once already; unreachable image degrades to a link.
   - [x] inactive semantics (8 tests) — held items excluded from counts,
         filters, and Clu3 signals; sort last under every sort; stage untouched
         by the hold; reactivate restores the original stage. Includes the
         mirror case (a live item IS pending/stale) so the exclusions can't
         pass by the signal being broken for everything.
-  **Phase 2 total: 32 tests.**
+        **Phase 2 total: 32 tests.**
 - [ ] Phase 3 — workflows
 - [ ] Phase 4 — pure logic
 - [ ] Phase 5 — migration hardening

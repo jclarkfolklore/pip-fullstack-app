@@ -152,7 +152,7 @@ That means you can:
 
 - Start/stop it yourself: `npm run server` in a terminal you control, or
   check if the LaunchAgent already has it running: `launchctl list | grep
-  folklore.pip`.
+folklore.pip`.
 - Restart it after a code change: if it's running under the LaunchAgent,
   `launchctl kickstart -k gui/$(id -u)/com.folklore.pip`; if it's running in
   a terminal the user started, ask them to Ctrl-C and re-run rather than
@@ -187,7 +187,7 @@ drop file into `data/drops/` (see `data/drops/README.md` for the
 format) is simpler than composing API calls by hand — the running server
 auto-imports it within a few seconds, idempotent on the note's own `id`.
 
-If you're a Claude session *without* local shell access to this machine
+If you're a Claude session _without_ local shell access to this machine
 (e.g. a cloud Cowork session reaching this project through a file bridge),
 none of the process/network access above applies to you — read
 `docs/CLAUDE-INTEGRATION.md` instead, which covers the file-only workflow.

@@ -55,10 +55,7 @@ export function showPasswordGate(expectedHash) {
     ]);
 
     const scrim = h('div', { class: 'pip-gate' }, [
-      h('div', { class: 'pip-gate-screen' }, [
-        form,
-        h('div', { class: 'pip-gate-scanlines' })
-      ])
+      h('div', { class: 'pip-gate-screen' }, [form, h('div', { class: 'pip-gate-scanlines' })])
     ]);
 
     form.addEventListener('submit', async (e) => {

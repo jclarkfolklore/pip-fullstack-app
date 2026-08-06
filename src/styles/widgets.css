@@ -218,7 +218,9 @@
 @keyframes pip-highlight-flash {
   0%,
   35% {
-    box-shadow: 0 0 0 2px var(--lcd-accent-2), 0 0 16px 2px var(--lcd-accent-2);
+    box-shadow:
+      0 0 0 2px var(--lcd-accent-2),
+      0 0 16px 2px var(--lcd-accent-2);
   }
   100% {
     box-shadow: none;
@@ -384,7 +386,9 @@
 }
 /* On hold — orthogonal to stage, so it's a second chip rather than replacing
    the stage one (see .pip-card-top-tags below). */
-.pip-stage[data-stage='inactive'] { background: var(--lcd-accent-2); }
+.pip-stage[data-stage='inactive'] {
+  background: var(--lcd-accent-2);
+}
 
 .pip-card-top-tags {
   flex: 0 0 auto;
@@ -403,13 +407,16 @@
      its column instead of wrapping. */
   overflow-wrap: anywhere;
 }
-.pip-card-body p { margin: 0 0 6px; }
+.pip-card-body p {
+  margin: 0 0 6px;
+}
 .pip-card-body code {
   background: var(--lcd-line);
   padding: 0 3px;
   border-radius: 3px;
 }
-.pip-card-body ul, .pip-card-body ol {
+.pip-card-body ul,
+.pip-card-body ol {
   margin: 4px 0 6px 16px;
   padding: 0;
 }
@@ -473,7 +480,9 @@
   color: var(--lcd-ink);
   border: 1px solid rgba(255, 255, 255, 0.5);
 }
-.pip-action-btn:active { transform: translateY(1px); }
+.pip-action-btn:active {
+  transform: translateY(1px);
+}
 .pip-action-btn--primary {
   background: var(--lcd-accent);
   color: #fff;
@@ -513,7 +522,9 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   z-index: 5;
 }
-.pip-fab:active { transform: translateY(1px) scale(0.96); }
+.pip-fab:active {
+  transform: translateY(1px) scale(0.96);
+}
 
 /* ===== modal sheet (compose / outcome / import) ===== */
 .pip-sheet-scrim {

@@ -5,7 +5,15 @@ const router = express.Router();
 
 router.get('/', (req, res) => {
   const { status, project, tag, search, sort } = req.query;
-  res.json(tasksRepo.listTasks({ status: status || null, project: project || null, tag: tag || null, search: search || '', sort: sort || 'created_desc' }));
+  res.json(
+    tasksRepo.listTasks({
+      status: status || null,
+      project: project || null,
+      tag: tag || null,
+      search: search || '',
+      sort: sort || 'created_desc'
+    })
+  );
 });
 
 router.get('/counts', (req, res) => {

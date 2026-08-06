@@ -64,7 +64,10 @@ test('inbox stage transitions log', async () => {
     inbox.resolveWithOutcome(id, 'done');
     const log = events(db, id);
     assert.ok(log.includes('inbox_created'));
-    assert.ok(log.some((e) => e.startsWith('inbox_')), 'stage changes logged');
+    assert.ok(
+      log.some((e) => e.startsWith('inbox_')),
+      'stage changes logged'
+    );
     assert.ok(log.includes('inbox_resolved'), 'resolution is what Metrics counts');
   });
 });

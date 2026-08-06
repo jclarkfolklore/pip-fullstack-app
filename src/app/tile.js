@@ -29,7 +29,9 @@ export function tile({ kind, glyph, label, sub, badges = [], ctx }) {
     'button',
     { class: 'pip-tile', dataset: { widget: kind }, onClick: (e) => ctx.open(kind, e.currentTarget) },
     [
-      h('div', { class: 'pip-tile-glyph' }, [icon(glyph, { size: TILE_ICON_SIZE, className: 'pip-tile-icon' })]),
+      h('div', { class: 'pip-tile-glyph' }, [
+        icon(glyph, { size: TILE_ICON_SIZE, className: 'pip-tile-icon' })
+      ]),
       h('div', { class: 'pip-tile-text' }, [
         h('div', { class: 'pip-tile-label' }, label),
         h('div', { class: 'pip-tile-sub' }, sub)

@@ -13,7 +13,10 @@ router.get('/', (req, res) => {
   if (!entityType) return res.status(400).json({ error: 'entityType is required' });
   try {
     if (entityIds !== undefined) {
-      const ids = String(entityIds).split(',').map((s) => s.trim()).filter(Boolean);
+      const ids = String(entityIds)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
       return res.json(attachments.listForMany(entityType, ids));
     }
     if (!entityId) return res.status(400).json({ error: 'entityId or entityIds is required' });

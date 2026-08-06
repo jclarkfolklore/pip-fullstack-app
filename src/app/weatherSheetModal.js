@@ -30,7 +30,9 @@ function kindCard(kind, codes) {
 }
 
 export function openWeatherSheetModal() {
-  const body = h('div', { class: 'pip-wx-preview' }, [h('div', { class: 'pip-ticket-empty' }, 'Loading codes…')]);
+  const body = h('div', { class: 'pip-wx-preview' }, [
+    h('div', { class: 'pip-ticket-empty' }, 'Loading codes…')
+  ]);
   const note = h('div', { class: 'pip-modal-note' }, '');
 
   openModal({

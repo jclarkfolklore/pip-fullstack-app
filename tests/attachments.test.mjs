@@ -57,11 +57,25 @@ for (const parent of PARENTS) {
       const att = load('server/repo/attachmentsRepo.js');
       const id = parent.make(load);
 
-      await att.addAttachment({ entityType: parent.type, entityId: id, kind: 'image', data: PNG_B64, mime: 'image/png' });
-      await att.addAttachment({ entityType: parent.type, entityId: id, kind: 'link', url: 'https://example.com', title: 'L' });
+      await att.addAttachment({
+        entityType: parent.type,
+        entityId: id,
+        kind: 'image',
+        data: PNG_B64,
+        mime: 'image/png'
+      });
+      await att.addAttachment({
+        entityType: parent.type,
+        entityId: id,
+        kind: 'link',
+        url: 'https://example.com',
+        title: 'L'
+      });
 
       assert.equal(att.listFor(parent.type, id).length, 2, 'two attachments before delete');
-      const rel = db.prepare('SELECT file_path FROM attachments WHERE entity_id = ? AND kind = ?').get(id, 'image').file_path;
+      const rel = db
+        .prepare('SELECT file_path FROM attachments WHERE entity_id = ? AND kind = ?')
+        .get(id, 'image').file_path;
       const abs = join(att.ATTACHMENTS_DIR, rel);
       assert.ok(existsSync(abs), 'file written to disk');
 
@@ -165,7 +179,13 @@ test('stored files are namespaced by entity, so cleanup is one directory', async
   await withDb(async ({ db, load }) => {
     const att = load('server/repo/attachmentsRepo.js');
     const id = load('server/repo/tasksRepo.js').createTask({ title: 'T' });
-    await att.addAttachment({ entityType: 'task', entityId: id, kind: 'image', data: PNG_B64, mime: 'image/png' });
+    await att.addAttachment({
+      entityType: 'task',
+      entityId: id,
+      kind: 'image',
+      data: PNG_B64,
+      mime: 'image/png'
+    });
     const rel = db.prepare('SELECT file_path FROM attachments WHERE entity_id = ?').get(id).file_path;
     assert.ok(rel.includes('task'), 'path namespaced by entity type');
     assert.ok(rel.includes(id), 'path namespaced by entity id');

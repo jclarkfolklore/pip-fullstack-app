@@ -200,7 +200,6 @@ CREATE INDEX IF NOT EXISTS idx_activity_entity ON activity_log(entity_type, enti
 CREATE INDEX IF NOT EXISTS idx_activity_occurred ON activity_log(occurred_at);
 `;
 
-
 // group_name buckets tiles on the dashboard grid — see GROUPS in
 // widgetRegistry.js for the display order/labels. Purely a layout
 // grouping, independent of sort_order (which still orders tiles within
@@ -211,7 +210,14 @@ const SEED_WIDGETS = [
   { id: 'notes', kind: 'notes', title: 'NOTES', glyph: 'note', sort_order: 2, group_name: 'work' },
   { id: 'journal', kind: 'journal', title: 'JOURNAL', glyph: 'book', sort_order: 3, group_name: 'work' },
   { id: 'projects', kind: 'projects', title: 'PROJECTS', glyph: 'folder', sort_order: 4, group_name: 'work' },
-  { id: 'metrics', kind: 'metrics', title: 'METRICS', glyph: 'metrics', sort_order: 5, group_name: 'insights' },
+  {
+    id: 'metrics',
+    kind: 'metrics',
+    title: 'METRICS',
+    glyph: 'metrics',
+    sort_order: 5,
+    group_name: 'insights'
+  },
   { id: 'overview', kind: 'overview', title: 'STATUS', glyph: 'link', sort_order: 6, group_name: 'insights' },
   { id: 'settings', kind: 'settings', title: 'SETTINGS', glyph: 'theme', sort_order: 7, group_name: 'system' }
 ];

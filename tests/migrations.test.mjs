@@ -65,7 +65,11 @@ CREATE TABLE activity_log (
 
 test('migration versions are contiguous and match SCHEMA_VERSION', () => {
   const versions = MIGRATIONS.map((m) => m.version);
-  assert.deepEqual(versions, [...versions].sort((a, b) => a - b), 'versions are ordered');
+  assert.deepEqual(
+    versions,
+    [...versions].sort((a, b) => a - b),
+    'versions are ordered'
+  );
   for (let i = 1; i < versions.length; i++) {
     assert.equal(versions[i], versions[i - 1] + 1, `no gap before v${versions[i]}`);
   }

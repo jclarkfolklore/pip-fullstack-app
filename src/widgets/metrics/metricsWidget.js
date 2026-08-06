@@ -57,7 +57,11 @@ export function renderFull(ctx) {
       n: d.resolved
     }));
     const max = Math.max(1, ...days.map((d) => d.n));
-    const chart = h('div', { class: 'pip-bar-chart' }, days.map((d) => bar(d.label, d.n, max)));
+    const chart = h(
+      'div',
+      { class: 'pip-bar-chart' },
+      days.map((d) => bar(d.label, d.n, max))
+    );
     body.appendChild(h('div', { class: 'pip-metrics-section-title' }, 'RESOLVED — LAST 7 DAYS'));
     body.appendChild(chart);
 
@@ -65,7 +69,15 @@ export function renderFull(ctx) {
     body.appendChild(h('div', { class: 'pip-metrics-section-title' }, 'SNAPSHOT'));
     body.appendChild(
       h('div', { class: 'pip-card-list' }, [
-        statRow('clock', 'Avg time to resolve (30d)', avgHours == null ? '—' : avgHours < 24 ? `${avgHours.toFixed(1)}h` : `${(avgHours / 24).toFixed(1)}d`),
+        statRow(
+          'clock',
+          'Avg time to resolve (30d)',
+          avgHours == null
+            ? '—'
+            : avgHours < 24
+              ? `${avgHours.toFixed(1)}h`
+              : `${(avgHours / 24).toFixed(1)}d`
+        ),
         statRow('inbox', 'Inbox active', String(m.inbox.active)),
         statRow('tasks', 'Tasks open', String(m.tasks.open + m.tasks.doing)),
         statRow('check', 'Tasks done (all time)', String(m.tasks.done)),

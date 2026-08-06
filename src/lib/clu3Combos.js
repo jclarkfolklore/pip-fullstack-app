@@ -272,5 +272,6 @@ if (typeof console !== 'undefined') {
   const unknown = Object.entries(EDGES).flatMap(([from, tos]) =>
     [from, ...Object.keys(tos)].filter((id) => !COMBO_BY_ID[id])
   );
-  if (unknown.length) console.warn('[clu3] EDGES references unknown combos:', [...new Set(unknown)].join(', '));
+  if (unknown.length)
+    console.warn('[clu3] EDGES references unknown combos:', [...new Set(unknown)].join(', '));
 }

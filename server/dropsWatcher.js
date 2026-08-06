@@ -61,7 +61,8 @@ function scanOnce({ verbose = false } = {}) {
     try {
       const result = importOne(fullPath);
       if (result.created) imported += 1;
-      if (verbose) console.log(`[pip] drop ${file}: ${result.created ? 'imported' : 'already had'} (${result.id})`);
+      if (verbose)
+        console.log(`[pip] drop ${file}: ${result.created ? 'imported' : 'already had'} (${result.id})`);
       fs.renameSync(fullPath, path.join(PROCESSED_DIR, file));
     } catch (err) {
       console.warn(`[pip] failed to import drop ${file}:`, err.message);

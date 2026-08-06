@@ -33,7 +33,7 @@ src/app/clu3Panel.js     the panel + update loop
 The split that matters: **mechanism changes rarely, content changes often.**
 `rules.js`, `clu3Atlas.js` and `clu3Scenes.js` are the files you'll actually
 edit. Touching `engine.js` or `sprites.js` usually means you're adding a new
-*capability*, not new behaviour.
+_capability_, not new behaviour.
 
 ## How the expression is chosen
 
@@ -167,7 +167,7 @@ node scripts/clu3-pulse.js
 `127.0.0.1` only, so nothing off this machine can reach the API. **Why no
 LLM:** it has to be cheap, deterministic, and work offline.
 
-To extend it, edit `composePulse()` — the ordering of its branches *is* the
+To extend it, edit `composePulse()` — the ordering of its branches _is_ the
 algorithm (urgency → friction → load → encouragement).
 
 ## Deliberate decisions

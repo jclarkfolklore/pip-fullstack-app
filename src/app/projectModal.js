@@ -22,10 +22,22 @@ import { projectContents, listContacts, deleteContact } from '../api/projectsRep
 // entity kind -> how to title it and which glyph it gets. Journal entries have
 // no title, so their date stands in.
 const KINDS = [
-  { key: 'inbox', label: 'INBOX', glyph: 'inbox', entityType: 'inbox', title: (r) => r.title || '(untitled)' },
+  {
+    key: 'inbox',
+    label: 'INBOX',
+    glyph: 'inbox',
+    entityType: 'inbox',
+    title: (r) => r.title || '(untitled)'
+  },
   { key: 'tasks', label: 'TASKS', glyph: 'tasks', entityType: 'task', title: (r) => r.title },
   { key: 'notes', label: 'NOTES', glyph: 'note', entityType: 'note', title: (r) => r.title || '(untitled)' },
-  { key: 'journal', label: 'JOURNAL', glyph: 'book', entityType: 'journal', title: (r) => fmtDateTime(r.created_at) }
+  {
+    key: 'journal',
+    label: 'JOURNAL',
+    glyph: 'book',
+    entityType: 'journal',
+    title: (r) => fmtDateTime(r.created_at)
+  }
 ];
 
 function stateOf(row) {
@@ -51,7 +63,9 @@ function previewOf(row) {
 function contactRow(contact, onRemoved) {
   const lines = [contact.role, contact.org].filter(Boolean).join(' · ');
   const reach = [
-    contact.email ? h('a', { class: 'pip-att-link-host', href: `mailto:${contact.email}` }, contact.email) : null,
+    contact.email
+      ? h('a', { class: 'pip-att-link-host', href: `mailto:${contact.email}` }, contact.email)
+      : null,
     contact.handle ? h('span', { class: 'pip-att-link-host' }, contact.handle) : null
   ].filter(Boolean);
 
@@ -71,11 +85,15 @@ function contactRow(contact, onRemoved) {
   });
 
   return h('div', { class: 'pip-contact' }, [
-    h('div', { class: 'pip-contact-main' }, [
-      h('div', { class: 'pip-contact-name' }, contact.name),
-      lines ? h('div', { class: 'pip-contact-role' }, lines) : null,
-      reach.length ? h('div', { class: 'pip-contact-reach' }, reach) : null
-    ].filter(Boolean)),
+    h(
+      'div',
+      { class: 'pip-contact-main' },
+      [
+        h('div', { class: 'pip-contact-name' }, contact.name),
+        lines ? h('div', { class: 'pip-contact-role' }, lines) : null,
+        reach.length ? h('div', { class: 'pip-contact-reach' }, reach) : null
+      ].filter(Boolean)
+    ),
     remove
   ]);
 }
@@ -118,17 +136,29 @@ export function openProjectModal(project, { onChanged = null } = {}) {
               const preview = previewOf(row);
               const item = h('button', { class: 'pip-project-row' }, [
                 h('div', { class: 'pip-project-row-glyph' }, [icon(kind.glyph, { size: 13 })]),
-                h('div', { class: 'pip-project-row-main' }, [
-                  h('div', { class: 'pip-project-row-top' }, [
-                    h('span', { class: 'pip-project-row-title' }, kind.title(row)),
-                    row.source_ref ? h('span', { class: 'pip-project-row-ref' }, row.source_ref) : null
-                  ].filter(Boolean)),
-                  preview ? h('div', { class: 'pip-project-row-preview' }, preview) : null
-                ].filter(Boolean)),
-                h('div', { class: 'pip-project-row-side' }, [
-                  state ? h('span', { class: 'pip-project-row-state' }, state) : null,
-                  h('span', { class: 'pip-project-row-date' }, fmtDate(row.created_at || row.updated_at))
-                ].filter(Boolean))
+                h(
+                  'div',
+                  { class: 'pip-project-row-main' },
+                  [
+                    h(
+                      'div',
+                      { class: 'pip-project-row-top' },
+                      [
+                        h('span', { class: 'pip-project-row-title' }, kind.title(row)),
+                        row.source_ref ? h('span', { class: 'pip-project-row-ref' }, row.source_ref) : null
+                      ].filter(Boolean)
+                    ),
+                    preview ? h('div', { class: 'pip-project-row-preview' }, preview) : null
+                  ].filter(Boolean)
+                ),
+                h(
+                  'div',
+                  { class: 'pip-project-row-side' },
+                  [
+                    state ? h('span', { class: 'pip-project-row-state' }, state) : null,
+                    h('span', { class: 'pip-project-row-date' }, fmtDate(row.created_at || row.updated_at))
+                  ].filter(Boolean)
+                )
               ]);
               // Each item opens its own detail view, attachments and all.
               item.addEventListener('click', () =>
@@ -146,7 +176,11 @@ export function openProjectModal(project, { onChanged = null } = {}) {
 
     if (!shown) {
       contentsHost.appendChild(
-        h('div', { class: 'pip-ticket-empty' }, q ? 'Nothing in this project matches.' : 'Nothing assigned to this project yet.')
+        h(
+          'div',
+          { class: 'pip-ticket-empty' },
+          q ? 'Nothing in this project matches.' : 'Nothing assigned to this project yet.'
+        )
       );
     }
   }
@@ -157,7 +191,11 @@ export function openProjectModal(project, { onChanged = null } = {}) {
     if (!contacts.length) return;
     contactsHost.append(
       h('div', { class: 'pip-ticket-section-label' }, `KEY CONTACTS (${contacts.length})`),
-      h('div', { class: 'pip-contact-list' }, contacts.map((c) => contactRow(c, loadContacts)))
+      h(
+        'div',
+        { class: 'pip-contact-list' },
+        contacts.map((c) => contactRow(c, loadContacts))
+      )
     );
   }
 
@@ -166,8 +204,16 @@ export function openProjectModal(project, { onChanged = null } = {}) {
     title: project.name,
     body: [
       h('div', { class: 'pip-project-head' }, [
-        h('span', { class: 'pip-project-status', dataset: { status: project.status || 'open' } }, (project.status || 'open').toUpperCase()),
-        h('span', { class: 'pip-project-counts' }, `${c.inbox || 0} inbox · ${c.tasks || 0} tasks · ${c.notes || 0} notes · ${c.journal || 0} journal`)
+        h(
+          'span',
+          { class: 'pip-project-status', dataset: { status: project.status || 'open' } },
+          (project.status || 'open').toUpperCase()
+        ),
+        h(
+          'span',
+          { class: 'pip-project-counts' },
+          `${c.inbox || 0} inbox · ${c.tasks || 0} tasks · ${c.notes || 0} notes · ${c.journal || 0} journal`
+        )
       ]),
       contactsHost,
       attachHost,
@@ -195,7 +241,9 @@ export function openProjectModal(project, { onChanged = null } = {}) {
   listAttachments('project', project.id)
     .then((list) => {
       if (!attachHost.isConnected || !list.length) return;
-      for (const node of attachmentSections(list, { onOpenImage: (a) => window.open(a.src, '_blank', 'noopener') })) {
+      for (const node of attachmentSections(list, {
+        onOpenImage: (a) => window.open(a.src, '_blank', 'noopener')
+      })) {
         attachHost.appendChild(node);
       }
     })

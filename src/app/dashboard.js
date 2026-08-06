@@ -13,7 +13,11 @@ function clockNode() {
   function tick() {
     const now = new Date();
     time.textContent = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-    date.textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    date.textContent = now.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
   }
   tick();
   const iv = setInterval(tick, 15000);
@@ -42,7 +46,10 @@ export function mountDashboard(container, ctx) {
     }
 
     const knownKeys = new Set(GROUPS.map((g) => g.key));
-    const groupDefs = [...GROUPS, ...[...byGroup.keys()].filter((k) => !knownKeys.has(k)).map((k) => ({ key: k, label: k.toUpperCase() }))];
+    const groupDefs = [
+      ...GROUPS,
+      ...[...byGroup.keys()].filter((k) => !knownKeys.has(k)).map((k) => ({ key: k, label: k.toUpperCase() }))
+    ];
 
     const sections = groupDefs
       .filter((g) => byGroup.has(g.key))

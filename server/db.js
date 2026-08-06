@@ -2,7 +2,14 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
-const { SCHEMA_VERSION, SCHEMA_SQL, SCHEMA_INDEXES, SEED_WIDGETS, SEED_PROJECTS, MIGRATIONS } = require('./schema');
+const {
+  SCHEMA_VERSION,
+  SCHEMA_SQL,
+  SCHEMA_INDEXES,
+  SEED_WIDGETS,
+  SEED_PROJECTS,
+  MIGRATIONS
+} = require('./schema');
 
 // The live database file lives in <repo-root>/data/pip.sqlite, tracked in
 // git alongside the code (this is a personal/private app, not shipped
@@ -78,17 +85,16 @@ function applyMigration(migration) {
         if (!isTolerated(err)) {
           // Abort the transaction — better a loud failure at boot than a
           // database whose shape matches no version.
-          throw new Error(`migration v${migration.version} failed: ${err.message}\n  statement: ${statement.trim().slice(0, 120)}`);
+          throw new Error(
+            `migration v${migration.version} failed: ${err.message}\n  statement: ${statement.trim().slice(0, 120)}`
+          );
         }
         tolerated += 1;
       }
     }
-    db.prepare('INSERT OR REPLACE INTO schema_migrations (version, checksum, applied_at, tolerated) VALUES (?,?,?,?)').run(
-      migration.version,
-      checksum(migration.statements),
-      new Date().toISOString(),
-      tolerated
-    );
+    db.prepare(
+      'INSERT OR REPLACE INTO schema_migrations (version, checksum, applied_at, tolerated) VALUES (?,?,?,?)'
+    ).run(migration.version, checksum(migration.statements), new Date().toISOString(), tolerated);
   });
   run();
   return tolerated;
@@ -99,7 +105,10 @@ function applyMigration(migration) {
 // shapes — which is exactly the drift that's impossible to debug later.
 function verifyAppliedChecksums() {
   const applied = new Map(
-    db.prepare('SELECT version, checksum FROM schema_migrations').all().map((r) => [r.version, r.checksum])
+    db
+      .prepare('SELECT version, checksum FROM schema_migrations')
+      .all()
+      .map((r) => [r.version, r.checksum])
   );
   for (const m of MIGRATIONS) {
     const seen = applied.get(m.version);
@@ -122,13 +131,13 @@ function runMigrations() {
     // Brand-new database: SCHEMA_SQL already built the current shape, so mark
     // every migration as applied rather than replaying them against it.
     for (const m of MIGRATIONS) {
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (version, checksum, applied_at, tolerated) VALUES (?,?,?,0)').run(
-        m.version,
-        checksum(m.statements),
-        new Date().toISOString()
-      );
+      db.prepare(
+        'INSERT OR REPLACE INTO schema_migrations (version, checksum, applied_at, tolerated) VALUES (?,?,?,0)'
+      ).run(m.version, checksum(m.statements), new Date().toISOString());
     }
-    db.prepare("INSERT OR REPLACE INTO app_meta (key, value) VALUES ('schema_version', ?)").run(String(SCHEMA_VERSION));
+    db.prepare("INSERT OR REPLACE INTO app_meta (key, value) VALUES ('schema_version', ?)").run(
+      String(SCHEMA_VERSION)
+    );
     return;
   }
 
@@ -156,7 +165,9 @@ function runMigrations() {
     console.log(`[pip] migrated to v${migration.version}${note}`);
   }
 
-  db.prepare("INSERT OR REPLACE INTO app_meta (key, value) VALUES ('schema_version', ?)").run(String(SCHEMA_VERSION));
+  db.prepare("INSERT OR REPLACE INTO app_meta (key, value) VALUES ('schema_version', ?)").run(
+    String(SCHEMA_VERSION)
+  );
 }
 
 db.exec(SCHEMA_SQL);

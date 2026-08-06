@@ -37,7 +37,10 @@ function prose(md) {
 }
 
 function section(label, node) {
-  return h('div', { class: 'pip-ticket-section' }, [h('div', { class: 'pip-ticket-section-label' }, label), node]);
+  return h('div', { class: 'pip-ticket-section' }, [
+    h('div', { class: 'pip-ticket-section-label' }, label),
+    node
+  ]);
 }
 
 function metaGrid(meta) {
@@ -71,10 +74,14 @@ export function openTicketModal(record, { extra = {}, entityType = null, title =
   if (record.source_ref) {
     const sourceLabel = SOURCE_NAME[record.source_type] || record.source_type || 'source';
     body.push(
-      h('a', { class: 'pip-ticket-ref-link', href: record.source_url || '#', target: '_blank', rel: 'noopener' }, [
-        icon(SOURCE_ICON[record.source_type] || 'tag', { size: 11 }),
-        ` ${sourceLabel} ${record.source_ref} — open`
-      ])
+      h(
+        'a',
+        { class: 'pip-ticket-ref-link', href: record.source_url || '#', target: '_blank', rel: 'noopener' },
+        [
+          icon(SOURCE_ICON[record.source_type] || 'tag', { size: 11 }),
+          ` ${sourceLabel} ${record.source_ref} — open`
+        ]
+      )
     );
   }
 
@@ -108,7 +115,9 @@ export function openTicketModal(record, { extra = {}, entityType = null, title =
         if (!attachHost.isConnected || !list.length) return;
         // Clicking a thumbnail opens it full-size in its own tab; a
         // lightbox inside a modal is a second overlay for little gain.
-        for (const node of attachmentSections(list, { onOpenImage: (a) => window.open(a.src, '_blank', 'noopener') })) {
+        for (const node of attachmentSections(list, {
+          onOpenImage: (a) => window.open(a.src, '_blank', 'noopener')
+        })) {
           attachHost.appendChild(node);
         }
       })

@@ -136,10 +136,7 @@ const RULES = [
     minTone: 'balanced',
     when: (s) => s.journal.total === 0 && !s.isEmptyWorkspace,
     mood: 'curious',
-    lines: [
-      () => `You've got no journal entries yet.`,
-      () => `The journal's empty. Want to start one?`
-    ],
+    lines: [() => `You've got no journal entries yet.`, () => `The journal's empty. Want to start one?`],
     action: { kind: 'journal', label: 'JOURNAL' }
   },
 
@@ -178,10 +175,7 @@ const RULES = [
     minTone: 'balanced',
     when: (s) => s.isAllClear && s.hour >= s.thresholds.QUIET_HOUR,
     mood: 'sleepy',
-    lines: [
-      () => `All clear. Quiet night — I'll keep watch.`,
-      () => `Nothing pending. Rest up.`
-    ]
+    lines: [() => `All clear. Quiet night — I'll keep watch.`, () => `Nothing pending. Rest up.`]
   },
   {
     id: 'all-clear',

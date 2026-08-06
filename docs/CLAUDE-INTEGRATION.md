@@ -48,7 +48,7 @@ keep it physically separate; the WAL/SHM sidecar files are gitignored, only
 
 You (Claude) do not have network access to the server's HTTP API from a
 cloud session — only the user's own browser, on their Mac, can reach
-`http://127.0.0.1:4288`. What you *do* have is the device bridge's file
+`http://127.0.0.1:4288`. What you _do_ have is the device bridge's file
 tools, and `data/pip.sqlite` is a real, standard SQLite file. That's the
 actual integration point:
 
@@ -111,7 +111,7 @@ running and you don't want to wait.
 ## Running / restarting the server
 
 Claude cannot start, stop, or restart a process on Key's Mac directly — no
-tool here reaches into a running process on that machine. What you *can* do:
+tool here reaches into a running process on that machine. What you _can_ do:
 edit the code in the repo, then tell Key what to run. The commands:
 
 - First-time setup (Key runs this once): `npm install`

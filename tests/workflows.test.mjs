@@ -48,7 +48,10 @@ test('task status round-trips and clears completed_at on reopen', async () => {
     const id = tasks.createTask({ title: 'T' });
 
     tasks.setTaskStatus(id, 'done');
-    assert.ok(db.prepare('SELECT completed_at FROM tasks WHERE id=?').get(id).completed_at, 'completion stamped');
+    assert.ok(
+      db.prepare('SELECT completed_at FROM tasks WHERE id=?').get(id).completed_at,
+      'completion stamped'
+    );
 
     tasks.setTaskStatus(id, 'open');
     assert.equal(
@@ -64,14 +67,24 @@ test('re-running a sync updates rather than duplicating', async () => {
   // monday/ADO sync safe to run twice.
   await withDb(({ db, load }) => {
     const tasks = load('server/repo/tasksRepo.js');
-    const rec = { id: 'ado-999', title: 'Ticket', sourceType: 'ado', sourceRef: '999', sourceUrl: 'https://x/999' };
+    const rec = {
+      id: 'ado-999',
+      title: 'Ticket',
+      sourceType: 'ado',
+      sourceRef: '999',
+      sourceUrl: 'https://x/999'
+    };
 
     const first = tasks.importTask(rec);
     const second = tasks.importTask(rec);
 
     assert.equal(first.created, true);
     assert.equal(second.created, false, 'second import is a no-op');
-    assert.equal(db.prepare("SELECT COUNT(*) n FROM tasks WHERE id='ado-999'").get().n, 1, 'no duplicate row');
+    assert.equal(
+      db.prepare("SELECT COUNT(*) n FROM tasks WHERE id='ado-999'").get().n,
+      1,
+      'no duplicate row'
+    );
   });
 });
 
@@ -175,7 +188,7 @@ test('tags are shared across entity types without collision', async () => {
     // One tag row, two links — not two tag rows.
     const n = db.prepare("SELECT COUNT(*) n FROM tags WHERE name='shared'").get().n;
     assert.equal(n, 1, 'tag not duplicated per entity type');
-    const links = db.prepare("SELECT COUNT(*) n FROM entity_tags").get().n;
+    const links = db.prepare('SELECT COUNT(*) n FROM entity_tags').get().n;
     assert.equal(links, 2, 'two links to the one tag');
   });
 });

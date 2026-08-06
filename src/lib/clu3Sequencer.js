@@ -85,14 +85,38 @@ const AXES = ['valence', 'arousal', 'engagement'];
 // this up is "feed me the mood" rather than "rewrite the rules engine".
 // Tags are soft hints — they bias selection without pinning it to one combo.
 export const MOOD_CONTEXT = {
-  content: { axes: { valence: 0.35, arousal: -0.35, engagement: 0.2 }, tags: { content: 1, calm: 0.8, atEase: 0.6 } },
-  happy: { axes: { valence: 0.7, arousal: 0.45, engagement: 0.75 }, tags: { delighted: 1, playful: 0.7, friendly: 0.7 } },
-  proud: { axes: { valence: 0.7, arousal: 0.3, engagement: 0.6 }, tags: { satisfied: 1, relief: 0.7, warm: 0.5 } },
-  curious: { axes: { valence: 0.15, arousal: 0.55, engagement: 0.8 }, tags: { noticing: 1, alert: 0.8, curious: 0.9 } },
-  busy: { axes: { valence: -0.2, arousal: 0.6, engagement: 0.6 }, tags: { effort: 1, striving: 0.7, enduring: 0.6 } },
-  concerned: { axes: { valence: -0.5, arousal: 0.4, engagement: 0.45 }, tags: { concern: 1, bracing: 0.7, dismay: 0.6 } },
-  alarmed: { axes: { valence: -0.75, arousal: 0.85, engagement: 0.6 }, tags: { alarm: 1, distress: 0.8, panic: 0.7 } },
-  sleepy: { axes: { valence: 0.2, arousal: -0.8, engagement: -0.4 }, tags: { drowsy: 1, resting: 0.9, peaceful: 0.6 } }
+  content: {
+    axes: { valence: 0.35, arousal: -0.35, engagement: 0.2 },
+    tags: { content: 1, calm: 0.8, atEase: 0.6 }
+  },
+  happy: {
+    axes: { valence: 0.7, arousal: 0.45, engagement: 0.75 },
+    tags: { delighted: 1, playful: 0.7, friendly: 0.7 }
+  },
+  proud: {
+    axes: { valence: 0.7, arousal: 0.3, engagement: 0.6 },
+    tags: { satisfied: 1, relief: 0.7, warm: 0.5 }
+  },
+  curious: {
+    axes: { valence: 0.15, arousal: 0.55, engagement: 0.8 },
+    tags: { noticing: 1, alert: 0.8, curious: 0.9 }
+  },
+  busy: {
+    axes: { valence: -0.2, arousal: 0.6, engagement: 0.6 },
+    tags: { effort: 1, striving: 0.7, enduring: 0.6 }
+  },
+  concerned: {
+    axes: { valence: -0.5, arousal: 0.4, engagement: 0.45 },
+    tags: { concern: 1, bracing: 0.7, dismay: 0.6 }
+  },
+  alarmed: {
+    axes: { valence: -0.75, arousal: 0.85, engagement: 0.6 },
+    tags: { alarm: 1, distress: 0.8, panic: 0.7 }
+  },
+  sleepy: {
+    axes: { valence: 0.2, arousal: -0.8, engagement: -0.4 },
+    tags: { drowsy: 1, resting: 0.9, peaceful: 0.6 }
+  }
 };
 
 export function contextForMood(mood) {

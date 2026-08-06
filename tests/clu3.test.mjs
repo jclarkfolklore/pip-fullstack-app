@@ -14,7 +14,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { COMBOS, COMBO_BY_ID, affinity } from '../src/lib/clu3Combos.js';
 import { POSE_SENSE, poseAffinity, improvise, unlearnedPoses, senseOfRun } from '../src/lib/clu3PoseSense.js';
-import { buildPhrase, createStorySequencer, contextForMood, MOOD_CONTEXT, TUNING } from '../src/lib/clu3Sequencer.js';
+import {
+  buildPhrase,
+  createStorySequencer,
+  contextForMood,
+  MOOD_CONTEXT,
+  TUNING
+} from '../src/lib/clu3Sequencer.js';
 import { chooseArc, buildArc, arcIds } from '../src/lib/clu3Narrative.js';
 import { allSprites, quantizeSprite, SPRITE_SIZE } from '../src/lib/clu3Quantize.js';
 
@@ -168,7 +174,11 @@ test('all 121 sprites quantize to drawable layers', async () => {
     for (const layer of layers) {
       assert.equal(layer.grid.length, SPRITE_SIZE, `${s.id} grid is ${SPRITE_SIZE} rows`);
       for (const row of layer.grid) {
-        assert.equal(row.length, SPRITE_SIZE, `${s.id} rows are ${SPRITE_SIZE} wide — a ragged grid renders skewed`);
+        assert.equal(
+          row.length,
+          SPRITE_SIZE,
+          `${s.id} rows are ${SPRITE_SIZE} wide — a ragged grid renders skewed`
+        );
       }
     }
   }

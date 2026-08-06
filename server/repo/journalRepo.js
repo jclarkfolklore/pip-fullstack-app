@@ -23,7 +23,9 @@ function listEntries({ search = '', project = null } = {}) {
     params.push(project);
   }
   return db
-    .prepare(`SELECT * FROM journal_entries ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC`)
+    .prepare(
+      `SELECT * FROM journal_entries ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC`
+    )
     .all(...params);
 }
 

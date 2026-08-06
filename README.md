@@ -48,13 +48,13 @@ Frontend changes need `npm run build` (or `npm run watch`).
 
 The distinction between them is the whole point.
 
-| Entity | What belongs here | Lifecycle |
-|---|---|---|
-| **Inbox** | Anything needing triage | new → active → resolved → archived |
-| **Tasks** | Concrete work with a definition of done | open → doing → done |
-| **Notes** | Reference material, disconnected blurbs | none |
-| **Journal** | A dated work log, written as the day goes | none — read in sequence |
-| **Projects** | What everything else can belong to | open / closed |
+| Entity       | What belongs here                         | Lifecycle                          |
+| ------------ | ----------------------------------------- | ---------------------------------- |
+| **Inbox**    | Anything needing triage                   | new → active → resolved → archived |
+| **Tasks**    | Concrete work with a definition of done   | open → doing → done                |
+| **Notes**    | Reference material, disconnected blurbs   | none                               |
+| **Journal**  | A dated work log, written as the day goes | none — read in sequence            |
+| **Projects** | What everything else can belong to        | open / closed                      |
 
 If you're unsure between Notes and Journal: a **note** is something you'll go
 looking for later; a **journal entry** is something you'll read in order.
@@ -105,8 +105,8 @@ a filter for narrowing once you're inside.
 ![Project detail](docs/screens/project-modal.png)
 
 That view reads from the project's own contents rather than the search index,
-on purpose: search answers *what matches these words*, this answers *what
-belongs here*, and a project whose items contain no matching text still has
+on purpose: search answers _what matches these words_, this answers _what
+belongs here_, and a project whose items contain no matching text still has
 its work.
 
 ---
@@ -136,7 +136,7 @@ differently depending on context.
 ![Clu3 combos](docs/screens/clu3-combos.png)
 
 Those combos double as training data: per-pose meaning and frame adjacency are
-*derived* from them, which lets Clu3 **improvise sequences nobody authored**.
+_derived_ from them, which lets Clu3 **improvise sequences nobody authored**.
 Above that sits a narrative layer that shapes performances into arcs with a
 setup, a turn, and a landing — some deliberately unresolved, because a problem
 doesn't go away just because Clu3 finished emoting about it.

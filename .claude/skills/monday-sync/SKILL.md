@@ -18,10 +18,10 @@ Default to PULL unless the user clearly asked to push.
 **Do not sync these.** Skip them when gathering, and don't create PIP records
 from them:
 
-| Board | Id | Reason |
-|---|---|---|
-| FLKR – PROJ – Rock 'Em Sock 'Em | 18418466592 | Not in use — Key's call, 2026-08-05 |
-| Subitems of FLKR – PROJ – Rock 'Em Sock 'Em | 18418466596 | same board |
+| Board                                       | Id          | Reason                              |
+| ------------------------------------------- | ----------- | ----------------------------------- |
+| FLKR – PROJ – Rock 'Em Sock 'Em             | 18418466592 | Not in use — Key's call, 2026-08-05 |
+| Subitems of FLKR – PROJ – Rock 'Em Sock 'Em | 18418466596 | same board                          |
 
 Also skip template and reference boards, which hold no real assignments:
 anything named `TEMP —`, `Temp —`, `* Template`, plus `Users`, `Job Roles`,
@@ -43,8 +43,16 @@ Monday boards are template-derived, so the same person-column id repeats
 across many boards. Get them all at once rather than board by board:
 
 ```graphql
-query { boards(limit: 100, state: active, order_by: used_at) {
-  id name type columns(types: [people]) { id } } }
+query {
+  boards(limit: 100, state: active, order_by: used_at) {
+    id
+    name
+    type
+    columns(types: [people]) {
+      id
+    }
+  }
+}
 ```
 
 Group boards by column id, then query each group in one call. Known ids as of
@@ -92,7 +100,7 @@ that matter:
 - **`id` must be `monday-<itemId>`** for work items and
   `monday-update-<updateId>` for mentions. This is what makes re-running safe
   and what lets PUSH map back to monday. Never invent a random id.
-- **`state`** is the state *in monday*, not what you wish it were. Pass
+- **`state`** is the state _in monday_, not what you wish it were. Pass
   `"done"` for anything Done/closed upstream — the script resolves or completes
   it locally so PIP never shows fake open work.
 - **`kind`**: `task` for something Key does, `inbox` for something needing
@@ -117,6 +125,7 @@ exact comment text, and wait for a clear yes. Approval for one item is not
 approval for the rest.
 
 Never push:
+
 - anything whose PIP id doesn't start with `monday-` (it didn't come from there)
 - a status you inferred rather than one Key stated
 - a reply drafted from your own assumptions about what happened

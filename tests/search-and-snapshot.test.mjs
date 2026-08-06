@@ -24,7 +24,11 @@ function seedEverything(load) {
 test('search covers every entity type', async () => {
   await withDb(({ load }) => {
     seedEverything(load);
-    const types = new Set(load('server/repo/searchRepo.js').search('needle').map((r) => r.type));
+    const types = new Set(
+      load('server/repo/searchRepo.js')
+        .search('needle')
+        .map((r) => r.type)
+    );
     for (const t of ['task', 'note', 'inbox', 'journal']) {
       assert.ok(types.has(t), `search returns ${t} results`);
     }
@@ -104,10 +108,7 @@ test('snapshot captures every collection endpoint', async () => {
 
   // And the exemptions are real, not stale.
   assert.ok(covered.includes('/api/search/index'), 'search is captured as an index');
-  assert.ok(
-    /entityType=\$\{ep\.entity\}/.test(script),
-    'attachments are walked per entity'
-  );
+  assert.ok(/entityType=\$\{ep\.entity\}/.test(script), 'attachments are walked per entity');
   assert.ok(
     /entityType=project/.test(script),
     'project attachments are captured too — projects are not in the entity walk'
@@ -132,7 +133,10 @@ test('frontmatter parses, and tolerates malformed input', async () => {
   assert.deepEqual(none.data, {}, 'no frontmatter is not an error');
   assert.ok(none.body.includes('Just a body'));
 
-  assert.doesNotThrow(() => parseFrontmatter('---\nbroken: [unclosed\n---\nbody'), 'malformed input does not throw');
+  assert.doesNotThrow(
+    () => parseFrontmatter('---\nbroken: [unclosed\n---\nbody'),
+    'malformed input does not throw'
+  );
 });
 
 test('the CommonJS frontmatter twin behaves identically', async () => {

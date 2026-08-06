@@ -72,7 +72,10 @@ function readGateHash() {
     .map((l) => l.trim())
     .find((l) => l.startsWith('PIP_SNAPSHOT_PASSWORD='));
   if (!line) return null;
-  const value = line.slice('PIP_SNAPSHOT_PASSWORD='.length).trim().replace(/^["']|["']$/g, '');
+  const value = line
+    .slice('PIP_SNAPSHOT_PASSWORD='.length)
+    .trim()
+    .replace(/^["']|["']$/g, '');
   if (!value) return null;
   return crypto.createHash('sha256').update(value).digest('hex');
 }

@@ -140,7 +140,11 @@ function insert({ entityType, entityId, kind, rel, title, url, filePath, mime, b
     source || 'manual',
     nowIso()
   );
-  logEvent(entityType === 'inbox' ? 'inbox_item' : entityType, entityId, 'attachment_added', { kind, rel, title });
+  logEvent(entityType === 'inbox' ? 'inbox_item' : entityType, entityId, 'attachment_added', {
+    kind,
+    rel,
+    title
+  });
   return getAttachment(id);
 }
 
@@ -203,8 +207,17 @@ async function addAttachment({
     const filePath = writeFile(entityType, entityId, buf, mime || 'image/png');
     return {
       attachment: insert({
-        entityType, entityId, kind, rel, title, url, filePath,
-        mime: mime || 'image/png', bytes: buf.length, source, sortOrder
+        entityType,
+        entityId,
+        kind,
+        rel,
+        title,
+        url,
+        filePath,
+        mime: mime || 'image/png',
+        bytes: buf.length,
+        source,
+        sortOrder
       })
     };
   }
@@ -214,8 +227,17 @@ async function addAttachment({
     const filePath = writeFile(entityType, entityId, buf, fetched);
     return {
       attachment: insert({
-        entityType, entityId, kind, rel, title, url, filePath,
-        mime: fetched, bytes: buf.length, source, sortOrder
+        entityType,
+        entityId,
+        kind,
+        rel,
+        title,
+        url,
+        filePath,
+        mime: fetched,
+        bytes: buf.length,
+        source,
+        sortOrder
       })
     };
   } catch (err) {
@@ -295,7 +317,10 @@ function sweepOrphans() {
   }
 
   const known = new Set(
-    db.prepare("SELECT file_path FROM attachments WHERE file_path IS NOT NULL").all().map((r) => r.file_path)
+    db
+      .prepare('SELECT file_path FROM attachments WHERE file_path IS NOT NULL')
+      .all()
+      .map((r) => r.file_path)
   );
   const removedFiles = [];
   if (fs.existsSync(ATTACHMENTS_DIR)) {

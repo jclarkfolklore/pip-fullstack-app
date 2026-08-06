@@ -6,10 +6,7 @@
 function parseScalar(raw) {
   const v = raw.trim();
   if (v === '') return '';
-  if (
-    (v.startsWith('"') && v.endsWith('"')) ||
-    (v.startsWith("'") && v.endsWith("'"))
-  ) {
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
     return v.slice(1, -1);
   }
   return v;
@@ -20,9 +17,7 @@ function parseValue(raw) {
   if (v.startsWith('[') && v.endsWith(']')) {
     const inner = v.slice(1, -1).trim();
     if (!inner) return [];
-    return inner
-      .split(',')
-      .map((item) => parseScalar(item));
+    return inner.split(',').map((item) => parseScalar(item));
   }
   return parseScalar(v);
 }

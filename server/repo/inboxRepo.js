@@ -18,7 +18,9 @@ function nowIso() {
 const SOURCE_TYPES = ['manual', 'chat', 'monday', 'ado', 'email', 'screenshot'];
 
 function hydrate(row) {
-  return row ? { ...row, tags: tagsFor('inbox', row.id), resolvedTasks: listTasksFromInboxItem(row.id) } : null;
+  return row
+    ? { ...row, tags: tagsFor('inbox', row.id), resolvedTasks: listTasksFromInboxItem(row.id) }
+    : null;
 }
 
 function findByImportHash(hash) {
@@ -101,7 +103,13 @@ function createInboxItem({
   return id;
 }
 
-function listInboxItems({ stage = null, tag = null, project = null, search = '', sort = 'created_desc' } = {}) {
+function listInboxItems({
+  stage = null,
+  tag = null,
+  project = null,
+  search = '',
+  sort = 'created_desc'
+} = {}) {
   const where = [];
   const params = [];
   // 'inactive' is a hold, not a stage — but it behaves like one in the filter
@@ -143,7 +151,10 @@ function listInboxItems({ stage = null, tag = null, project = null, search = '',
     where.length ? 'WHERE ' + where.join(' AND ') : ''
   } ORDER BY (i.deactivated_at IS NOT NULL), ${orderBy}`;
 
-  return db.prepare(sql).all(...params).map(hydrate);
+  return db
+    .prepare(sql)
+    .all(...params)
+    .map(hydrate);
 }
 
 function getInboxItem(id) {
@@ -179,11 +190,9 @@ function updateTags(id, tagNames) {
 }
 
 function resolveWithOutcome(id, outcomeMd) {
-  db.prepare("UPDATE inbox_items SET stage = 'resolved', outcome_md = ?, stage_changed_at = ? WHERE id = ?").run(
-    outcomeMd,
-    nowIso(),
-    id
-  );
+  db.prepare(
+    "UPDATE inbox_items SET stage = 'resolved', outcome_md = ?, stage_changed_at = ? WHERE id = ?"
+  ).run(outcomeMd, nowIso(), id);
   logEvent('inbox_item', id, 'inbox_resolved', { outcomeMd });
 }
 
@@ -214,7 +223,10 @@ function deleteItem(id) {
   db.prepare("DELETE FROM entity_tags WHERE entity_type='inbox' AND entity_id = ?").run(id);
   // Attachments have no FK to cascade from — see attachmentsRepo.
   attachmentsRepo.deleteForEntity('inbox', id);
-  logEvent('inbox_item', id, 'inbox_deleted', { title: existing ? existing.title : null, stage: existing ? existing.stage : null });
+  logEvent('inbox_item', id, 'inbox_deleted', {
+    title: existing ? existing.title : null,
+    stage: existing ? existing.stage : null
+  });
 }
 
 // Deactivated items are excluded from their stage's count here — that's the
@@ -223,11 +235,13 @@ function deleteItem(id) {
 // touching its actual stage.
 function stageCounts() {
   const rows = db
-    .prepare("SELECT stage, COUNT(*) AS n FROM inbox_items WHERE deactivated_at IS NULL GROUP BY stage")
+    .prepare('SELECT stage, COUNT(*) AS n FROM inbox_items WHERE deactivated_at IS NULL GROUP BY stage')
     .all();
   const out = { new: 0, active: 0, resolved: 0, archived: 0, deactivated: 0 };
   for (const r of rows) out[r.stage] = r.n;
-  out.deactivated = db.prepare('SELECT COUNT(*) AS n FROM inbox_items WHERE deactivated_at IS NOT NULL').get().n;
+  out.deactivated = db
+    .prepare('SELECT COUNT(*) AS n FROM inbox_items WHERE deactivated_at IS NOT NULL')
+    .get().n;
   return out;
 }
 

@@ -66,7 +66,13 @@ function getMessage(id) {
 // This is how a Claude session leaves Clu3 something to say. ttlMinutes is
 // the useful knob — a note about work we just did shouldn't still be on
 // screen tomorrow.
-function createMessage({ body, mood = 'content', actionKind = null, actionLabel = null, ttlMinutes = null } = {}) {
+function createMessage({
+  body,
+  mood = 'content',
+  actionKind = null,
+  actionLabel = null,
+  ttlMinutes = null
+} = {}) {
   const text = String(body || '').trim();
   if (!text) throw new Error('Message body is required');
   if (!MOODS.includes(mood)) throw new Error(`Unknown mood "${mood}" (known: ${MOODS.join(', ')})`);
@@ -85,7 +91,10 @@ function createMessage({ body, mood = 'content', actionKind = null, actionLabel 
 }
 
 function dismissMessage(id) {
-  db.prepare('UPDATE clu3_messages SET dismissed_at = ? WHERE id = ? AND dismissed_at IS NULL').run(nowIso(), id);
+  db.prepare('UPDATE clu3_messages SET dismissed_at = ? WHERE id = ? AND dismissed_at IS NULL').run(
+    nowIso(),
+    id
+  );
   return getMessage(id);
 }
 

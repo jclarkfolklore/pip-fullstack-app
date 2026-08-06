@@ -9,7 +9,15 @@ test('fresh database is created at the current schema', async () => {
   await withDb(({ db, dbPath }) => {
     assert.ok(existsSync(dbPath), 'database file exists');
     const tables = tablesOf(db);
-    for (const t of ['projects', 'inbox_items', 'tasks', 'notes', 'journal_entries', 'attachments', 'activity_log']) {
+    for (const t of [
+      'projects',
+      'inbox_items',
+      'tasks',
+      'notes',
+      'journal_entries',
+      'attachments',
+      'activity_log'
+    ]) {
       assert.ok(tables.includes(t), `has table ${t}`);
     }
     const v = db.prepare("SELECT value FROM app_meta WHERE key='schema_version'").get();

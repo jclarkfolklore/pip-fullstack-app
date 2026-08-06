@@ -86,7 +86,9 @@ function inboxSignals(staleBefore) {
     inactive,
     pending: byStage.new + byStage.active,
     staleCount: stale.length,
-    oldestStale: stale[0] ? { title: stale[0].title, days: wholeDaysBetween(stale[0].stage_changed_at, nowIso()) } : null
+    oldestStale: stale[0]
+      ? { title: stale[0].title, days: wholeDaysBetween(stale[0].stage_changed_at, nowIso()) }
+      : null
   };
 }
 
@@ -161,13 +163,19 @@ function collect() {
 
   const since = startOfTodayIso();
   const resolvedToday = db
-    .prepare("SELECT COUNT(*) AS n FROM activity_log WHERE event_type = 'inbox_resolved' AND occurred_at >= ?")
+    .prepare(
+      "SELECT COUNT(*) AS n FROM activity_log WHERE event_type = 'inbox_resolved' AND occurred_at >= ?"
+    )
     .get(since).n;
   const completedToday = db
-    .prepare("SELECT COUNT(*) AS n FROM activity_log WHERE event_type = 'task_completed' AND occurred_at >= ?")
+    .prepare(
+      "SELECT COUNT(*) AS n FROM activity_log WHERE event_type = 'task_completed' AND occurred_at >= ?"
+    )
     .get(since).n;
 
-  const lastJournal = db.prepare('SELECT created_at FROM journal_entries ORDER BY created_at DESC LIMIT 1').get();
+  const lastJournal = db
+    .prepare('SELECT created_at FROM journal_entries ORDER BY created_at DESC LIMIT 1')
+    .get();
   const noteCount = db.prepare('SELECT COUNT(*) AS n FROM notes').get().n;
   const journalCount = db.prepare('SELECT COUNT(*) AS n FROM journal_entries').get().n;
   const projectCount = db.prepare('SELECT COUNT(*) AS n FROM projects WHERE archived = 0').get().n;
@@ -195,8 +203,7 @@ function collect() {
     energy: energyFrom(windowRows),
     hour: new Date().getHours(),
     // Convenience flags so rules stay readable.
-    isEmptyWorkspace:
-      inbox.pending === 0 && tasks.active === 0 && noteCount === 0 && journalCount === 0,
+    isEmptyWorkspace: inbox.pending === 0 && tasks.active === 0 && noteCount === 0 && journalCount === 0,
     isAllClear: inbox.pending === 0 && tasks.active === 0,
     thresholds: { STALE_DAYS, BUSY_INBOX, JOURNAL_GAP_DAYS, QUIET_HOUR }
   };

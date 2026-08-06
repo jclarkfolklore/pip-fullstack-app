@@ -113,7 +113,10 @@ function extract(bmpPath) {
       floodBackground(grid);
 
       const rows = grid.map((row) => row.join(''));
-      const filled = rows.join('').split('').filter((ch) => ch !== '.').length;
+      const filled = rows
+        .join('')
+        .split('')
+        .filter((ch) => ch !== '.').length;
       sprites.push({ id: `${r},${c}`, row: r, col: c, filled, rows });
     }
   }

@@ -68,11 +68,11 @@ Tasks layout first. Nothing blocks committing.
 These are real `open` tasks in the app's own PIP project — the app is its own
 issue tracker, so check there rather than trusting this list to stay current:
 
-| Task | Note |
-|---|---|
-| Enable the Clu3 pulse LaunchAgent | `scripts/com.folklore.clu3-pulse.plist` → `~/Library/LaunchAgents`. **Left deliberately for Key** — persistent change to his machine, needs his password. |
-| Deep-link search results to the specific card | Known limitation: a result opens the right widget but doesn't scroll to or highlight the match. |
-| Add ADO as a sync source | ADO isn't reachable from this environment. Needs a bridge, or a manual/paste-driven path into `scripts/pip-upsert.js` using an `ado-` id prefix. |
+| Task                                          | Note                                                                                                                                                      |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Enable the Clu3 pulse LaunchAgent             | `scripts/com.folklore.clu3-pulse.plist` → `~/Library/LaunchAgents`. **Left deliberately for Key** — persistent change to his machine, needs his password. |
+| Deep-link search results to the specific card | Known limitation: a result opens the right widget but doesn't scroll to or highlight the match.                                                           |
+| Add ADO as a sync source                      | ADO isn't reachable from this environment. Needs a bridge, or a manual/paste-driven path into `scripts/pip-upsert.js` using an `ado-` id prefix.          |
 
 ## Decisions already made — don't re-litigate
 
@@ -82,7 +82,7 @@ issue tracker, so check there rather than trusting this list to stay current:
 - **Brain**: deterministic rules engine for the always-on baseline, plus a
   `clu3_messages` queue Claude POSTs to during sessions. No live LLM call on the
   loop — rejected for cost/latency/failure on an ambient panel.
-- **Tone**: chatty in *presence*, sparse in *pressure*. It rotates observations
+- **Tone**: chatty in _presence_, sparse in _pressure_. It rotates observations
   so it feels alive but stays out of the accountability-coach register. A tone
   dial lives in Settings rather than being hardcoded.
 - **Care mechanic**: Clu3 has real momentum (`energy` decays when you're away,

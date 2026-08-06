@@ -89,11 +89,15 @@ export function attachmentSections(list = [], { onOpenImage = null } = {}) {
           'div',
           { class: 'pip-att-linklist' },
           links.map((a) =>
-            h('a', { class: 'pip-att-link', href: a.url, target: '_blank', rel: 'noopener', title: a.url }, [
-              a.rel ? h('span', { class: 'pip-att-rel' }, REL_LABEL[a.rel] || a.rel.toUpperCase()) : null,
-              h('span', { class: 'pip-att-link-title' }, a.title || hostOf(a.url)),
-              h('span', { class: 'pip-att-link-host' }, hostOf(a.url))
-            ].filter(Boolean))
+            h(
+              'a',
+              { class: 'pip-att-link', href: a.url, target: '_blank', rel: 'noopener', title: a.url },
+              [
+                a.rel ? h('span', { class: 'pip-att-rel' }, REL_LABEL[a.rel] || a.rel.toUpperCase()) : null,
+                h('span', { class: 'pip-att-link-title' }, a.title || hostOf(a.url)),
+                h('span', { class: 'pip-att-link-host' }, hostOf(a.url))
+              ].filter(Boolean)
+            )
           )
         )
       ])

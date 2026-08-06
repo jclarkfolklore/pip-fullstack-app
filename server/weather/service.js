@@ -81,8 +81,10 @@ function setLocation({ place, lat, lon }) {
   if (!place || lat === undefined || lon === undefined) throw new Error('place, lat and lon are required');
   const latNum = Number(lat);
   const lonNum = Number(lon);
-  if (!Number.isFinite(latNum) || latNum < -90 || latNum > 90) throw new Error('lat must be between -90 and 90');
-  if (!Number.isFinite(lonNum) || lonNum < -180 || lonNum > 180) throw new Error('lon must be between -180 and 180');
+  if (!Number.isFinite(latNum) || latNum < -90 || latNum > 90)
+    throw new Error('lat must be between -90 and 90');
+  if (!Number.isFinite(lonNum) || lonNum < -180 || lonNum > 180)
+    throw new Error('lon must be between -180 and 180');
   metaSet(KEYS.place, String(place));
   metaSet(KEYS.lat, String(latNum));
   metaSet(KEYS.lon, String(lonNum));
@@ -276,7 +278,15 @@ async function current() {
     if (cached) {
       return { configured: true, ...cached, stale: age > STALE_AFTER_MS, error: 'offline' };
     }
-    return { configured: true, place: settings.place, days: [], alerts: [], air: null, stale: false, error: 'offline' };
+    return {
+      configured: true,
+      place: settings.place,
+      days: [],
+      alerts: [],
+      air: null,
+      stale: false,
+      error: 'offline'
+    };
   }
 
   return { configured: true, ...(cached || {}), stale: age > STALE_AFTER_MS, error: null };
@@ -295,4 +305,12 @@ function startWeatherPoller({ intervalMs = REFRESH_MS } = {}) {
   return () => clearInterval(timer);
 }
 
-module.exports = { current, refreshOnce, getSettings, setLocation, setUnit, searchPlaces, startWeatherPoller };
+module.exports = {
+  current,
+  refreshOnce,
+  getSettings,
+  setLocation,
+  setUnit,
+  searchPlaces,
+  startWeatherPoller
+};

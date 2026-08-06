@@ -4,7 +4,14 @@ import { icon } from '../../lib/icons.js';
 import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
-import { listNotes, createNote, updateNote, deleteNote, noteCounts, SOURCE_TYPES } from '../../api/notesRepo.js';
+import {
+  listNotes,
+  createNote,
+  updateNote,
+  deleteNote,
+  noteCounts,
+  SOURCE_TYPES
+} from '../../api/notesRepo.js';
 import { allTagNames } from '../../api/tagsRepo.js';
 import { listProjects } from '../../api/projectsRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
@@ -17,14 +24,23 @@ export const kind = 'notes';
 
 marked.setOptions({ breaks: true });
 
-const SOURCE_LABEL = { manual: 'manual', chat: 'chat', monday: 'Monday', ado: 'ADO', email: 'email', screenshot: 'screenshot' };
+const SOURCE_LABEL = {
+  manual: 'manual',
+  chat: 'chat',
+  monday: 'Monday',
+  ado: 'ADO',
+  email: 'email',
+  screenshot: 'screenshot'
+};
 
 export async function renderTile(ctx) {
   const counts = await noteCounts();
   // Pinned isn't a problem, so it doesn't get the red default — red is
   // reserved for overdue work and weather alerts.
   const badge =
-    counts.pinned > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--pinned' }, String(counts.pinned)) : null;
+    counts.pinned > 0
+      ? h('div', { class: 'pip-tile-badge pip-tile-badge--pinned' }, String(counts.pinned))
+      : null;
   return tile({
     kind: 'notes',
     glyph: 'noteLg',
@@ -63,36 +79,73 @@ export function renderFull(ctx) {
 
     const projectSelect = h(
       'select',
-      { class: 'pip-chip-select', onChange: (e) => { filters.project = e.target.value || null; renderList(); } },
-      [h('option', { value: '' }, 'All projects'), ...projects.map((p) => h('option', { value: p.id }, p.name))]
+      {
+        class: 'pip-chip-select',
+        onChange: (e) => {
+          filters.project = e.target.value || null;
+          renderList();
+        }
+      },
+      [
+        h('option', { value: '' }, 'All projects'),
+        ...projects.map((p) => h('option', { value: p.id }, p.name))
+      ]
     );
     const tagSelect = h(
       'select',
-      { class: 'pip-chip-select', onChange: (e) => { filters.tag = e.target.value || null; renderList(); } },
+      {
+        class: 'pip-chip-select',
+        onChange: (e) => {
+          filters.tag = e.target.value || null;
+          renderList();
+        }
+      },
       [h('option', { value: '' }, 'All tags'), ...tags.map((t) => h('option', { value: t }, `#${t}`))]
     );
     const search = h('input', {
       class: 'pip-search',
       type: 'search',
       placeholder: 'search…',
-      oninput: (e) => { filters.search = e.target.value; renderList(); }
+      oninput: (e) => {
+        filters.search = e.target.value;
+        renderList();
+      }
     });
 
     toolbarHost.appendChild(h('div', { class: 'pip-toolbar' }, [projectSelect, tagSelect, search]));
   }
 
   function openComposeSheet(existing = null) {
-    const titleInput = h('input', { type: 'text', placeholder: 'Title', value: existing ? existing.title : '' });
-    const bodyInput = h('textarea', { rows: '6', placeholder: 'Markdown…' }, existing ? existing.body_md : '');
-    const tagsInput = h('input', { type: 'text', placeholder: 'tags, comma, separated', value: existing ? existing.tags.join(', ') : '' });
-    const sourceTypeSelect = h('select', { class: 'pip-chip-select' }, SOURCE_TYPES.map((s) => h('option', { value: s }, SOURCE_LABEL[s] || s)));
-    if (existing) sourceTypeSelect.value = existing.source_type;
-    const sourceUrlInput = h('input', { type: 'url', placeholder: 'https:// link back to the source (optional)', value: existing ? existing.source_url || '' : '' });
-    const projectSelect = h(
+    const titleInput = h('input', {
+      type: 'text',
+      placeholder: 'Title',
+      value: existing ? existing.title : ''
+    });
+    const bodyInput = h(
+      'textarea',
+      { rows: '6', placeholder: 'Markdown…' },
+      existing ? existing.body_md : ''
+    );
+    const tagsInput = h('input', {
+      type: 'text',
+      placeholder: 'tags, comma, separated',
+      value: existing ? existing.tags.join(', ') : ''
+    });
+    const sourceTypeSelect = h(
       'select',
       { class: 'pip-chip-select' },
-      [h('option', { value: '' }, 'No project'), ...Object.values(projectsById).map((p) => h('option', { value: p.id }, p.name))]
+      SOURCE_TYPES.map((s) => h('option', { value: s }, SOURCE_LABEL[s] || s))
     );
+    if (existing) sourceTypeSelect.value = existing.source_type;
+    const sourceUrlInput = h('input', {
+      type: 'url',
+      placeholder: 'https:// link back to the source (optional)',
+      value: existing ? existing.source_url || '' : ''
+    });
+    const projectSelect = h('select', { class: 'pip-chip-select' }, [
+      h('option', { value: '' }, 'No project'),
+      ...Object.values(projectsById).map((p) => h('option', { value: p.id }, p.name))
+    ]);
     if (existing && existing.project_id) projectSelect.value = existing.project_id;
 
     const scrim = h('div', { class: 'pip-sheet-scrim' }, [
@@ -105,7 +158,11 @@ export function renderFull(ctx) {
         h('div', { class: 'pip-field' }, [h('label', {}, 'Source'), sourceTypeSelect]),
         h('div', { class: 'pip-field' }, [h('label', {}, 'Source link'), sourceUrlInput]),
         h('div', { class: 'pip-sheet-actions' }, [
-          h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() }, 'CANCEL'),
+          h(
+            'button',
+            { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() },
+            'CANCEL'
+          ),
           h(
             'button',
             {
@@ -121,7 +178,10 @@ export function renderFull(ctx) {
                   sourceType: sourceTypeSelect.value || 'manual',
                   sourceUrl: sourceUrlInput.value.trim() || null,
                   projectId: projectSelect.value || null,
-                  tags: tagsInput.value.split(',').map((t) => t.trim()).filter(Boolean)
+                  tags: tagsInput.value
+                    .split(',')
+                    .map((t) => t.trim())
+                    .filter(Boolean)
                 };
                 if (existing) await updateNote(existing.id, payload);
                 else await createNote({ ...payload, source: 'me' });
@@ -134,7 +194,9 @@ export function renderFull(ctx) {
         ])
       ])
     ]);
-    scrim.addEventListener('click', (e) => { if (e.target === scrim) scrim.remove(); });
+    scrim.addEventListener('click', (e) => {
+      if (e.target === scrim) scrim.remove();
+    });
     el.appendChild(scrim);
   }
 
@@ -209,10 +271,18 @@ export function renderFull(ctx) {
 
   async function renderList() {
     const items = await listNotes(filters);
-    attachmentsById = await listAttachmentsForMany('note', items.map((n) => n.id)).catch(() => ({}));
+    attachmentsById = await listAttachmentsForMany(
+      'note',
+      items.map((n) => n.id)
+    ).catch(() => ({}));
     listContainer.innerHTML = '';
     if (!items.length) {
-      listContainer.appendChild(h('div', { class: 'pip-empty' }, [icon('note', { size: 24, className: 'pip-empty-glyph' }), h('div', {}, 'No notes yet.')]));
+      listContainer.appendChild(
+        h('div', { class: 'pip-empty' }, [
+          icon('note', { size: 24, className: 'pip-empty-glyph' }),
+          h('div', {}, 'No notes yet.')
+        ])
+      );
       return;
     }
     const list = contentGrid(items.map(card));
@@ -229,7 +299,9 @@ export function renderFull(ctx) {
     }
   }
 
-  const fab = h('button', { class: 'pip-fab', title: 'New note', onClick: () => openComposeSheet() }, [icon('plus', { size: 18, color: '#fff' })]);
+  const fab = h('button', { class: 'pip-fab', title: 'New note', onClick: () => openComposeSheet() }, [
+    icon('plus', { size: 18, color: '#fff' })
+  ]);
   el.appendChild(fab);
 
   body.append(toolbarHost, listContainer);

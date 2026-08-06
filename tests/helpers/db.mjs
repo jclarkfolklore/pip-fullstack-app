@@ -88,7 +88,9 @@ export function dbAtVersion(sql, version) {
   const raw = new Database(dbPath);
   raw.exec(sql);
   raw.exec(`CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT)`);
-  raw.prepare(`INSERT OR REPLACE INTO app_meta (key, value) VALUES ('schema_version', ?)`).run(String(version));
+  raw
+    .prepare(`INSERT OR REPLACE INTO app_meta (key, value) VALUES ('schema_version', ?)`)
+    .run(String(version));
   raw.close();
 
   return {

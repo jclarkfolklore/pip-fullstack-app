@@ -60,7 +60,9 @@ function throughputByDay(days = 14) {
 function avgResolutionHours(days = 30) {
   const since = daysAgoIso(days);
   const created = db
-    .prepare("SELECT entity_id, occurred_at FROM activity_log WHERE event_type = 'inbox_created' AND occurred_at >= ?")
+    .prepare(
+      "SELECT entity_id, occurred_at FROM activity_log WHERE event_type = 'inbox_created' AND occurred_at >= ?"
+    )
     .all(since);
   const resolvedMap = {};
   for (const r of db

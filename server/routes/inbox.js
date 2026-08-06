@@ -7,7 +7,15 @@ const router = express.Router();
 
 router.get('/', (req, res) => {
   const { stage, tag, project, search, sort } = req.query;
-  res.json(inboxRepo.listInboxItems({ stage: stage || null, tag: tag || null, project: project || null, search: search || '', sort: sort || 'created_desc' }));
+  res.json(
+    inboxRepo.listInboxItems({
+      stage: stage || null,
+      tag: tag || null,
+      project: project || null,
+      search: search || '',
+      sort: sort || 'created_desc'
+    })
+  );
 });
 
 router.get('/tags', (req, res) => {
@@ -55,7 +63,9 @@ router.post('/:id/stage', (req, res) => {
 router.post('/:id/resolve', (req, res) => {
   const { outcomeMd = '', taskTitles = [] } = req.body || {};
   inboxRepo.resolveWithOutcome(req.params.id, outcomeMd);
-  const titles = Array.isArray(taskTitles) ? taskTitles.map((t) => String(t || '').trim()).filter(Boolean) : [];
+  const titles = Array.isArray(taskTitles)
+    ? taskTitles.map((t) => String(t || '').trim()).filter(Boolean)
+    : [];
   for (const title of titles) {
     tasksRepo.createTask({ title, notesMd: outcomeMd, fromInboxItemId: req.params.id });
   }

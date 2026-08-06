@@ -41,17 +41,25 @@ export function contentCard({
 }) {
   const preview = toPreview(bodyMd);
 
-  const card = h('div', { class: 'pip-content-card', dataset: { id, ...dataset } }, [
-    lead,
-    h('div', { class: 'pip-content-card-title' }, title),
-    preview ? h('div', { class: 'pip-content-card-preview' }, preview) : null,
-    attachmentStrip(attachments),
-    tags.length
-      ? h('div', { class: 'pip-content-card-tags' }, tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`)))
-      : null,
-    meta ? h('div', { class: 'pip-content-card-meta' }, meta) : null,
-    actions.length ? h('div', { class: 'pip-content-card-actions' }, actions) : null
-  ].filter(Boolean));
+  const card = h(
+    'div',
+    { class: 'pip-content-card', dataset: { id, ...dataset } },
+    [
+      lead,
+      h('div', { class: 'pip-content-card-title' }, title),
+      preview ? h('div', { class: 'pip-content-card-preview' }, preview) : null,
+      attachmentStrip(attachments),
+      tags.length
+        ? h(
+            'div',
+            { class: 'pip-content-card-tags' },
+            tags.map((t) => h('span', { class: 'pip-tag' }, `#${t}`))
+          )
+        : null,
+      meta ? h('div', { class: 'pip-content-card-meta' }, meta) : null,
+      actions.length ? h('div', { class: 'pip-content-card-actions' }, actions) : null
+    ].filter(Boolean)
+  );
 
   if (onOpen) {
     card.addEventListener('click', (e) => {

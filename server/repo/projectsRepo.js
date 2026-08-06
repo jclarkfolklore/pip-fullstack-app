@@ -28,7 +28,10 @@ function listProjects({ includeArchived = false, status = null } = {}) {
   // BEFORE 'open', which put finished work at the top of the list.
   const sql = `SELECT * FROM projects ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
      ORDER BY CASE status WHEN 'closed' THEN 1 ELSE 0 END, sort_order ASC, name ASC`;
-  return db.prepare(sql).all(...params).map((p) => ({ ...p, counts: projectCounts(p.id) }));
+  return db
+    .prepare(sql)
+    .all(...params)
+    .map((p) => ({ ...p, counts: projectCounts(p.id) }));
 }
 
 function projectCounts(projectId) {
@@ -39,7 +42,9 @@ function projectCounts(projectId) {
     .prepare("SELECT COUNT(*) AS n FROM tasks WHERE project_id = ? AND status != 'done'")
     .get(projectId).n;
   const notes = db.prepare('SELECT COUNT(*) AS n FROM notes WHERE project_id = ?').get(projectId).n;
-  const journal = db.prepare('SELECT COUNT(*) AS n FROM journal_entries WHERE project_id = ?').get(projectId).n;
+  const journal = db
+    .prepare('SELECT COUNT(*) AS n FROM journal_entries WHERE project_id = ?')
+    .get(projectId).n;
   return { inbox, tasks, notes, journal };
 }
 
@@ -89,7 +94,7 @@ function updateProject(id, { name, color, archived, sortOrder, status } = {}) {
 // matching text still has its work.
 function projectContents(id, { limit = 50 } = {}) {
   const inbox = db
-    .prepare("SELECT * FROM inbox_items WHERE project_id = ? ORDER BY created_at DESC LIMIT ?")
+    .prepare('SELECT * FROM inbox_items WHERE project_id = ? ORDER BY created_at DESC LIMIT ?')
     .all(id, limit);
   const tasks = db
     .prepare('SELECT * FROM tasks WHERE project_id = ? ORDER BY created_at DESC LIMIT ?')
@@ -111,7 +116,10 @@ function listContacts(projectId) {
     .all(projectId);
 }
 
-function addContact(projectId, { name, role = null, org = null, email = null, handle = null, notesMd = null } = {}) {
+function addContact(
+  projectId,
+  { name, role = null, org = null, email = null, handle = null, notesMd = null } = {}
+) {
   if (!name || !name.trim()) throw new Error('Contact name is required');
   const id = newId();
   const maxOrder = db

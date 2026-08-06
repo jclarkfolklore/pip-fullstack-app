@@ -16,7 +16,14 @@ function hydrate(row) {
   return row ? { ...row, tags: tagsFor('task', row.id) } : null;
 }
 
-function createTask({ title, notesMd = '', dueAt = null, projectId = null, fromInboxItemId = null, tags = [] } = {}) {
+function createTask({
+  title,
+  notesMd = '',
+  dueAt = null,
+  projectId = null,
+  fromInboxItemId = null,
+  tags = []
+} = {}) {
   const id = newId();
   db.prepare(
     `INSERT INTO tasks (id, title, notes_md, status, project_id, due_at, created_at, from_inbox_item_id)

@@ -88,7 +88,12 @@ function composePulse(s) {
   }
 
   // Mid-afternoon and the record is thin — a light, once-a-day sort of nudge.
-  if (s.journal.total > 0 && s.journal.daysSinceLast !== null && s.journal.daysSinceLast >= 3 && s.hour >= 15) {
+  if (
+    s.journal.total > 0 &&
+    s.journal.daysSinceLast !== null &&
+    s.journal.daysSinceLast >= 3 &&
+    s.hour >= 15
+  ) {
     return {
       body: `Journal's been quiet ${s.journal.daysSinceLast} days. Worth a line?`,
       mood: 'curious',

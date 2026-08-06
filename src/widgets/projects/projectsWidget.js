@@ -44,13 +44,21 @@ export function renderFull(ctx) {
   body.appendChild(listContainer);
 
   function openComposeSheet(existing = null) {
-    const nameInput = h('input', { type: 'text', placeholder: 'Project name', value: existing ? existing.name : '' });
+    const nameInput = h('input', {
+      type: 'text',
+      placeholder: 'Project name',
+      value: existing ? existing.name : ''
+    });
     const scrim = h('div', { class: 'pip-sheet-scrim' }, [
       h('div', { class: 'pip-sheet' }, [
         h('div', { class: 'pip-sheet-title' }, existing ? 'RENAME PROJECT' : 'NEW PROJECT'),
         h('div', { class: 'pip-field' }, [h('label', {}, 'Name'), nameInput]),
         h('div', { class: 'pip-sheet-actions' }, [
-          h('button', { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() }, 'CANCEL'),
+          h(
+            'button',
+            { class: 'pip-action-btn pip-action-btn--ghost', onClick: () => scrim.remove() },
+            'CANCEL'
+          ),
           h(
             'button',
             {
@@ -66,7 +74,10 @@ export function renderFull(ctx) {
                   scrim.remove();
                   renderList();
                 } catch (err) {
-                  showSheetError(e.currentTarget.closest('.pip-sheet'), 'A project with that name already exists.');
+                  showSheetError(
+                    e.currentTarget.closest('.pip-sheet'),
+                    'A project with that name already exists.'
+                  );
                 }
               }
             },
@@ -75,12 +86,17 @@ export function renderFull(ctx) {
         ])
       ])
     ]);
-    scrim.addEventListener('click', (e) => { if (e.target === scrim) scrim.remove(); });
+    scrim.addEventListener('click', (e) => {
+      if (e.target === scrim) scrim.remove();
+    });
     el.appendChild(scrim);
   }
 
   function card(project) {
-    const cardEl = h('div', { class: 'pip-card is-clickable', dataset: { status: project.status || 'open' } });
+    const cardEl = h('div', {
+      class: 'pip-card is-clickable',
+      dataset: { status: project.status || 'open' }
+    });
     cardEl.addEventListener('click', (e) => {
       if (e.target.closest('button, a')) return;
       openProjectModal(project, { onChanged: renderList });
@@ -91,12 +107,27 @@ export function renderFull(ctx) {
         h('div', { class: 'pip-card-title', style: 'display:flex;align-items:center;gap:6px;' }, [
           icon('folder', { size: 12 }),
           project.name,
-          h('span', { class: 'pip-project-status', dataset: { status: project.status || 'open' } }, (project.status || 'open').toUpperCase())
+          h(
+            'span',
+            { class: 'pip-project-status', dataset: { status: project.status || 'open' } },
+            (project.status || 'open').toUpperCase()
+          )
         ])
       ]),
-      h('div', { class: 'pip-card-meta' }, `${c.inbox} inbox · ${c.tasks} tasks · ${c.notes} notes · ${c.journal || 0} journal`),
+      h(
+        'div',
+        { class: 'pip-card-meta' },
+        `${c.inbox} inbox · ${c.tasks} tasks · ${c.notes} notes · ${c.journal || 0} journal`
+      ),
       h('div', { class: 'pip-card-actions' }, [
-        h('button', { class: 'pip-action-btn pip-action-btn--primary', onClick: () => openProjectModal(project, { onChanged: renderList }) }, 'OPEN'),
+        h(
+          'button',
+          {
+            class: 'pip-action-btn pip-action-btn--primary',
+            onClick: () => openProjectModal(project, { onChanged: renderList })
+          },
+          'OPEN'
+        ),
         h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(project) }, 'RENAME'),
         h(
           'button',
@@ -139,7 +170,12 @@ export function renderFull(ctx) {
     const projects = await listProjects();
     listContainer.innerHTML = '';
     if (!projects.length) {
-      listContainer.appendChild(h('div', { class: 'pip-empty' }, [icon('folder', { size: 24, className: 'pip-empty-glyph' }), h('div', {}, 'No projects yet.')]));
+      listContainer.appendChild(
+        h('div', { class: 'pip-empty' }, [
+          icon('folder', { size: 24, className: 'pip-empty-glyph' }),
+          h('div', {}, 'No projects yet.')
+        ])
+      );
       return;
     }
     const list = h('div', { class: 'pip-card-list' }, projects.map(card));
@@ -147,7 +183,9 @@ export function renderFull(ctx) {
     staggerIn(list.children);
   }
 
-  const fab = h('button', { class: 'pip-fab', title: 'New project', onClick: () => openComposeSheet() }, [icon('plus', { size: 18, color: '#fff' })]);
+  const fab = h('button', { class: 'pip-fab', title: 'New project', onClick: () => openComposeSheet() }, [
+    icon('plus', { size: 18, color: '#fff' })
+  ]);
   el.appendChild(fab);
 
   renderList();

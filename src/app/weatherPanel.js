@@ -39,7 +39,11 @@ function alertModal(alerts, place) {
     h('div', { class: 'pip-modal-alert' }, [
       h('div', { class: 'pip-modal-alert-top' }, [
         h('span', { class: 'pip-modal-alert-event' }, a.event),
-        h('span', { class: 'pip-modal-alert-sev', dataset: { severity: String(a.severity).toLowerCase() } }, a.severity)
+        h(
+          'span',
+          { class: 'pip-modal-alert-sev', dataset: { severity: String(a.severity).toLowerCase() } },
+          a.severity
+        )
       ]),
       a.headline ? h('div', { class: 'pip-modal-alert-headline' }, a.headline) : null,
       a.areaDesc ? h('div', { class: 'pip-modal-alert-meta' }, a.areaDesc) : null,
@@ -65,7 +69,9 @@ function alertModal(alerts, place) {
 export function mountWeatherPanel(container) {
   const body = h('div', { class: 'pip-wx-body' });
   const placeEl = h('span', { class: 'pip-wx-place' }, '');
-  const refreshBtn = h('button', { class: 'pip-wx-refresh', title: 'Get latest now' }, [icon('refresh', { size: 15 })]);
+  const refreshBtn = h('button', { class: 'pip-wx-refresh', title: 'Get latest now' }, [
+    icon('refresh', { size: 15 })
+  ]);
   // In a snapshot there's nothing to refresh FROM: the button posts, which
   // returns null with no server, and the panel would then try to render it.
   if (isStatic()) refreshBtn.style.display = 'none';
@@ -111,18 +117,26 @@ export function mountWeatherPanel(container) {
     //   stats  H 80°  L 58° ..... AQI 54 Moderate
     //
     // Each row has one job, and the eye lands on the temperature first.
-    const head = h('div', { class: 'pip-wx-today-head' }, [
-      h('span', { class: 'pip-wx-dayname' }, dayName(day.date, 0)),
-      // An alert is the one thing worth interrupting a glance for, so it gets
-      // a counted badge on the title row — not a bare dot you have to already
-      // know is clickable.
-      hasAlerts
-        ? h('span', { class: 'pip-wx-alert-badge', title: `${alerts.length} active alert(s) — tap to read` }, [
-            icon('alert', { size: 9 }),
-            h('span', {}, `${alerts.length} ALERT${alerts.length === 1 ? '' : 'S'}`)
-          ])
-        : null
-    ].filter(Boolean));
+    const head = h(
+      'div',
+      { class: 'pip-wx-today-head' },
+      [
+        h('span', { class: 'pip-wx-dayname' }, dayName(day.date, 0)),
+        // An alert is the one thing worth interrupting a glance for, so it gets
+        // a counted badge on the title row — not a bare dot you have to already
+        // know is clickable.
+        hasAlerts
+          ? h(
+              'span',
+              { class: 'pip-wx-alert-badge', title: `${alerts.length} active alert(s) — tap to read` },
+              [
+                icon('alert', { size: 9 }),
+                h('span', {}, `${alerts.length} ALERT${alerts.length === 1 ? '' : 'S'}`)
+              ]
+            )
+          : null
+      ].filter(Boolean)
+    );
 
     const main = h('div', { class: 'pip-wx-today-main' }, [
       renderWeatherArt(kind, { className: 'pip-wx-art--lg' }),
@@ -134,21 +148,29 @@ export function mountWeatherPanel(container) {
       h('div', { class: 'pip-wx-today-cond' }, label)
     ]);
 
-    const stats = h('div', { class: 'pip-wx-today-stats' }, [
-      h('span', { class: 'pip-wx-today-hl' }, [
-        h('span', { class: 'pip-wx-hl-key' }, 'H'),
-        ` ${day.high}°  `,
-        h('span', { class: 'pip-wx-hl-key' }, 'L'),
-        ` ${day.low}°`
-      ]),
-      air
-        ? h('span', { class: 'pip-wx-aqi', dataset: { band: air.label.toLowerCase().replace(/\s+/g, '-') } }, [
-            h('span', { class: 'pip-wx-aqi-label' }, 'AQI'),
-            h('span', { class: 'pip-wx-aqi-value' }, String(air.aqi)),
-            h('span', { class: 'pip-wx-aqi-band' }, air.label)
-          ])
-        : null
-    ].filter(Boolean));
+    const stats = h(
+      'div',
+      { class: 'pip-wx-today-stats' },
+      [
+        h('span', { class: 'pip-wx-today-hl' }, [
+          h('span', { class: 'pip-wx-hl-key' }, 'H'),
+          ` ${day.high}°  `,
+          h('span', { class: 'pip-wx-hl-key' }, 'L'),
+          ` ${day.low}°`
+        ]),
+        air
+          ? h(
+              'span',
+              { class: 'pip-wx-aqi', dataset: { band: air.label.toLowerCase().replace(/\s+/g, '-') } },
+              [
+                h('span', { class: 'pip-wx-aqi-label' }, 'AQI'),
+                h('span', { class: 'pip-wx-aqi-value' }, String(air.aqi)),
+                h('span', { class: 'pip-wx-aqi-band' }, air.label)
+              ]
+            )
+          : null
+      ].filter(Boolean)
+    );
 
     const children = [head, main, stats];
     return hasAlerts
@@ -198,7 +220,13 @@ export function mountWeatherPanel(container) {
     const [today, ...rest] = data.days;
     body.appendChild(todayCard(today, data.current || null, data.alerts || [], data.place, data.air || null));
     if (rest.length) {
-      body.appendChild(h('div', { class: 'pip-wx-rest' }, rest.map((d, i) => smallCard(d, i + 1))));
+      body.appendChild(
+        h(
+          'div',
+          { class: 'pip-wx-rest' },
+          rest.map((d, i) => smallCard(d, i + 1))
+        )
+      );
     }
 
     if (data.stale || data.error === 'offline') {

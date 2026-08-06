@@ -41,7 +41,7 @@ Two views, pick based on what Key asks for:
 - **Current sprint only** — the sprint taskboard, e.g.:
   `https://dev.azure.com/InspireSleep/Website/_sprints/taskboard/US%20Website%20Development%20Team/Website/Development%20Backlog/Dev%20Sprint%20<name>%20(<n>)`
   Confirm `Person: @Me` is applied (it usually already is). **Collapsed rows
-  on this view are collapsed *because* they're not assigned to Key** — the
+  on this view are collapsed _because_ they're not assigned to Key** — the
   filter reveals other people's items when expanded. Only the already-expanded
   rows-with-a-card are his; don't expand rows to go looking for more.
 
@@ -79,11 +79,11 @@ For every work item, navigate to
 Everything imports as a **task** (`kind: "task"`) — these are assigned dev
 work with a status, not things needing triage.
 
-| ADO column | `status` | `state` |
-|---|---|---|
-| Ready | `open` | `open` |
-| Ready for Release | `doing` | `open` |
-| Done | — (already done) | `done` |
+| ADO column        | `status`         | `state` |
+| ----------------- | ---------------- | ------- |
+| Ready             | `open`           | `open`  |
+| Ready for Release | `doing`          | `open`  |
+| Done              | — (already done) | `done`  |
 
 `state: "done"` is what tells `pip-upsert.js` to mark it resolved/completed —
 use it only for genuinely-Done-upstream items, not Ready for Release (the
@@ -104,16 +104,21 @@ a hard validation. Always set:
 
 ```jsonc
 {
-  "id": "ado-183767",                    // REQUIRED: "ado-" + the work item number
+  "id": "ado-183767", // REQUIRED: "ado-" + the work item number
   "kind": "task",
-  "title": "…",                          // the work item title, verbatim
+  "title": "…", // the work item title, verbatim
   "project": "Inspire",
   "sourceType": "ado",
-  "sourceRef": "183767",                 // REQUIRED: bare number, shown on the card
+  "sourceRef": "183767", // REQUIRED: bare number, shown on the card
   "sourceUrl": "https://dev.azure.com/InspireSleep/Website/_workitems/edit/183767", // REQUIRED
-  "sourceMeta": { "Type": "User Story", "Area": "Frontend Development", "Sprint": "…", "Board state": "Ready" },
+  "sourceMeta": {
+    "Type": "User Story",
+    "Area": "Frontend Development",
+    "Sprint": "…",
+    "Board state": "Ready"
+  },
   "detailsMd": "## Description\n…\n\n## Acceptance Criteria\n- …",
-  "tags": ["ado", "frontend"],           // "ado" always; add "frontend"/"contentful"/"post-launch" etc. to match existing tag conventions
+  "tags": ["ado", "frontend"], // "ado" always; add "frontend"/"contentful"/"post-launch" etc. to match existing tag conventions
   "status": "open",
   "state": "open"
 }

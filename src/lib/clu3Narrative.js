@@ -50,7 +50,12 @@ export const ARCS = {
     beats: [
       { role: 'settle', d: { arousal: -0.15 }, hold: 1.2 },
       { role: 'drift', d: { arousal: -0.4, engagement: -0.3 }, tags: { drifting: 0.7 }, hold: 1.4 },
-      { role: 'rest', d: { arousal: -0.6, engagement: -0.4 }, tags: { resting: 0.8, peaceful: 0.5 }, hold: 1.6 }
+      {
+        role: 'rest',
+        d: { arousal: -0.6, engagement: -0.4 },
+        tags: { resting: 0.8, peaceful: 0.5 },
+        hold: 1.6
+      }
     ]
   },
 
@@ -68,8 +73,18 @@ export const ARCS = {
   accomplishment: {
     beats: [
       { role: 'before', d: { arousal: -0.1 }, hold: 0.9 },
-      { role: 'recognise', d: { valence: 0.3, arousal: 0.4, engagement: 0.4 }, tags: { noticing: 0.7 }, hold: 0.8 },
-      { role: 'delight', d: { valence: 0.5, arousal: 0.45, engagement: 0.5 }, tags: { delighted: 1, satisfied: 0.8 }, hold: 1.1 },
+      {
+        role: 'recognise',
+        d: { valence: 0.3, arousal: 0.4, engagement: 0.4 },
+        tags: { noticing: 0.7 },
+        hold: 0.8
+      },
+      {
+        role: 'delight',
+        d: { valence: 0.5, arousal: 0.45, engagement: 0.5 },
+        tags: { delighted: 1, satisfied: 0.8 },
+        hold: 1.1
+      },
       { role: 'settle', d: { valence: 0.25, arousal: -0.35 }, tags: { content: 0.8, relief: 0.6 }, hold: 1.4 }
     ]
   },
@@ -79,8 +94,18 @@ export const ARCS = {
     unresolved: true,
     beats: [
       { role: 'unaware', d: { arousal: -0.25, engagement: -0.1 }, hold: 1.1 },
-      { role: 'catchSight', d: { valence: -0.4, arousal: 0.4, engagement: 0.4 }, tags: { noticingBad: 1, dismay: 0.7 }, hold: 0.7 },
-      { role: 'alarm', d: { valence: -0.6, arousal: 0.7, engagement: 0.4 }, tags: { alarm: 1, distress: 0.7 }, hold: 0.8 },
+      {
+        role: 'catchSight',
+        d: { valence: -0.4, arousal: 0.4, engagement: 0.4 },
+        tags: { noticingBad: 1, dismay: 0.7 },
+        hold: 0.7
+      },
+      {
+        role: 'alarm',
+        d: { valence: -0.6, arousal: 0.7, engagement: 0.4 },
+        tags: { alarm: 1, distress: 0.7 },
+        hold: 0.8
+      },
       { role: 'brace', d: { valence: -0.35, arousal: 0.3 }, tags: { bracing: 0.9, gritted: 0.7 }, hold: 1.3 }
     ]
   },
@@ -89,7 +114,12 @@ export const ARCS = {
   grind: {
     unresolved: true,
     beats: [
-      { role: 'dig-in', d: { arousal: 0.35, engagement: 0.4 }, tags: { effort: 0.9, striving: 0.7 }, hold: 1 },
+      {
+        role: 'dig-in',
+        d: { arousal: 0.35, engagement: 0.4 },
+        tags: { effort: 0.9, striving: 0.7 },
+        hold: 1
+      },
       { role: 'strain', d: { valence: -0.3, arousal: 0.5 }, tags: { enduring: 1, gritted: 0.8 }, hold: 1.1 },
       { role: 'weary', d: { valence: -0.2, arousal: -0.25 }, tags: { tired: 0.8, spent: 0.6 }, hold: 1.3 }
     ]
@@ -99,7 +129,12 @@ export const ARCS = {
   recovery: {
     beats: [
       { role: 'held', d: { valence: -0.3, arousal: 0.45 }, tags: { gritted: 0.8, effort: 0.7 }, hold: 0.9 },
-      { role: 'release', d: { valence: 0.35, arousal: -0.2 }, tags: { relief: 1, unwinding: 0.8 }, hold: 1.1 },
+      {
+        role: 'release',
+        d: { valence: 0.35, arousal: -0.2 },
+        tags: { relief: 1, unwinding: 0.8 },
+        hold: 1.1
+      },
       { role: 'ease', d: { valence: 0.4, arousal: -0.5 }, tags: { content: 0.8, cozy: 0.6 }, hold: 1.4 }
     ]
   },
@@ -108,7 +143,12 @@ export const ARCS = {
   appeal: {
     beats: [
       { role: 'wait', d: { arousal: -0.2 }, hold: 1 },
-      { role: 'reach', d: { arousal: 0.45, engagement: 0.7 }, tags: { reaching: 1, inviting: 0.7 }, hold: 0.9 },
+      {
+        role: 'reach',
+        d: { arousal: 0.45, engagement: 0.7 },
+        tags: { reaching: 1, inviting: 0.7 },
+        hold: 0.9
+      },
       { role: 'hope', d: { valence: 0.3, engagement: 0.6 }, tags: { eager: 0.8, hopeful: 0.7 }, hold: 1 },
       { role: 'relent', d: { arousal: -0.3, engagement: -0.3 }, hold: 1.2 }
     ]
@@ -118,7 +158,12 @@ export const ARCS = {
   blip: {
     beats: [
       { role: 'calm', d: { arousal: -0.2 }, hold: 1.1 },
-      { role: 'startle', d: { arousal: 0.8, engagement: 0.5 }, tags: { startled: 1, caughtOffGuard: 0.8 }, hold: 0.5 },
+      {
+        role: 'startle',
+        d: { arousal: 0.8, engagement: 0.5 },
+        tags: { startled: 1, caughtOffGuard: 0.8 },
+        hold: 0.5
+      },
       { role: 'recover', d: { arousal: -0.1 }, tags: { recovering: 0.8, flustered: 0.5 }, hold: 1 }
     ]
   },
@@ -129,7 +174,12 @@ export const ARCS = {
     beats: [
       { role: 'endure', d: { valence: -0.3, arousal: 0.3 }, tags: { irritated: 0.8 }, hold: 0.9 },
       { role: 'flare', d: { valence: -0.45, arousal: 0.6 }, tags: { flare: 0.9, outburst: 0.7 }, hold: 0.7 },
-      { role: 'turn-away', d: { valence: -0.3, engagement: -0.6 }, tags: { withdrawn: 1, sulking: 0.8 }, hold: 1.3 }
+      {
+        role: 'turn-away',
+        d: { valence: -0.3, engagement: -0.6 },
+        tags: { withdrawn: 1, sulking: 0.8 },
+        hold: 1.3
+      }
     ]
   }
 };
