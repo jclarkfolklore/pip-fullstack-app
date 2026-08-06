@@ -74,6 +74,119 @@ For every work item, navigate to
 - Batch navigate+get_page_text calls with `browser_batch` (one round trip for
   N items) rather than one call pair per item.
 
+## 2b. Images and attachments — pull them in, don't leave them on the board
+
+Screenshots in an ADO description are frequently **the clearest statement of
+the bug**. "The dropdown is too big" is a paragraph; the screenshot showing it
+at twice the width of its neighbours is unambiguous. Leaving them behind means
+going back to the board to do the work, which is the whole thing PIP exists to
+avoid.
+
+**Find them.** Attachment images are `<img>` tags whose src contains
+`_apis/wit/attachments`:
+
+```js
+[...document.querySelectorAll('img')]
+  .filter((m) => /_apis\/wit\/attachments/.test(m.src))
+  .map((m) => ({
+    file: decodeURIComponent((m.src.match(/fileName=([^&]+)/) || [])[1] || ''),
+    w: m.naturalWidth,
+    h: m.naturalHeight,
+    src: m.src
+  }));
+```
+
+**Getting the bytes.** These URLs are auth-protected — a fetch from anywhere
+else hits a login wall, and PIP's own image fetcher will degrade them to links.
+The page is authenticated, so fetch there and save via the DOM:
+
+```js
+// TOP-LEVEL await, not an async IIFE. The tool returns the last expression;
+// an IIFE hands back an un-awaited Promise, so a following navigation kills
+// the download mid-flight and it silently never lands.
+const g = [...document.querySelectorAll('img')].filter((m) => /_apis\/wit\/attachments/.test(m.src));
+const id = location.pathname.split('/').pop();
+for (let k = 0; k < g.length; k++) {
+  const b = await (await fetch(g[k].src, { credentials: 'include' })).blob();
+  const u = URL.createObjectURL(b);
+  const a = document.createElement('a');
+  a.href = u;
+  a.download = `pip-ado-${id}-${k + 1}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  await new Promise((s) => setTimeout(s, 700));
+}
+```
+
+> **Chrome blocks this after the first file.** Downloading more than one file
+> automatically needs per-site permission. The fetches still succeed and report
+> real byte counts, so it looks like it worked — **check the filesystem, don't
+> trust the return value.** If nothing landed, ask the user to allow automatic
+> downloads for `dev.azure.com` (Settings → Privacy and security → Site
+> Settings → Automatic downloads, or the address-bar icon). Never change that
+> setting yourself.
+
+Then attach each to the PIP task, reading the file from disk so the bytes never
+pass through the conversation:
+
+```bash
+node -e "
+const fs=require('fs');
+const b64=fs.readFileSync(process.argv[1]).toString('base64');
+fetch('http://127.0.0.1:4288/api/attachments',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({entityType:'task',entityId:'ado-<id>',kind:'image',data:b64,mime:'image/png',
+    title:'<what the image actually shows>',source:'ado'})}).then(r=>console.log(r.status));
+" ~/Downloads/pip-ado-<id>-1.png
+```
+
+**Caption them properly.** `title` must say what the image *shows*, not repeat
+the filename — "Screenshot 2026-04-16 at 10.16.21 AM.png" tells a future reader
+nothing. Look at the image and describe it: *"State dropdown rendering at ~2x
+the width of the adjacent Sort dropdown"*. If ADO has caption text near the
+image, use that instead. Someone reading the PIP card should know which
+screenshot is which without opening all of them.
+
+PIP caps images at 8MB. Anything larger stays a link — and say so in the report.
+
+## 2c. Read the discussion — it often changes the work
+
+Comments routinely narrow, expand or contradict the ticket body, and a sync
+that reads only the description hands over detail that is already wrong. Real
+examples from this board:
+
+- QA re-testing and finding **only one of the two reported issues reproduces**
+  — half the ticket evaporated in a comment.
+- QA pinning the true cause: *"tied to iOS 26, not iPhone 17 Pro hardware"* —
+  which changes the entire test matrix.
+- A reporter pasting a **rewritten description** into a comment because the
+  original was wrong. The body is stale; the comment is the real ticket.
+
+The discussion sits after a `Discussion` heading in the page text:
+
+```js
+const t = document.body.innerText;
+const i = t.lastIndexOf('\nDiscussion\n');
+let d = i >= 0 ? t.slice(i + 12) : '';
+const j = d.indexOf('\nDetails\n');
+if (j >= 0) d = d.slice(0, j);
+d.replace(/Markdown supported\.|Paste or select files to insert\.|switch to HTML editor/g, '').trim();
+```
+
+Existing comments carry no distinctive CSS class — don't try to select them by
+class, slice the page text.
+
+Fold what matters into `detailsMd` under a `## Discussion` heading, attributed
+and dated (*"QA (Kyle Johnson), 2026-08-05: ..."*). Skip acknowledgements and
+thanks; include anything that changes scope, reproduction, environment or
+priority. **Where a comment contradicts the description, say so explicitly**
+rather than silently preferring one — the person doing the work needs to know
+the ticket disagrees with itself.
+
+Comments can carry images too; the extractor above catches them since it scans
+the whole page. Note in the caption when an image came from the discussion
+rather than the description.
+
 ## 3. Map board state to PIP
 
 Everything imports as a **task** (`kind: "task"`) — these are assigned dev
@@ -154,3 +267,9 @@ Group by what changed: **newly imported**, **backfilled with detail**
 (existing tasks that got `detailsMd`/`sourceRef` for the first time), **status
 advanced**. State the final open/doing count and whether it matches what Key
 expected going in.
+
+Also state, per ticket, **how many images were attached and how many comments
+were folded in** — and call out explicitly any ticket where images were found
+but could NOT be stored (download blocked, over 8MB). A silent miss there is
+expensive: it sends Key back to the board for exactly the asset the sync was
+meant to save him fetching.

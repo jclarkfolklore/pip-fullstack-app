@@ -110,11 +110,79 @@ that matter:
 - `sourceType: "monday"`, and always set `sourceUrl` to the pulse URL.
 - Tag mentions with `mention` so they're filterable in PIP.
 
+### 4b. Assets and updates — bring them in, don't leave them on the board
+
+A monday item's **files column and its update thread routinely hold the thing
+that makes the work doable** — a mockup, an annotated screenshot, a client's
+"actually, make it blue" reply. Syncing the title and status alone means going
+back to the board to do the work, which defeats the point.
+
+**Assets.** monday exposes files through the API — request them alongside the
+item rather than scraping:
+
+```graphql
+items (ids: [ITEM_ID]) {
+  assets { id name url public_url file_extension file_size }
+  updates { id body created_at creator { name } assets { id name url public_url } }
+}
+```
+
+Prefer `public_url` when present — it needs no auth, so PIP can fetch it
+directly and store the bytes. When only `url` is available it is
+session-protected: fetch it in the authenticated browser page and save via the
+DOM, exactly as `ado-sync` describes (top-level `await`, and Chrome blocks
+multiple automatic downloads until the site is allowed).
+
+Attach each to the PIP record, reading from disk so bytes never pass through
+the conversation:
+
+```bash
+node -e "
+const fs=require('fs');
+const b64=fs.readFileSync(process.argv[1]).toString('base64');
+fetch('http://127.0.0.1:4288/api/attachments',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({entityType:'task',entityId:'monday-<itemId>',kind:'image',data:b64,
+    mime:'image/png',title:'<what it shows>',source:'monday'})}).then(r=>console.log(r.status));
+" <file>
+```
+
+Non-image files (PDFs, docs, video) attach as **links** with their name and
+`public_url` — PIP stores images, not arbitrary binaries.
+
+**Caption by content, not filename.** `title` should say what the asset shows
+— *"Annotated mockup: revised CTA placement"* — never
+`Screenshot_2026-04-16.png`. If the update body around the asset explains it,
+use that wording.
+
+### 4c. Updates and replies — often where the real requirement lives
+
+The update thread is monday's discussion, and on client boards it is frequently
+**more current than the item itself**: scope changes, approvals and rejections
+land as replies while the item's own fields go stale.
+
+Fold what matters into `detailsMd` under a `## Updates` heading, each entry
+attributed and dated (*"Corey Singleton, 2026-08-05: ..."*). Include anything
+that changes scope, priority, acceptance or ownership; skip acknowledgements
+and reaction-only replies.
+
+**Where an update contradicts the item's own fields, say so explicitly** rather
+than quietly preferring one. A ticket that disagrees with itself is exactly
+what the person doing the work needs to be told.
+
+Mentions of Key inside updates are already handled in step 3 — this is about
+capturing the surrounding thread as *context* on the item, not creating another
+inbox entry for it.
+
 ### 5. Report
 
 Summarise in the chat, grouped as: **needs action now**, **waiting on
 someone else**, **closed upstream, no action**. Lead with anything overdue.
 Don't just say "synced N items."
+
+State per item **how many assets were attached and how many updates were folded
+in**, and call out any asset that was found but could NOT be stored (auth,
+size, unsupported type). A silent miss sends Key back to the board for exactly
+the file the sync was meant to save him fetching.
 
 ## PUSH: PIP → monday
 
