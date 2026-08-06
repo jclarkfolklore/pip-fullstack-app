@@ -115,8 +115,8 @@
   color: var(--lcd-ink);
 }
 
-/* Centred against the glyph, and right-padded so a long summary can't run
-   under the badges. */
+/* Centred against the glyph. No right padding needed any more — the badges
+   have their own column, so nothing can run under them. */
 .pip-tile-text {
   flex: 1 1 auto;
   min-width: 0;
@@ -124,7 +124,6 @@
   flex-direction: column;
   justify-content: center;
   gap: 3px;
-  padding-right: 28px;
 }
 
 .pip-tile-label {
@@ -135,13 +134,9 @@
 }
 
 .pip-tile-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  /* Small on purpose: up to three sit side by side on a tile, and at the
-     previous 16px they crowded the label. */
-  min-width: 13px;
-  height: 13px;
+  /* Small on purpose: up to three stack in the badge column. */
+  min-width: 15px;
+  height: 15px;
   padding: 0 3px;
   border-radius: 999px;
   background: var(--lcd-accent);
@@ -153,20 +148,18 @@
   font-family: var(--font-pixel);
 }
 
-/* Two badges side by side (e.g. Inbox: on-hold count, then active count) —
-   the row is what's positioned; the badges inside lay out via flex instead. */
+/* The badge column. Stacked rather than in a row: three counts side by side
+   needed ~55px of width and squeezed the label on a narrow tile, where a
+   vertical stack costs one badge's width and can't crowd anything. */
 .pip-tile-badge-row {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  flex: 0 0 auto;
+  align-self: stretch;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
   gap: 3px;
-}
-.pip-tile-badge-row .pip-tile-badge {
-  position: static;
-  top: auto;
-  right: auto;
+  padding-left: 8px;
 }
 
 .pip-tile-badge--inactive {
