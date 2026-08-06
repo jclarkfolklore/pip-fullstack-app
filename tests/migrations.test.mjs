@@ -168,3 +168,78 @@ test('indexes are created after migrations, not before', () => {
     ctx.cleanup();
   }
 });
+
+// ---- hardened runner ------------------------------------------------------
+// The previous runner caught every error and stamped the version as applied
+// regardless. These cover the three defects that fixed.
+
+test('a failing migration aborts instead of being recorded as applied', () => {
+  const ctx = dbAtVersion(V1_SQL, 1);
+  try {
+    // Poison a pending migration with a statement that can't succeed and
+    // isn't a tolerated no-op.
+    const target = MIGRATIONS.find((m) => m.version > 1);
+    const original = target.statements.slice();
+    target.statements.push('INSERT INTO table_that_does_not_exist VALUES (1)');
+    try {
+      assert.throws(() => ctx.migrate(), /migration v/, 'boot fails loudly');
+    } finally {
+      target.statements = original;
+    }
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test('a failing migration leaves no partial changes behind', () => {
+  const ctx = dbAtVersion(V1_SQL, 1);
+  try {
+    const target = MIGRATIONS.find((m) => m.version > 1);
+    const original = target.statements.slice();
+    target.statements = [
+      'CREATE TABLE should_be_rolled_back (id TEXT)',
+      'INSERT INTO table_that_does_not_exist VALUES (1)'
+    ];
+    try {
+      assert.throws(() => ctx.migrate());
+    } finally {
+      target.statements = original;
+    }
+
+    // Re-open directly and confirm the first statement was rolled back.
+    const raw = new (createRequire(import.meta.url)('better-sqlite3'))(ctx.dbPath);
+    const found = raw
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='should_be_rolled_back'")
+      .get();
+    raw.close();
+    assert.equal(found, undefined, 'partial work rolled back by the transaction');
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test('applied migrations are recorded with a checksum', () => {
+  const ctx = dbAtVersion(V1_SQL, 1);
+  try {
+    const { db } = ctx.migrate();
+    const rows = db.prepare('SELECT version, checksum FROM schema_migrations ORDER BY version').all();
+    assert.equal(rows.length, MIGRATIONS.length, 'every version recorded');
+    for (const r of rows) {
+      assert.match(r.checksum, /^[0-9a-f]{16}$/, `v${r.version} has a checksum`);
+    }
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test('a fresh database records migrations as applied without replaying them', async () => {
+  await withDb(({ db }) => {
+    const n = db.prepare('SELECT COUNT(*) n FROM schema_migrations').get().n;
+    assert.equal(n, MIGRATIONS.length, 'all marked applied');
+    assert.equal(
+      db.prepare('SELECT COALESCE(SUM(tolerated),0) n FROM schema_migrations').get().n,
+      0,
+      'nothing needed tolerating — SCHEMA_SQL already built the current shape'
+    );
+  });
+});

@@ -140,7 +140,9 @@ function fromMessage(message, signals) {
 // `avoid` is the lines it has used recently.
 function expression(
   signals,
-  { tone = DEFAULT_TONE, pendingMessage = null, nowMs = Date.now(), seed = 0, avoid = [] } = {}
+  // nowMs is accepted but unused: callers pass it, and the option is kept so
+  // time-dependent rules can be added without changing every call site.
+  { tone = DEFAULT_TONE, pendingMessage = null, nowMs: _nowMs = Date.now(), seed = 0, avoid = [] } = {}
 ) {
   if (pendingMessage) return fromMessage(pendingMessage, signals);
 

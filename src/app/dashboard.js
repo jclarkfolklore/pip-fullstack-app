@@ -1,6 +1,6 @@
 import { h } from '../lib/dom.js';
 import { viewEnter, viewExit, tileToFull } from '../lib/animations.js';
-import { onNavigate, currentView, navigateTo, goHome } from './router.js';
+import { onNavigate, currentView, navigateTo } from './router.js';
 import { listWidgets } from '../api/layoutRepo.js';
 import { getWidgetModule, GROUPS } from './widgetRegistry.js';
 import { onChange } from '../api/client.js';
@@ -22,7 +22,6 @@ function clockNode() {
 }
 
 export function mountDashboard(container, ctx) {
-  let activeModule = null; // module currently rendered full-screen
   let activeHandle = null; // { el, destroy }
 
   async function renderGrid() {
@@ -63,7 +62,6 @@ export function mountDashboard(container, ctx) {
 
   function teardownActive() {
     if (activeHandle && typeof activeHandle.destroy === 'function') activeHandle.destroy();
-    activeModule = null;
     activeHandle = null;
   }
 
@@ -88,7 +86,6 @@ export function mountDashboard(container, ctx) {
       navigateTo('dashboard');
       return;
     }
-    activeModule = mod;
     activeHandle = mod.renderFull(ctx);
     container.appendChild(activeHandle.el);
     if (tileRect) {

@@ -18,11 +18,16 @@ const require = createRequire(import.meta.url);
 
 // Anything that transitively holds the cached db handle. Clearing these
 // between tests is what makes each one independent.
-const SERVER_MODULES = /server\/(db|schema|repo|clu3|weather)\//;
+//
+// schema.js is deliberately NOT cleared. It holds no handle — it's pure data —
+// and keeping it cached is what lets a test mutate MIGRATIONS to simulate a
+// broken migration. Clearing it would hand db.js a pristine copy and the
+// simulation would silently do nothing.
+const SERVER_MODULES = /server\/(db|repo|clu3|weather)\//;
 
 function clearServerModules() {
   for (const key of Object.keys(require.cache)) {
-    if (SERVER_MODULES.test(key) || key.endsWith('server/db.js') || key.endsWith('server/schema.js')) {
+    if (SERVER_MODULES.test(key) || key.endsWith('server/db.js')) {
       delete require.cache[key];
     }
   }

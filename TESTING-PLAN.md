@@ -119,8 +119,33 @@ Six phases. Each ends green before the next starts.
 | 2 | Data integrity — migrations, logging, attachments, inactive | server |
 | 3 | Workflows — lifecycles, sync idempotency, snapshot | server |
 | 4 | Pure logic — Clu3 engine, quantize, frontmatter, search parity | frontend |
-| 5 | Lint + format, honouring `prettier-ignore` | tooling |
-| 6 | Quality gate + docs | — |
+| 5 | Migration hardening — transactional, fail-loud, checksummed | server |
+| 6 | E2E — real browser against a real server | e2e |
+| 7 | Lint + format, honouring `prettier-ignore` | tooling |
+| 8 | Quality gate + docs | — |
+
+### Phase 5 — why hardening rather than a migration tool
+
+Evaluated umzug, db-migrate and Knex. **Recommendation: no tool.** They
+standardise the *runner*, but the failure we actually hit today was ordering
+between `SCHEMA_SQL` and `MIGRATIONS` — a property of this codebase's design
+that no tool addresses, and which a test already covers.
+
+The current runner does have three genuine defects, all fixable in ~50 lines:
+
+1. **A blanket `try/catch` swallows every error, then stamps the version as
+   applied anyway.** A half-applied migration is recorded as complete. This is
+   the most dangerous thing in the data layer.
+2. **No transaction.** A version that fails partway leaves the database in a
+   state matching no version.
+3. **No record of what ran.** A single integer can't distinguish "v9 applied
+   cleanly" from "v9 threw four errors that were ignored", and an edited
+   already-applied migration goes unnoticed.
+
+Fix: per-version transaction, an explicit narrow list of tolerated
+(genuinely idempotent) errors instead of catching everything, a
+`schema_migrations` table recording version + checksum + timestamp, and a loud
+warning if an applied migration's checksum changes.
 
 ### Phase 2 detail — the highest-value tests
 
@@ -166,8 +191,10 @@ Appended as work lands. `-` pending, `~` in progress, `x` done.
   **Phase 2 total: 32 tests.**
 - [ ] Phase 3 — workflows
 - [ ] Phase 4 — pure logic
-- [ ] Phase 5 — lint/format
-- [ ] Phase 6 — quality gate
+- [ ] Phase 5 — migration hardening
+- [ ] Phase 6 — E2E
+- [ ] Phase 7 — lint/format
+- [ ] Phase 8 — quality gate
 
 ---
 

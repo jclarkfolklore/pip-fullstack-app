@@ -15,7 +15,10 @@
 // Sprites are NOT trimmed to their bounding box: every frame keeps the full
 // 32x32 canvas so a pose swap animates in place instead of jumping around.
 
-import rawData from './clu3SpriteData.json';
+// Import attribute is required by the ESM spec for JSON, and Node enforces it.
+// Webpack tolerates its absence, which is why this went unnoticed — the module
+// simply could not be loaded outside the bundler until now.
+import rawData from './clu3SpriteData.json' with { type: 'json' };
 
 export const SHEET = rawData;
 export const SPRITE_SIZE = rawData.cell;

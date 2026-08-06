@@ -17,7 +17,6 @@ export const kind = 'notes';
 
 marked.setOptions({ breaks: true });
 
-const SOURCE_ICON = { manual: 'tag', chat: 'chat', monday: 'monday', ado: 'ado', email: 'mail', screenshot: 'camera' };
 const SOURCE_LABEL = { manual: 'manual', chat: 'chat', monday: 'Monday', ado: 'ADO', email: 'email', screenshot: 'screenshot' };
 
 export async function renderTile(ctx) {

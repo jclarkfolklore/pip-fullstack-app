@@ -59,7 +59,7 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('[pip] unhandled error:', err);
   res.status(500).json({ error: 'internal error' });
 });

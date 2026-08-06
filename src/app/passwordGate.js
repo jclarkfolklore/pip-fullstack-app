@@ -13,7 +13,6 @@
 // Only ever runs for static snapshots. The live local app has no gate.
 
 import { h } from '../lib/dom.js';
-import { icon } from '../lib/icons.js';
 
 // Per-tab, so closing it re-locks. Deliberately not localStorage: a shared
 // machine shouldn't stay unlocked forever.
