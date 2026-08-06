@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { db } = require('../db');
 const { logEvent } = require('./activityRepo');
 const { tagsFor, attachTags } = require('./tagsRepo');
+const attachmentsRepo = require('./attachmentsRepo');
 
 function newId() {
   return crypto.randomUUID();
@@ -133,6 +134,8 @@ function updateFields(id, fields = {}) {
 function deleteNote(id) {
   db.prepare('DELETE FROM notes WHERE id = ?').run(id);
   db.prepare("DELETE FROM entity_tags WHERE entity_type='note' AND entity_id = ?").run(id);
+  // Attachments have no FK to cascade from — see attachmentsRepo.
+  attachmentsRepo.deleteForEntity('note', id);
 }
 
 function noteCounts() {

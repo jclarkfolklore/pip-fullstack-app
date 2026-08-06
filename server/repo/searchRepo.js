@@ -66,6 +66,32 @@ function search(query, { limit = 30 } = {}) {
       date: r.created_at
     }));
 
+  // Journal entries have no title — the date is the identity, so that's what
+  // the result shows. They were missing from search entirely, which made the
+  // work journal the one thing you couldn't find anything in.
+  const journalRows = db
+    .prepare(
+      `SELECT id, body_md AS snippet, created_at
+       FROM journal_entries
+       WHERE body_md LIKE ?
+       ORDER BY created_at DESC LIMIT ?`
+    )
+    .all(like, limit)
+    .map((r) => ({
+      type: 'journal',
+      id: r.id,
+      title: new Date(r.created_at).toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      }),
+      snippet: r.snippet,
+      meta: null,
+      sourceType: null,
+      projectId: null,
+      date: r.created_at
+    }));
+
   const tagRows = db
     .prepare(
       `SELECT et.entity_type, et.entity_id FROM entity_tags et
@@ -77,7 +103,7 @@ function search(query, { limit = 30 } = {}) {
     .filter(Boolean);
 
   const seen = new Set();
-  const combined = [...inboxRows, ...taskRows, ...noteRows, ...tagRows].filter((row) => {
+  const combined = [...inboxRows, ...taskRows, ...noteRows, ...journalRows, ...tagRows].filter((row) => {
     const key = `${row.type}:${row.id}`;
     if (seen.has(key)) return false;
     seen.add(key);

@@ -3,7 +3,12 @@ import { icon } from '../lib/icons.js';
 import { search } from '../api/searchRepo.js';
 import { onChange } from '../api/client.js';
 
-const TYPE_TO_WIDGET = { task: 'tasks', note: 'notes', inbox: 'inbox' };
+const TYPE_TO_WIDGET = { task: 'tasks', note: 'notes', inbox: 'inbox', journal: 'journal' };
+
+// Results from four entity types land in one list, and title alone doesn't
+// say which is which — a note and an inbox item look identical. Every result
+// gets an explicit type chip.
+const TYPE_LABEL = { inbox: 'INBOX', task: 'TASK', note: 'NOTE', journal: 'JOURNAL' };
 
 const SOURCE_ICON = {
   manual: 'tag',
@@ -18,17 +23,27 @@ const SOURCE_ICON = {
 // — it both navigates (with a highlight target so the destination widget
 // scrolls to and flashes this exact row) and, on the mobile overlay, closes
 // search first so the result is actually visible instead of hidden behind it.
+const TYPE_ICON = { task: 'tasks', note: 'note', journal: 'book' };
+
 function resultCard(row, onOpen) {
-  const typeIcon = row.type === 'task' ? 'tasks' : row.type === 'note' ? 'note' : SOURCE_ICON[row.sourceType] || 'inbox';
-  const card = h('button', { class: 'pip-search-result', onClick: onOpen }, [
+  // Inbox items show where they came from (monday/ADO/email); the rest show
+  // their own type glyph.
+  const typeIcon = TYPE_ICON[row.type] || SOURCE_ICON[row.sourceType] || 'inbox';
+
+  // meta is the lifecycle state (stage/status) and only some types have one.
+  const metaBits = [row.meta, fmtDate(row.date)].filter(Boolean);
+
+  return h('button', { class: 'pip-search-result', onClick: onOpen }, [
     icon(typeIcon, { size: 14, className: 'pip-search-result-icon' }),
     h('div', { class: 'pip-search-result-body' }, [
-      h('div', { class: 'pip-search-result-title' }, row.title),
+      h('div', { class: 'pip-search-result-titlerow' }, [
+        h('span', { class: 'pip-search-result-title' }, row.title),
+        h('span', { class: 'pip-search-result-type', dataset: { type: row.type } }, TYPE_LABEL[row.type] || row.type)
+      ]),
       h('div', { class: 'pip-search-result-snippet' }, (row.snippet || '').slice(0, 90)),
-      h('div', { class: 'pip-search-result-meta' }, `${row.meta || ''} · ${fmtDate(row.date)}`)
+      h('div', { class: 'pip-search-result-meta' }, metaBits.join(' · '))
     ])
   ]);
-  return card;
 }
 
 // One factory, mounted twice: once into the always-in-DOM desktop aside

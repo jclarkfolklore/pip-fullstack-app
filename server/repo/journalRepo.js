@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { db } = require('../db');
 const { logEvent } = require('./activityRepo');
+const attachmentsRepo = require('./attachmentsRepo');
 
 function newId() {
   return crypto.randomUUID();
@@ -49,6 +50,8 @@ function updateEntry(id, { bodyMd } = {}) {
 
 function deleteEntry(id) {
   db.prepare('DELETE FROM journal_entries WHERE id = ?').run(id);
+  // Attachments have no FK to cascade from — see attachmentsRepo.
+  attachmentsRepo.deleteForEntity('journal', id);
   logEvent('journal_entry', id, 'journal_deleted', {});
 }
 

@@ -1786,6 +1786,32 @@
   margin-top: 2px;
 }
 
+.pip-search-result-titlerow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/* Which entity a hit came from. One list mixes all four, and a note and an
+   inbox item are otherwise indistinguishable by title alone. */
+.pip-search-result-type {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: var(--lcd-bg);
+  background: var(--lcd-ink-dim);
+}
+.pip-search-result-type[data-type='task'] {
+  background: var(--lcd-accent-2);
+}
+.pip-search-result-type[data-type='inbox'] {
+  background: var(--lcd-ink);
+}
+
 .pip-search-result-title {
   font-size: 14px;
   font-weight: 700;

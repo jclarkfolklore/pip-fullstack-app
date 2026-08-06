@@ -3,6 +3,7 @@ const { db } = require('../db');
 const { logEvent } = require('./activityRepo');
 const { tagsFor, attachTags } = require('./tagsRepo');
 const { listTasksFromInboxItem } = require('./tasksRepo');
+const attachmentsRepo = require('./attachmentsRepo');
 
 function newId() {
   return crypto.randomUUID();
@@ -191,6 +192,8 @@ function reactivateItem(id) {
 function deleteItem(id) {
   db.prepare('DELETE FROM inbox_items WHERE id = ?').run(id);
   db.prepare("DELETE FROM entity_tags WHERE entity_type='inbox' AND entity_id = ?").run(id);
+  // Attachments have no FK to cascade from — see attachmentsRepo.
+  attachmentsRepo.deleteForEntity('inbox', id);
 }
 
 // Deactivated items are excluded from their stage's count here — that's the

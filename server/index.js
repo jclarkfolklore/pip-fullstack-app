@@ -36,6 +36,7 @@ app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/journal', require('./routes/journal'));
+app.use('/api/attachments', require('./routes/attachments'));
 app.use('/api/clu3', require('./routes/clu3'));
 app.use('/api/weather', require('./routes/weather'));
 app.use('/api/search', require('./routes/search'));

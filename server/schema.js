@@ -4,7 +4,7 @@
 // file on disk (server/db.js opens it with better-sqlite3), plus a first-
 // class Project entity and a standalone Notes table.
 
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -96,6 +96,27 @@ CREATE TABLE IF NOT EXISTS clu3_messages (
   dismissed_at TEXT
 );
 
+-- Images and links belonging to an inbox item, task, note or journal entry.
+-- The reference is polymorphic, so SQLite can't enforce it or cascade the
+-- delete: keeping this clean is the repo layer's job (attachmentsRepo
+-- .deleteForEntity on every delete path, sweepOrphans for the rest).
+-- Stored files live under data/attachments/<entity_type>/<entity_id>/.
+CREATE TABLE IF NOT EXISTS attachments (
+  id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL CHECK (entity_type IN ('inbox','task','note','journal')),
+  entity_id TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('image','link')),
+  rel TEXT,
+  title TEXT,
+  url TEXT,
+  file_path TEXT,
+  mime TEXT,
+  bytes INTEGER,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  source TEXT NOT NULL DEFAULT 'manual',
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS tags (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE
@@ -143,6 +164,7 @@ CREATE INDEX IF NOT EXISTS idx_notes_project ON notes(project_id);
 CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at);
 CREATE INDEX IF NOT EXISTS idx_journal_created ON journal_entries(created_at);
 CREATE INDEX IF NOT EXISTS idx_clu3_created ON clu3_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_entity_tags_entity ON entity_tags(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_entity ON activity_log(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_occurred ON activity_log(occurred_at);
@@ -266,6 +288,39 @@ const MIGRATIONS = [
     // column's CHECK constraint (SQLite can't ALTER one in place).
     version: 9,
     statements: [`ALTER TABLE inbox_items ADD COLUMN deactivated_at TEXT`]
+  },
+  {
+    // Images and links, attached to any of the four entity types.
+    //
+    // The reference is polymorphic (entity_type + entity_id), so SQLite can't
+    // enforce it with a foreign key and cascade the delete for us. That makes
+    // orphan cleanup an explicit responsibility of the repo layer rather than
+    // something the database guarantees — see attachmentsRepo.deleteForEntity,
+    // which every entity delete path must call, and sweepOrphans() for
+    // anything that slips through.
+    //
+    // Stored files live under data/attachments/<entity_type>/<entity_id>/, so
+    // deleting an entity is a single directory removal and can't leave
+    // stragglers behind.
+    version: 10,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS attachments (
+         id TEXT PRIMARY KEY,
+         entity_type TEXT NOT NULL CHECK (entity_type IN ('inbox','task','note','journal')),
+         entity_id TEXT NOT NULL,
+         kind TEXT NOT NULL CHECK (kind IN ('image','link')),
+         rel TEXT,
+         title TEXT,
+         url TEXT,
+         file_path TEXT,
+         mime TEXT,
+         bytes INTEGER,
+         sort_order INTEGER NOT NULL DEFAULT 0,
+         source TEXT NOT NULL DEFAULT 'manual',
+         created_at TEXT NOT NULL
+       )`,
+      `CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type, entity_id)`
+    ]
   }
 ];
 
