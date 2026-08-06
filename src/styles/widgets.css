@@ -389,7 +389,6 @@
   white-space: nowrap;
   color: #fff;
 }
-.pip-stage[data-stage='new'] { background: var(--lcd-accent-2); }
 .pip-stage[data-stage='active'] { background: var(--lcd-accent); }
 .pip-stage[data-stage='resolved'] { background: #6a9f5a; }
 .pip-stage[data-stage='archived'] { background: var(--lcd-ink-faint); }
@@ -1223,4 +1222,53 @@
   padding-right: 14px;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
+}
+
+/* ===== one colour convention for lifecycle, shared by Inbox and Tasks =====
+   The point is that the colour says what KIND of attention something wants,
+   not just that it wants some:
+
+     yellow  waiting on you       NEW (inbox)      TODO (tasks)
+     red     in flight            ACTIVE (inbox)   IN PROGRESS (tasks)
+     blue    parked by choice     INACTIVE (inbox)
+     green   finished             RESOLVED (inbox) DONE (tasks)
+
+   Everything being red meant the badges only ever said "there is stuff",
+   which a count already told you. */
+.pip-tile-badge--new {
+  background: var(--lcd-accent-3);
+}
+
+.pip-stage[data-stage='new'] {
+  background: var(--lcd-accent-3);
+}
+
+/* Task cards carry the same language: a left edge in the status colour, and
+   a matching section heading, so a glance down the grid reads as lifecycle
+   rather than as undifferentiated cards. */
+.pip-task-card {
+  border-left: 3px solid var(--lcd-accent-3);
+}
+.pip-task-card[data-status='doing'] {
+  border-left-color: var(--lcd-accent);
+}
+.pip-task-card[data-status='done'] {
+  border-left-color: #6a9f5a;
+}
+
+.pip-task-section-label[data-status='open'] {
+  color: var(--lcd-accent-3);
+}
+.pip-task-section-label[data-status='doing'] {
+  color: var(--lcd-accent);
+}
+.pip-task-section-label[data-status='done'] {
+  color: #6a9f5a;
+}
+
+.pip-tile-badge--doing {
+  background: var(--lcd-accent);
+}
+.pip-tile-badge--todo {
+  background: var(--lcd-accent-3);
 }

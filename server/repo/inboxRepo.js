@@ -48,8 +48,8 @@ function importDroppedNote({
   const created = createdAt || nowIso();
   db.prepare(
     `INSERT INTO inbox_items
-      (id, title, body_md, source, source_type, source_url, source_ref, details_md, source_meta_json, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash, deactivated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', '', ?, ?, ?, ?)`
+      (id, title, body_md, source, source_type, source_url, source_ref, details_md, source_meta_json, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', '', ?, ?, ?)`
   ).run(
     id,
     title,
@@ -63,23 +63,21 @@ function importDroppedNote({
     projectId,
     created,
     created,
-    id,
-    // Arrivals land INACTIVE — see createInboxItem for why.
-    created
+    id
   );
   attachTags('inbox', id, tags);
   logEvent('inbox_item', id, 'inbox_created', { title, source, sourceType });
   return { id, created: true };
 }
 
-// Arrivals land INACTIVE — parked, not demanding. Something showing up in the
-// inbox isn't a decision that it's live work; reactivating it is. That keeps
-// counts, staleness and Clu3 reflecting what you've actually picked up.
+// Arrivals land in stage 'new' — not yet triaged. Distinct from INACTIVE,
+// which means you looked at it and chose to park it. Conflating the two lost
+// that difference: "I haven't dealt with this yet" and "I've decided this can
+// wait" are different facts about the same item, and only the first is a
+// prompt to do something.
 //
-// The underlying stage is still 'active', so REACTIVATE puts it straight into
-// active work rather than back into a separate triage step. The hold and the
-// lifecycle stay orthogonal, which is the whole reason they're separate
-// columns.
+// New items sort normally (newest first) rather than to the bottom like held
+// ones, because unlooked-at work should be visible.
 function createInboxItem({
   title = '',
   bodyMd = '',
@@ -95,9 +93,9 @@ function createInboxItem({
   const created = createdAt || nowIso();
   db.prepare(
     `INSERT INTO inbox_items
-      (id, title, body_md, source, source_type, source_url, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash, deactivated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', '', ?, ?, ?, ?)`
-  ).run(id, title, bodyMd, source, sourceType, sourceUrl, projectId, created, created, importHash, created);
+      (id, title, body_md, source, source_type, source_url, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'new', '', ?, ?, ?)`
+  ).run(id, title, bodyMd, source, sourceType, sourceUrl, projectId, created, created, importHash);
   attachTags('inbox', id, tags);
   logEvent('inbox_item', id, 'inbox_created', { title, source, sourceType });
   return id;

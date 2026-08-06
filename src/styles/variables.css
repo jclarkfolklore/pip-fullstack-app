@@ -12,6 +12,10 @@
   --lcd-ink-faint: #8b9a7c;
   --lcd-accent: #d1495b;
   --lcd-accent-2: #2f8f9e;
+  /* Third semantic accent: NEW / not yet triaged. Distinct from accent
+     (live/urgent) and accent-2 (held). Tuned per theme — one fixed yellow
+     would disappear against the amber background. */
+  --lcd-accent-3: #b8860b;
   --lcd-glow: rgba(60, 74, 53, 0.18);
   --lcd-line: rgba(60, 74, 53, 0.14);
 
@@ -39,6 +43,7 @@
   --lcd-ink-faint: #9c8760;
   --lcd-accent: #c9502e;
   --lcd-accent-2: #4e6b8a;
+  --lcd-accent-3: #8a6a12;
 }
 
 [data-theme='mono'] {
@@ -49,6 +54,7 @@
   --lcd-ink-faint: #7c8676;
   --lcd-accent: #b34747;
   --lcd-accent-2: #3e6b6b;
+  --lcd-accent-3: #8a7320;
 }
 
 [data-theme='night'] {
@@ -59,6 +65,7 @@
   --lcd-ink-faint: #34724a;
   --lcd-accent: #ff8a7a;
   --lcd-accent-2: #7fd8e8;
+  --lcd-accent-3: #e8cf7f;
   --lcd-glow: rgba(127, 224, 160, 0.14);
   --lcd-line: rgba(127, 224, 160, 0.1);
 }

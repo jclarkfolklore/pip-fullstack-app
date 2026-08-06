@@ -43,18 +43,31 @@ const SOURCE_LABEL = {
 
 export async function renderTile(ctx) {
   const counts = await stageCounts();
-  // Red = active/new right now (deactivated items are excluded — that's the
-  // point of deactivating). Blue sits to its left, counting what's on hold.
-  const activeCount = counts.new + counts.active;
+  // Three states worth a count, each its own colour so the tile says what
+  // KIND of attention the inbox needs, not just how much:
+  //   yellow  NEW      arrived, not yet triaged
+  //   red     ACTIVE   picked up, in flight
+  //   blue    INACTIVE looked at and parked
+  // Held items are excluded from the active count — that's the point of
+  // holding them.
   const badges = [
-    counts.deactivated > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--inactive' }, String(counts.deactivated)) : null,
-    activeCount > 0 ? h('div', { class: 'pip-tile-badge' }, String(activeCount)) : null
+    counts.new > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--new' }, String(counts.new)) : null,
+    counts.active > 0 ? h('div', { class: 'pip-tile-badge' }, String(counts.active)) : null,
+    counts.deactivated > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--inactive' }, String(counts.deactivated)) : null
   ].filter(Boolean);
+
+  // Lead with what needs triage, since that's the actionable one.
+  const sub = counts.new
+    ? `${counts.new} new${counts.active ? `, ${counts.active} active` : ''}`
+    : counts.active
+      ? `${counts.active} in progress`
+      : 'nothing pending';
+
   return tile({
     kind: 'inbox',
     glyph: 'inboxLg',
     label: 'INBOX',
-    sub: activeCount ? `${activeCount} in progress` : 'nothing pending',
+    sub,
     badges,
     ctx
   });

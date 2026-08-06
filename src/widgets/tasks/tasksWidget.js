@@ -13,16 +13,21 @@ export const kind = 'tasks';
 
 export async function renderTile(ctx) {
   const counts = await taskCounts();
-  const open = counts.open + counts.doing;
-  const badge = open > 0 ? h('div', { class: 'pip-tile-badge' }, String(open)) : null;
-  return tile({
-    kind: 'tasks',
-    glyph: 'tasksLg',
-    label: 'TASKS',
-    sub: open ? `${open} open` : 'nothing due',
-    badges: [badge],
-    ctx
-  });
+  // Same convention as the inbox tile: yellow = waiting on you, red = in
+  // flight. Done isn't badged — it isn't pending, so a count of it on the
+  // home screen would just be noise.
+  const badges = [
+    counts.doing > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--doing' }, String(counts.doing)) : null,
+    counts.open > 0 ? h('div', { class: 'pip-tile-badge pip-tile-badge--todo' }, String(counts.open)) : null
+  ].filter(Boolean);
+
+  const sub = counts.doing
+    ? `${counts.doing} in progress${counts.open ? `, ${counts.open} to do` : ''}`
+    : counts.open
+      ? `${counts.open} to do`
+      : 'nothing due';
+
+  return tile({ kind: 'tasks', glyph: 'tasksLg', label: 'TASKS', sub, badges, ctx });
 }
 
 // Ordered the way you actually read a board: what's underway, then what's
@@ -34,8 +39,21 @@ const GROUPS = [
   { status: 'done', label: 'DONE' }
 ];
 
-const NEXT_STATUS = { open: 'doing', doing: 'done', done: 'open' };
-const NEXT_LABEL = { open: 'START', doing: 'COMPLETE', done: 'REOPEN' };
+// Work doesn't only move forward — something in progress gets put back, and
+// something marked done turns out not to be. Each status offers its forward
+// move first, then whatever backwards moves make sense, rather than the old
+// single button that only cycled open -> doing -> done -> open.
+const STATUS_MOVES = {
+  open: [{ to: 'doing', label: 'START', primary: true }],
+  doing: [
+    { to: 'done', label: 'COMPLETE', primary: true },
+    { to: 'open', label: 'TO DO' }
+  ],
+  done: [
+    { to: 'doing', label: 'REOPEN' },
+    { to: 'open', label: 'TO DO' }
+  ]
+};
 
 const SOURCE_ICON = {
   manual: 'tag',
@@ -178,16 +196,19 @@ export function renderFull(ctx) {
         task.notes_md ? h('div', { class: 'pip-task-card-notes' }, task.notes_md) : null,
         h('div', { class: `pip-task-card-meta ${overdue ? 'is-overdue' : ''}`.trim() }, metaParts.join(' · ')),
         h('div', { class: 'pip-task-card-actions' }, [
-          h(
-            'button',
-            {
-              class: 'pip-action-btn pip-action-btn--primary',
-              onClick: async () => {
-                await setTaskStatus(task.id, NEXT_STATUS[task.status]);
-                renderList();
-              }
-            },
-            NEXT_LABEL[task.status]
+          ...(STATUS_MOVES[task.status] || []).map((move) =>
+            h(
+              'button',
+              {
+                class: `pip-action-btn ${move.primary ? 'pip-action-btn--primary' : 'pip-action-btn--ghost'}`,
+                title: `Move to ${move.label}`,
+                onClick: async () => {
+                  await setTaskStatus(task.id, move.to);
+                  renderList();
+                }
+              },
+              move.label
+            )
           ),
           h(
             'button',
@@ -267,7 +288,11 @@ export function renderFull(ctx) {
       const grid = h('div', { class: 'pip-task-grid' }, byStatus[group.status].map(card));
       listContainer.appendChild(
         h('section', { class: 'pip-task-section' }, [
-          h('div', { class: 'pip-task-section-label' }, `${group.label} · ${byStatus[group.status].length}`),
+          h(
+            'div',
+            { class: 'pip-task-section-label', dataset: { status: group.status } },
+            `${group.label} · ${byStatus[group.status].length}`
+          ),
           grid
         ])
       );
