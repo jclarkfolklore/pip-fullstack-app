@@ -25,7 +25,7 @@ import {
   SPRITE_SIZE
 } from '../lib/clu3Quantize.js';
 import { COMBOS } from '../lib/clu3Combos.js';
-import { createSequencer, contextForMood, MOOD_CONTEXT } from '../lib/clu3Sequencer.js';
+import { createSequencer, contextForMood, MOOD_CONTEXT, FRAME_MS, COMBO_GAP_MS } from '../lib/clu3Sequencer.js';
 import { openModal } from './modal.js';
 
 const VIEWS = ['poses', 'combos', 'sequence'];
@@ -33,7 +33,6 @@ const VIEWS = ['poses', 'combos', 'sequence'];
 // 32 is native. Below ~20 the eyes merge into the hair and moods stop being
 // distinguishable, so the ladder stops there.
 const SIZES = [32, 30, 28, 26, 24, 22, 20];
-const FRAME_MS = 380;
 
 function stageFor(n, options) {
   const id = spriteIdByNumber(n);
@@ -115,13 +114,18 @@ function sequenceTile(mood, options, timers) {
     phraseEl.textContent = s.phrase.map((id) => (id === s.combo ? `[${id}]` : id)).join(' → ');
   }
 
+  // setTimeout rather than setInterval so a combo change can hold longer —
+  // same pacing as the live panel.
   paint();
-  timers.push(
-    setInterval(() => {
-      seq.advance();
+  const step = (delay) => {
+    const t = setTimeout(() => {
+      const switched = seq.advance();
       paint();
-    }, FRAME_MS)
-  );
+      step(switched ? FRAME_MS + COMBO_GAP_MS : FRAME_MS);
+    }, delay);
+    timers.push(t);
+  };
+  step(FRAME_MS);
 
   return h('div', { class: 'pip-clu3-seq-cell' }, [
     h('div', { class: 'pip-clu3-focus-title' }, mood.toUpperCase()),
@@ -137,8 +141,11 @@ export function openClu3SheetModal() {
   const grid = h('div', { class: 'pip-clu3-sheet-grid' });
   const timers = [];
 
+  // Timeouts and intervals share an id space in browsers, but the mix here is
+  // deliberate: looping tiles use setInterval, the sequencer tiles chain
+  // setTimeout so a combo change can hold longer. clearTimeout cancels both.
   function stopTimers() {
-    while (timers.length) clearInterval(timers.pop());
+    while (timers.length) clearTimeout(timers.pop());
   }
 
   function pickPose(n) {

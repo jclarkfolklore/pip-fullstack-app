@@ -5,6 +5,7 @@ import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listProjects, createProject, updateProject, deleteProject } from '../../api/projectsRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
+import { openProjectModal } from '../../app/projectModal.js';
 
 export const kind = 'projects';
 
@@ -67,18 +68,35 @@ export function renderFull(ctx) {
   }
 
   function card(project) {
-    const cardEl = h('div', { class: 'pip-card' });
+    const cardEl = h('div', { class: 'pip-card is-clickable', dataset: { status: project.status || 'open' } });
+    cardEl.addEventListener('click', (e) => {
+      if (e.target.closest('button, a')) return;
+      openProjectModal(project, { onChanged: renderList });
+    });
     const c = project.counts;
     cardEl.append(
       h('div', { class: 'pip-card-top' }, [
         h('div', { class: 'pip-card-title', style: 'display:flex;align-items:center;gap:6px;' }, [
           icon('folder', { size: 12 }),
-          project.name
+          project.name,
+          h('span', { class: 'pip-project-status', dataset: { status: project.status || 'open' } }, (project.status || 'open').toUpperCase())
         ])
       ]),
-      h('div', { class: 'pip-card-meta' }, `${c.inbox} inbox · ${c.tasks} tasks · ${c.notes} notes`),
+      h('div', { class: 'pip-card-meta' }, `${c.inbox} inbox · ${c.tasks} tasks · ${c.notes} notes · ${c.journal || 0} journal`),
       h('div', { class: 'pip-card-actions' }, [
+        h('button', { class: 'pip-action-btn pip-action-btn--primary', onClick: () => openProjectModal(project, { onChanged: renderList }) }, 'OPEN'),
         h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(project) }, 'RENAME'),
+        h(
+          'button',
+          {
+            class: 'pip-action-btn',
+            onClick: async () => {
+              await updateProject(project.id, { status: project.status === 'closed' ? 'open' : 'closed' });
+              renderList();
+            }
+          },
+          project.status === 'closed' ? 'REOPEN' : 'CLOSE'
+        ),
         h(
           'button',
           {

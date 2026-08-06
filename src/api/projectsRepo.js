@@ -19,3 +19,23 @@ export function updateProject(id, fields) {
 export function deleteProject(id) {
   return apiDelete(`/api/projects/${id}`);
 }
+
+// ---- project detail --------------------------------------------------
+// Everything belonging to a project, plus its stakeholders — powers the
+// project detail modal.
+
+export function projectContents(id) {
+  return apiGet(`/api/projects/${id}/contents`);
+}
+
+export function listContacts(projectId) {
+  return apiGet(`/api/projects/${projectId}/contacts`);
+}
+
+export function addContact(projectId, body) {
+  return apiPost(`/api/projects/${projectId}/contacts`, body);
+}
+
+export function deleteContact(contactId) {
+  return apiDelete(`/api/projects/contacts/${contactId}`);
+}

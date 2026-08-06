@@ -22,6 +22,17 @@
 import { COMBOS, COMBO_BY_ID, affinity } from './clu3Combos.js';
 import { improvise } from './clu3PoseSense.js';
 
+// Playback timing lives here rather than in the panel, so the live Clu3 and
+// the sheet preview can't drift apart.
+//
+// One frame. Everything about how fast Clu3 reads comes off this number.
+export const FRAME_MS = 456;
+
+// A beat of stillness when one combo hands over to the next. Without it the
+// frames run together and a phrase reads as one continuous twitch instead of
+// a sequence of gestures — the pause is what makes the seam legible.
+export const COMBO_GAP_MS = 320;
+
 export const TUNING = {
   // How the three scoring terms trade off. Should roughly sum to 1.
   weights: {
@@ -257,17 +268,19 @@ export function createSequencer({ getContext }) {
     },
 
     // Step one frame. Loops the combo `dwellTarget` times, then advances.
+    // Returns true when it crossed into a new combo — see COMBO_GAP_MS.
     advance() {
       const combo = phrase[comboIndex];
       frameIndex += 1;
-      if (frameIndex < combo.poses.length) return;
+      if (frameIndex < combo.poses.length) return false;
 
       frameIndex = 0;
       loopsDone += 1;
-      if (loopsDone < dwellTarget) return;
+      if (loopsDone < dwellTarget) return false;
 
       if (comboIndex + 1 < phrase.length) startCombo(comboIndex + 1);
       else newPhrase();
+      return true;
     },
 
     // Abandon the current phrase immediately — for a real state change that
@@ -350,16 +363,19 @@ export function createStorySequencer({ getStory, buildStory }) {
       return current.poses[frameIndex];
     },
 
+    // Returns true when this step crossed into a new combo, so the caller can
+    // hold for COMBO_GAP_MS before drawing the next frame.
     advance() {
       frameIndex += 1;
-      if (frameIndex < current.poses.length) return;
+      if (frameIndex < current.poses.length) return false;
 
       frameIndex = 0;
       loopsDone += 1;
-      if (loopsDone < loopTarget) return;
+      if (loopsDone < loopTarget) return false;
 
       if (beatIndex + 1 < arc.beats.length) startBeat(beatIndex + 1);
       else newStory();
+      return true;
     },
 
     // Abandon the story mid-telling — for a change urgent enough that

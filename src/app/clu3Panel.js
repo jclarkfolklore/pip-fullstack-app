@@ -20,7 +20,7 @@
 import { h, fmtTime } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { renderClu3Visual, knownScene } from '../lib/clu3Scenes.js';
-import { createStorySequencer, contextForMood } from '../lib/clu3Sequencer.js';
+import { createStorySequencer, contextForMood, FRAME_MS, COMBO_GAP_MS } from '../lib/clu3Sequencer.js';
 import { chooseArc, buildArc } from '../lib/clu3Narrative.js';
 import { onChange } from '../api/client.js';
 import { clu3State, dismissMessage } from '../api/clu3Repo.js';
@@ -33,9 +33,6 @@ import { openClu3SheetModal } from './clu3SheetModal.js';
 // (staleness thresholds, the evening wind-down), which don't need faster
 // than hourly. A manual "get latest" button covers everything else.
 const TICK_MS = 60 * 60 * 1000;
-// One animation frame. Matches the sprite-sheet preview so what you tune
-// there is what you get here.
-const FRAME_MS = 380;
 const ENERGY_PIPS = 5;
 
 export function mountClu3Panel(container) {
@@ -84,14 +81,16 @@ export function mountClu3Panel(container) {
     faceHost.appendChild(renderClu3Visual(state.mood, { pose: sequencer.frame(), energy: state.energy }));
   }
 
-  function scheduleNextFrame() {
+  // Each frame schedules the next. A combo change gets an extra beat of
+  // stillness so the seam between gestures is legible.
+  function scheduleNextFrame(delay = FRAME_MS) {
     if (destroyed) return;
     frameTimer = setTimeout(() => {
       if (destroyed) return;
-      sequencer.advance();
+      const switched = sequencer.advance();
       paintFace();
-      scheduleNextFrame();
-    }, FRAME_MS);
+      scheduleNextFrame(switched ? FRAME_MS + COMBO_GAP_MS : FRAME_MS);
+    }, delay);
   }
 
   // Called whenever fresh state comes in. A genuine mood change abandons the

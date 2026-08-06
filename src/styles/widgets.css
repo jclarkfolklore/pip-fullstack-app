@@ -877,3 +877,225 @@
 .pip-ticket-attachments:empty {
   display: none;
 }
+
+/* ===== journal: stacked entries =====
+   Not cards. A journal is written as the day goes and reviewed in sequence,
+   so the full text belongs inline and chronology is the organising idea.
+   Notes are the opposite — disconnected blurbs you scan for one thing — which
+   is why those are cards with a detail modal. */
+.pip-journal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pip-journal-entry {
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  /* A left rule reads as a timeline running down the column. */
+  border-left: 3px solid var(--lcd-accent-2);
+}
+
+.pip-journal-when {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pip-journal-date {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-ink);
+}
+
+.pip-journal-edited {
+  font-size: 10px;
+  color: var(--lcd-ink-faint);
+}
+
+.pip-journal-body {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pip-journal-body h2 {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-ink-dim);
+  margin: 12px 0 4px;
+}
+.pip-journal-body h1,
+.pip-journal-body h3 {
+  font-size: 14px;
+  margin: 10px 0 4px;
+}
+.pip-journal-body p {
+  margin: 0 0 8px;
+}
+.pip-journal-body ul,
+.pip-journal-body ol {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+.pip-journal-body code {
+  font-size: 12px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.4);
+}
+.pip-journal-body a {
+  color: var(--lcd-accent-2);
+}
+
+.pip-journal-att {
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pip-journal-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--lcd-line);
+}
+.pip-journal-actions .pip-action-btn--ghost:last-child {
+  margin-left: auto;
+}
+
+/* ===== project detail modal ===== */
+.pip-project-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pip-project-status {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: var(--lcd-bg);
+  background: var(--lcd-accent-2);
+}
+.pip-project-status[data-status='closed'] {
+  background: var(--lcd-ink-faint);
+}
+
+.pip-project-counts {
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+}
+
+.pip-project-contents {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pip-project-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pip-project-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.24);
+  color: var(--lcd-ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+.pip-project-row:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.pip-project-row-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pip-project-row-state {
+  flex: 0 0 auto;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: var(--lcd-bg);
+  background: var(--lcd-ink-dim);
+}
+
+.pip-project-row-date {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--lcd-ink-faint);
+}
+
+/* ---- stakeholders ---- */
+.pip-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pip-contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.pip-contact-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pip-contact-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pip-contact-role {
+  font-size: 11px;
+  color: var(--lcd-ink-dim);
+}
+
+.pip-contact-reach {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.pip-card.is-clickable {
+  cursor: pointer;
+}
+.pip-card.is-clickable:hover {
+  border-color: var(--lcd-accent-2);
+}
+/* Closed projects stay listed but recede — closing says the work is done,
+   not that you never want to see it. */
+.pip-card[data-status='closed'] {
+  opacity: 0.6;
+}

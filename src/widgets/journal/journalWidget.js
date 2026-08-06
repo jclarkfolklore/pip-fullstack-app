@@ -6,8 +6,7 @@ import { staggerIn, collapseOut } from '../../lib/animations.js';
 import { onChange } from '../../api/client.js';
 import { listEntries, createEntry, updateEntry, deleteEntry, entryCount } from '../../api/journalRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
-import { openTicketModal } from '../../app/ticketModal.js';
-import { contentCard, contentGrid } from '../../app/contentCard.js';
+import { attachmentSections } from '../../app/attachmentViews.js';
 import { listAttachmentsForMany } from '../../api/attachmentsRepo.js';
 
 export const kind = 'journal';
@@ -87,47 +86,57 @@ export function renderFull(ctx) {
     el.appendChild(scrim);
   }
 
-  function card(entry) {
-    const cardEl = contentCard({
-      id: entry.id,
-      // A journal entry has no title — the date IS its identity.
-      title: fmtDateTime(entry.created_at),
-      bodyMd: entry.body_md,
-      meta: entry.updated_at !== entry.created_at ? `edited ${fmtDateTime(entry.updated_at)}` : '',
-      attachments: attachmentsById[entry.id] || [],
-      onOpen: () =>
-        openTicketModal(entry, {
-          entityType: 'journal',
-          title: fmtDateTime(entry.created_at)
-        }),
-      actions: [
-        h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(entry) }, 'EDIT'),
-        h(
-          'button',
-          {
-            class: 'pip-action-btn pip-action-btn--ghost',
-            title: 'Delete',
-            onClick: async () => {
-              const ok = await confirmDestructive({
-                title: 'Delete this journal entry?',
-                what: fmtDateTime(entry.created_at),
-                consequence:
-                  'Journal entries are your own written record — this one is gone permanently and cannot be recovered. Any images attached to it are deleted too.',
-                confirmLabel: 'DELETE ENTRY'
-              });
-              if (!ok) return;
-              await collapseOut(cardEl);
-              await deleteEntry(entry.id);
-              renderList();
-            }
-          },
-          [icon('close', { size: 9 })]
-        )
-      ]
-    });
-    return cardEl;
+  // Stacked entries, not cards. A journal is read in sequence — these get
+  // written as the day goes and reviewed in order — so the full text belongs
+  // inline and chronology is the organising idea. Notes are the opposite
+  // (disconnected blurbs you scan for one thing), which is why those ARE
+  // cards with a detail modal.
+  function entryEl(entry) {
+    const el = h('div', { class: 'pip-journal-entry', dataset: { id: entry.id } });
+    const edited = entry.updated_at !== entry.created_at;
+
+    el.append(
+      ...[
+        h('div', { class: 'pip-journal-when' }, [
+          h('span', { class: 'pip-journal-date' }, fmtDateTime(entry.created_at)),
+          edited ? h('span', { class: 'pip-journal-edited' }, `edited ${fmtDateTime(entry.updated_at)}`) : null
+        ].filter(Boolean)),
+        h('div', { class: 'pip-journal-body', html: marked.parse(entry.body_md || '') }),
+        (attachmentsById[entry.id] || []).length
+          ? h('div', { class: 'pip-journal-att' }, attachmentSections(attachmentsById[entry.id], {
+              onOpenImage: (a) => window.open(a.src, '_blank', 'noopener')
+            }))
+          : null,
+        h('div', { class: 'pip-journal-actions' }, [
+          h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(entry) }, 'EDIT'),
+          h(
+            'button',
+            {
+              class: 'pip-action-btn pip-action-btn--ghost',
+              title: 'Delete',
+              onClick: async () => {
+                const ok = await confirmDestructive({
+                  title: 'Delete this journal entry?',
+                  what: fmtDateTime(entry.created_at),
+                  consequence:
+                    'Journal entries are your own written record — this one is gone permanently and cannot be recovered. Any images attached to it are deleted too.',
+                  confirmLabel: 'DELETE ENTRY'
+                });
+                if (!ok) return;
+                await collapseOut(el);
+                await deleteEntry(entry.id);
+                renderList();
+              }
+            },
+            [icon('close', { size: 9 })]
+          )
+        ])
+      ].filter(Boolean)
+    );
+    return el;
   }
 
+  // Attachments for the whole page in one request, keyed by entry id.
   let attachmentsById = {};
 
   async function renderList() {
@@ -140,7 +149,7 @@ export function renderFull(ctx) {
       );
       return;
     }
-    const list = contentGrid(items.map(card));
+    const list = h('div', { class: 'pip-journal-list' }, items.map(entryEl));
     listContainer.appendChild(list);
     staggerIn(list.children);
   }
