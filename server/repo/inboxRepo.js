@@ -207,10 +207,14 @@ function reactivateItem(id) {
 }
 
 function deleteItem(id) {
+  // Read before deleting: a log entry saying only "something was
+  // deleted" is barely better than no entry at all.
+  const existing = db.prepare('SELECT * FROM inbox_items WHERE id = ?').get(id);
   db.prepare('DELETE FROM inbox_items WHERE id = ?').run(id);
   db.prepare("DELETE FROM entity_tags WHERE entity_type='inbox' AND entity_id = ?").run(id);
   // Attachments have no FK to cascade from — see attachmentsRepo.
   attachmentsRepo.deleteForEntity('inbox', id);
+  logEvent('inbox_item', id, 'inbox_deleted', { title: existing ? existing.title : null, stage: existing ? existing.stage : null });
 }
 
 // Deactivated items are excluded from their stage's count here — that's the

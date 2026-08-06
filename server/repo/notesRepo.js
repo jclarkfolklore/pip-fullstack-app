@@ -132,10 +132,14 @@ function updateFields(id, fields = {}) {
 }
 
 function deleteNote(id) {
+  // Read before deleting: a log entry saying only "something was
+  // deleted" is barely better than no entry at all.
+  const existing = db.prepare('SELECT * FROM notes WHERE id = ?').get(id);
   db.prepare('DELETE FROM notes WHERE id = ?').run(id);
   db.prepare("DELETE FROM entity_tags WHERE entity_type='note' AND entity_id = ?").run(id);
   // Attachments have no FK to cascade from — see attachmentsRepo.
   attachmentsRepo.deleteForEntity('note', id);
+  logEvent('note', id, 'note_deleted', { title: existing ? existing.title : null });
 }
 
 function noteCounts() {

@@ -151,10 +151,14 @@ function updateFields(id, fields = {}) {
 }
 
 function deleteTask(id) {
+  // Read before deleting: a log entry saying only "something was
+  // deleted" is barely better than no entry at all.
+  const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
   db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
   db.prepare("DELETE FROM entity_tags WHERE entity_type='task' AND entity_id = ?").run(id);
   // Attachments have no FK to cascade from — see attachmentsRepo.
   attachmentsRepo.deleteForEntity('task', id);
+  logEvent('task', id, 'task_deleted', { title: existing ? existing.title : null });
 }
 
 function listTasksFromInboxItem(inboxItemId) {
