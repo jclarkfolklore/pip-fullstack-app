@@ -48,8 +48,8 @@ function importDroppedNote({
   const created = createdAt || nowIso();
   db.prepare(
     `INSERT INTO inbox_items
-      (id, title, body_md, source, source_type, source_url, source_ref, details_md, source_meta_json, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', '', ?, ?, ?)`
+      (id, title, body_md, source, source_type, source_url, source_ref, details_md, source_meta_json, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash, deactivated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', '', ?, ?, ?, ?)`
   ).run(
     id,
     title,
@@ -63,13 +63,23 @@ function importDroppedNote({
     projectId,
     created,
     created,
-    id
+    id,
+    // Arrivals land INACTIVE — see createInboxItem for why.
+    created
   );
   attachTags('inbox', id, tags);
   logEvent('inbox_item', id, 'inbox_created', { title, source, sourceType });
   return { id, created: true };
 }
 
+// Arrivals land INACTIVE — parked, not demanding. Something showing up in the
+// inbox isn't a decision that it's live work; reactivating it is. That keeps
+// counts, staleness and Clu3 reflecting what you've actually picked up.
+//
+// The underlying stage is still 'active', so REACTIVATE puts it straight into
+// active work rather than back into a separate triage step. The hold and the
+// lifecycle stay orthogonal, which is the whole reason they're separate
+// columns.
 function createInboxItem({
   title = '',
   bodyMd = '',
@@ -85,9 +95,9 @@ function createInboxItem({
   const created = createdAt || nowIso();
   db.prepare(
     `INSERT INTO inbox_items
-      (id, title, body_md, source, source_type, source_url, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', '', ?, ?, ?)`
-  ).run(id, title, bodyMd, source, sourceType, sourceUrl, projectId, created, created, importHash);
+      (id, title, body_md, source, source_type, source_url, project_id, stage, outcome_md, created_at, stage_changed_at, import_hash, deactivated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', '', ?, ?, ?, ?)`
+  ).run(id, title, bodyMd, source, sourceType, sourceUrl, projectId, created, created, importHash, created);
   attachTags('inbox', id, tags);
   logEvent('inbox_item', id, 'inbox_created', { title, source, sourceType });
   return id;
@@ -96,8 +106,14 @@ function createInboxItem({
 function listInboxItems({ stage = null, tag = null, project = null, search = '', sort = 'created_desc' } = {}) {
   const where = [];
   const params = [];
-  if (stage) {
-    where.push('i.stage = ?');
+  // 'inactive' is a hold, not a stage — but it behaves like one in the filter
+  // dropdown, which is how you'd expect to find parked items. Filtering by a
+  // real stage excludes them: something on hold isn't 'active' work, and
+  // listing it there is what made the two look conflated.
+  if (stage === 'inactive') {
+    where.push('i.deactivated_at IS NOT NULL');
+  } else if (stage) {
+    where.push('i.stage = ? AND i.deactivated_at IS NULL');
     params.push(stage);
   }
   if (project) {

@@ -56,15 +56,25 @@ function wholeDaysBetween(isoEarlier, isoLater) {
   return Math.floor(ms / 86400000);
 }
 
+// Inactive items are excluded from every count here, and from staleness.
+// Deactivating something IS the act of saying "not now" — having Clu3 then
+// nag that it's been sitting for days would punish you for using the feature.
+// They're reported separately as `inactive` so a rule can mention them if it
+// ever wants to, but nothing treats them as live work.
 function inboxSignals(staleBefore) {
   const byStage = { new: 0, active: 0, resolved: 0, archived: 0 };
-  for (const r of db.prepare('SELECT stage, COUNT(*) AS n FROM inbox_items GROUP BY stage').all()) {
+  for (const r of db
+    .prepare('SELECT stage, COUNT(*) AS n FROM inbox_items WHERE deactivated_at IS NULL GROUP BY stage')
+    .all()) {
     byStage[r.stage] = r.n;
   }
+  const inactive = db
+    .prepare('SELECT COUNT(*) AS n FROM inbox_items WHERE deactivated_at IS NOT NULL')
+    .get().n;
   const stale = db
     .prepare(
       `SELECT id, title, stage_changed_at FROM inbox_items
-       WHERE stage IN ('new','active') AND stage_changed_at < ?
+       WHERE stage IN ('new','active') AND deactivated_at IS NULL AND stage_changed_at < ?
        ORDER BY stage_changed_at ASC`
     )
     .all(staleBefore);
@@ -73,6 +83,7 @@ function inboxSignals(staleBefore) {
     active: byStage.active,
     resolved: byStage.resolved,
     archived: byStage.archived,
+    inactive,
     pending: byStage.new + byStage.active,
     staleCount: stale.length,
     oldestStale: stale[0] ? { title: stale[0].title, days: wholeDaysBetween(stale[0].stage_changed_at, nowIso()) } : null

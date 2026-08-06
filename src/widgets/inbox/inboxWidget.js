@@ -93,7 +93,9 @@ export function renderFull(ctx) {
       },
       [
         h('option', { value: '' }, 'All stages'),
-        ...['new', 'active', 'resolved', 'archived'].map((s) => h('option', { value: s }, STAGE_LABEL[s]))
+        ...['new', 'active', 'resolved', 'archived'].map((s) => h('option', { value: s }, STAGE_LABEL[s])),
+        // A hold rather than a stage, but this is where you'd look for it.
+        h('option', { value: 'inactive' }, 'INACTIVE')
       ]
     );
 
