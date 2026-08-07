@@ -82,13 +82,15 @@ export function mountWeatherPanel(container) {
 
   const header = h('div', { class: 'pip-wx-header' }, [
     h('span', { class: 'pip-wx-title' }, [icon('clock', { size: 10 }), ' 3-DAY']),
-    placeEl,
     sheetBtn,
     refreshBtn
   ]);
   const updatedEl = h('div', { class: 'pip-wx-updated' }, '');
+  // Place shares the footer row with "updated" instead of sitting in the
+  // header — one line doing two jobs instead of two lines each doing one.
+  const footer = h('div', { class: 'pip-wx-footer' }, [placeEl, updatedEl]);
 
-  const widget = h('div', { class: 'pip-wx-widget' }, [header, body, updatedEl]);
+  const widget = h('div', { class: 'pip-wx-widget' }, [header, body, footer]);
   container.appendChild(widget);
 
   let destroyed = false;

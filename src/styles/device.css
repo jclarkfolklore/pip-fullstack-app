@@ -187,7 +187,27 @@
   .pip-controls {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    width: auto;
+    /* Fills its grid cell in both directions — width from .pip-layout's
+       fixed 120px nav column, height from the forecast beside it (see
+       .pip-wx-panel) — rather than sizing to the buttons' own padding. That
+       is what makes a 2x2 grid of four buttons read as one block matched to
+       its neighbour, instead of a small cluster floating in extra space.
+       .pip-btn has no size of its own, so grid's default stretch would grow
+       each button to fill its cell on its own — except the base rule above
+       sets align-items: center for the single-row desktop/tablet layout,
+       and that value is inherited here too since nothing in THIS block
+       overrode it (justify-items has no such base override, but is set
+       explicitly anyway so both axes are decided by the same rule instead
+       of one relying on a default that the other couldn't). Centered, each
+       button sat at its natural content size in the middle of a larger
+       cell instead of filling it. The icon stays centered regardless of
+       any of this, because that's the button's own internal flex
+       centering, unrelated to how big the button's outer box is. */
+    align-items: stretch;
+    justify-items: stretch;
+    grid-template-rows: repeat(2, 1fr);
+    width: 100%;
+    height: 100%;
   }
 }
 
@@ -639,7 +659,14 @@
      block would otherwise fight it over the same properties. */
   .pip-layout {
     display: grid;
-    grid-template-columns: 1fr auto;
+    /* nav's column used to be `auto` — sized to whatever width its buttons
+       already wanted, which meant the forecast (1fr) took every pixel auto
+       didn't ask for. Fixing nav's column instead flips that: nav gets
+       exactly the width a square 2x2 button grid needs (2 buttons + the
+       gap between them, at the same size as their height — see
+       .pip-controls), and the forecast narrows to whatever's left, rather
+       than the other way around. */
+    grid-template-columns: 1fr 120px;
     /* 1fr on the console row, not auto, is what actually matters here — an
        auto row sizes to its content's natural height (the full work-area
        list, however long it is) rather than to whatever's left after Clu3
@@ -671,13 +698,13 @@
   .pip-wx-panel {
     grid-area: weather;
   }
-  /* Nav is the one thing worth reaching for one-handed, which is why it
-     stays pinned to the bottom edge (the same row as the forecast, which is
-     already the last thing above the screen) rather than wherever it would
-     otherwise fall. */
+  /* Nav shares the forecast's row (the last one above the screen), and
+     stretches to match its height rather than sitting at its own natural
+     (shorter) size within it — align-self: stretch, the grid default,
+     rather than the end-alignment this used before the button grid grew to
+     fill the panel itself. */
   .pip-controls-panel {
     grid-area: nav;
-    align-self: end;
   }
 }
 
@@ -703,11 +730,24 @@
   font-family: var(--font-mono);
 }
 
+/* justify-content: space-between made sense with three children spread
+   across the row (title, a flex-grow place name in the middle, then the
+   icon pair) — place used to absorb the free space itself, which is what
+   kept the icon pair adjacent. With place moved to the footer (see
+   mountWeatherPanel), space-between had nothing left to consume the middle
+   gap with and spread all three remaining children evenly instead, leaving
+   the sprite-sheet icon stranded in the middle of the row rather than next
+   to refresh. margin-left: auto on the sheet button does the same job place
+   used to: soak up the row's free space right before the icon pair, so they
+   stay a tight, adjacent group at the right edge regardless of how title's
+   own width changes. */
 .pip-wx-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+}
+.pip-wx-header .pip-clu3-sheet-btn {
+  margin-left: auto;
 }
 
 .pip-wx-title {
@@ -727,6 +767,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 .pip-wx-refresh {
@@ -753,7 +794,20 @@
   }
 }
 
+/* Place shares this row with "updated" rather than sitting in the header —
+   one line doing two jobs (see mountWeatherPanel) instead of two lines each
+   doing one. Struck from the header entirely rather than just visually
+   relocated, so this is a real height saving, not a rearrangement. */
+.pip-wx-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .pip-wx-updated {
+  flex: 0 0 auto;
+  white-space: nowrap;
   font-size: 9px;
   color: var(--lcd-ink-faint);
   text-transform: uppercase;
@@ -1185,6 +1239,22 @@
   .pip-clu3-updated {
     font-size: 8px;
     padding-top: 0;
+  }
+}
+
+/* Phone only: the forecast's own compact content (header + today's card,
+   with the padding and gaps the block above sets) actually needs about
+   123px — the shared 120px height everyone else uses was already 3px short
+   of that, invisibly. A shorter attempt at this rule (96px, to make the
+   2x2 nav grid beside it closer to square) clipped the bottom row instead:
+   .pip-wx-widget's overflow:hidden doesn't shrink content to fit, it just
+   cuts off whatever doesn't. 128px is a real fit with a few px of headroom,
+   not a guess. Making the buttons square from here would mean shrinking the
+   forecast's own padding/fonts further, not just the container around them —
+   left alone for now rather than trading readability for a shape. */
+@media (max-width: 599px) {
+  .pip-wx-panel {
+    height: 128px;
   }
 }
 
