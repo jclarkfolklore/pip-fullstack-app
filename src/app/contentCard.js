@@ -74,3 +74,16 @@ export function contentCard({
 export function contentGrid(cards) {
   return h('div', { class: 'pip-content-grid' }, cards);
 }
+
+// Shown the instant a list view mounts, before its data has come back —
+// swapped out for the real content (or the empty state) once it has. A list
+// widget's render function is async (it has to fetch before it has anything
+// to draw), and leaving the container empty for that gap reads as broken
+// rather than loading, which gets worse exactly when there's more to fetch
+// (Notes, Journal) or the network is slower (a real deploy, not localhost).
+export function loadingPlaceholder(label = 'Loading…') {
+  return h('div', { class: 'pip-loading-placeholder' }, [
+    h('div', { class: 'pip-loading-dots' }, [h('span'), h('span'), h('span')]),
+    h('div', {}, label)
+  ]);
+}

@@ -17,7 +17,7 @@ import { listProjects } from '../../api/projectsRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
 import { openTicketModal } from '../../app/ticketModal.js';
 import { projectLink } from '../../app/projectModal.js';
-import { contentCard, contentGrid } from '../../app/contentCard.js';
+import { contentCard, contentGrid, loadingPlaceholder } from '../../app/contentCard.js';
 import { listAttachmentsForMany } from '../../api/attachmentsRepo.js';
 import { consumeHighlight, applyHighlight } from '../../lib/highlight.js';
 
@@ -297,6 +297,14 @@ export function renderFull(ctx) {
   let attachmentsById = {};
 
   async function renderList() {
+    // Fetching is async, so there's a real gap before there's anything to
+    // show — an empty container in that gap reads as broken. Only shown on
+    // the very first render (checked via listContainer already having
+    // content) so a later refresh from onChange doesn't flash the list away.
+    if (!listContainer.children.length) {
+      listContainer.innerHTML = '';
+      listContainer.appendChild(loadingPlaceholder('Loading notes…'));
+    }
     const items = await listNotes(filters);
     attachmentsById = await listAttachmentsForMany(
       'note',

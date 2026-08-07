@@ -7,6 +7,7 @@ import { onChange } from '../../api/client.js';
 import { listEntries, createEntry, updateEntry, deleteEntry, entryCount } from '../../api/journalRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
 import { attachmentSections } from '../../app/attachmentViews.js';
+import { loadingPlaceholder } from '../../app/contentCard.js';
 import { openFileModal } from '../../app/fileViewerModal.js';
 import { listAttachmentsForMany } from '../../api/attachmentsRepo.js';
 
@@ -180,6 +181,11 @@ export function renderFull(ctx) {
   let attachmentsById = {};
 
   async function renderList() {
+    // See notesWidget.js's identical guard — same async gap, same fix.
+    if (!listContainer.children.length) {
+      listContainer.innerHTML = '';
+      listContainer.appendChild(loadingPlaceholder('Loading journal…'));
+    }
     const items = await listEntries(filters);
     attachmentsById = await listAttachmentsForMany(
       'journal',

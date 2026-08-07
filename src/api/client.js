@@ -79,14 +79,28 @@ async function staticGet(path) {
     const type = params.get('entityType');
     const ids = params.get('entityIds');
     if (ids) {
+      // One fetch per id, but in parallel — not sequential. Awaiting each in
+      // a for-loop turned a single batched call (one round trip on a live
+      // server, real IN(...) query) into N round trips taken one at a time,
+      // most of which 404 (only entities that actually have attachments got
+      // a captured file). On localhost that's invisible; over a real network
+      // — the Notes and Journal pages, the two callers of this path, at
+      // several dozen entries each — it's the actual cause of a blank
+      // container for seconds before anything painted. Firing them together
+      // costs about the same as the slowest single request.
       const out = {};
-      for (const id of ids.split(',').filter(Boolean)) {
-        try {
-          out[id] = await fetchJsonFile(`/api/attachments/${type}/${id}`);
-        } catch (_) {
-          /* no attachments for this one */
-        }
-      }
+      await Promise.all(
+        ids
+          .split(',')
+          .filter(Boolean)
+          .map(async (id) => {
+            try {
+              out[id] = await fetchJsonFile(`/api/attachments/${type}/${id}`);
+            } catch (_) {
+              /* no attachments for this one */
+            }
+          })
+      );
       return out;
     }
     try {
