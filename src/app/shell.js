@@ -5,7 +5,8 @@ import { mountDesktopSearchPanel, openMobileSearchOverlay } from './searchPanel.
 import { getNavVisible } from '../lib/navBar.js';
 import { mountClu3Panel } from './clu3Panel.js';
 import { mountWeatherPanel } from './weatherPanel.js';
-import { THEMES, getTheme, setTheme } from '../lib/theme.js';
+import { watchCompanionLayout } from './companionLayout.js';
+import { getTheme } from '../lib/theme.js';
 
 function btn(name, { accent = false, extraClass = '', onClick, title }) {
   return h(
@@ -22,7 +23,7 @@ export function buildShell() {
   const app = h('main', { id: 'pip-app', class: 'pip-app' });
   const statusbar = h('header', { class: 'pip-statusbar' }, [
     h('div', { class: 'pip-status-title' }, [h('span', { class: 'pip-status-dot' }), 'PIP']),
-    h('div', {}, 'v0.2')
+    h('div', {}, 'v0.3')
   ]);
   const screenGlass = h('div', { class: 'pip-screen-glass' }, [statusbar, app]);
   const screen = h('div', { class: 'pip-screen' }, [
@@ -35,10 +36,16 @@ export function buildShell() {
   // over this mutable holder so buildShell() can be called before ctx is ready.
   const ctxHolder = { current: null };
 
+  // Grid order matters on mobile: home+search read as the top row, back+
+  // forward as the bottom one (see .pip-controls's 2-column grid in
+  // device.css, scoped to the mobile breakpoint). Desktop's nav panel lays
+  // the same four out in a single row instead, so order there just reads
+  // left to right. Theme used to live here too; it's gone rather than
+  // moved, since Settings already has the real theme picker and a second
+  // control for the same thing was never buying anything on a nav bar this
+  // tight on space.
   const controls = h('nav', { class: 'pip-controls' }, [
     btn('home', { title: 'Home', onClick: () => goHome() }),
-    btn('back', { title: 'Back', onClick: () => history.back() }),
-    btn('forward', { title: 'Forward', onClick: () => history.forward() }),
     btn('search', {
       extraClass: 'pip-btn--search',
       title: 'Search',
@@ -46,13 +53,8 @@ export function buildShell() {
         if (ctxHolder.current) openMobileSearchOverlay(screen, ctxHolder.current);
       }
     }),
-    btn('theme', {
-      title: 'Cycle screen theme',
-      onClick: () => {
-        const idx = THEMES.indexOf(getTheme());
-        setTheme(THEMES[(idx + 1) % THEMES.length]);
-      }
-    })
+    btn('back', { title: 'Back', onClick: () => history.back() }),
+    btn('forward', { title: 'Forward', onClick: () => history.forward() })
   ]);
 
   const consoleEl = h('div', { class: 'pip-console' }, [screen]);
@@ -86,6 +88,9 @@ export function buildShell() {
       // the document.
       mountClu3Panel(clu3Host);
       mountWeatherPanel(weatherHost);
+      // After both have mounted and rendered once, so the initial check
+      // measures their real first-paint content rather than empty hosts.
+      watchCompanionLayout(sideCol);
     }
   };
 }

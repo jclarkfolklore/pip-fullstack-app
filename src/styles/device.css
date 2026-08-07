@@ -10,6 +10,16 @@
      silently overrode the app's minimum height and a short window clipped the
      bottom of the layout with no way to scroll to it. */
   min-height: max(100vh, var(--pip-min-h, 620px));
+  /* 100vh on a phone is the LARGEST the viewport ever gets — as if the
+     browser's address bar were already hidden. While it's still showing,
+     that overshoots the real visible height and cuts off the bottom of the
+     layout until the page is scrolled, which a fixed-height app layout has
+     no reason to need. 100dvh tracks the actual current viewport instead,
+     shrinking and growing with the chrome as it shows and hides. A browser
+     that doesn't understand dvh can't parse this whole value and drops the
+     declaration, leaving the line above in effect — safe to layer with no
+     feature query needed. */
+  min-height: max(100dvh, var(--pip-min-h, 620px));
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -24,6 +34,14 @@
      scroll internally instead of growing the page. See html,body overflow
      in base.css. */
   height: 100vh;
+  /* See the identical dvh line on #pip-root above — same reasoning, same
+     safe-to-layer fallback. This is the one that actually mattered for
+     "too tall to see the whole layout on mobile": with the cap stuck at the
+     inflated 100vh figure, the grid rows below (see the mobile grid a few
+     hundred lines down) summed to more than the real visible height and the
+     bottom row — the forecast and nav — ran off the bottom of the screen
+     while the address bar was still showing. */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -140,8 +158,14 @@
   padding: 0 12px 12px;
 }
 
-/* ===== nav controls: flat button row on mobile (below the screen),
-   framed in an LCD-style panel on desktop (top of the right column). ===== */
+/* ===== nav controls: a 2x2 button grid beside the forecast on mobile,
+   framed in an LCD-style panel on desktop (top of the right column). =====
+   Mobile used to give nav a full-width row of its own below the forecast —
+   a whole row of screen height spent on four buttons. Sharing the forecast's
+   row instead (see the mobile grid a few hundred lines up) gets that back;
+   the buttons themselves go from one row of four to two rows of two so the
+   panel is roughly as tall as it is wide rather than a wide, short strip
+   fighting the forecast card for the same row height. */
 .pip-controls-panel {
   display: flex;
 }
@@ -153,6 +177,18 @@
   gap: 8px;
   padding: 4px 2px;
   width: 100%;
+}
+
+@media (max-width: 599px) {
+  /* Phone only, not tablet — tablet's own layout (further down) gives nav a
+     full-width row below Clu3+forecast rather than squeezing it beside
+     either one, so it has the room for the original centered single row and
+     shouldn't inherit phone's narrower 2-column squeeze. */
+  .pip-controls {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: auto;
+  }
 }
 
 @media (min-width: 860px) {
@@ -579,77 +615,69 @@
    same markup still forms the right-hand column on desktop.
    Laid out horizontally here so a talking cat doesn't push the screen down. */
 @media (max-width: 859px) {
+  /* Shared with tablet (600-859px, see its own block further down), which
+     also flattens `.pip-side` this way so a grid can reach straight through
+     to Clu3/console/weather/nav regardless of which width's grid — phone's
+     just below, tablet's further down — actually ends up applying. */
   .pip-side {
     display: contents;
   }
+}
+
+@media (max-width: 599px) {
+  /* Grid, not flex+order: nav used to be a fifth full-width row of its own
+     below the forecast, which on a phone is a whole row of vertical space
+     spent on four buttons that would fit beside the forecast instead. A
+     shared row needs two tracks (weather gets the rest, nav gets exactly
+     what its buttons need) — flex's single axis can't put one sibling next
+     to another while a third stays full-width above both, so this switches
+     `.pip-layout` itself to grid for this breakpoint.
+
+     Phone only, not tablet: tablet has its own grid (further down) that
+     pairs Clu3 with the forecast instead and gives nav a full width row of
+     its own below both — there's room for that at tablet width, and this
+     block would otherwise fight it over the same properties. */
+  .pip-layout {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    /* 1fr on the console row, not auto, is what actually matters here — an
+       auto row sizes to its content's natural height (the full work-area
+       list, however long it is) rather than to whatever's left after Clu3
+       and the forecast/nav row, which is what flex:1 1 auto did before this
+       became a grid. Without it the console pushed weather+nav off the
+       bottom of the screen instead of sharing the viewport with them. */
+    grid-template-rows: auto 1fr auto;
+    /* Overrides the base (flex) rule's align-items: center — a grid item
+       without an explicit height defaults to *stretching* across its row,
+       but that base value makes it size to its own content and center
+       within the row instead. With console's content nearly always taller
+       than its 1fr row, that meant its centered, overflowing box straddled
+       the row on both sides — spilling upward over Clu3 and downward under
+       weather/nav rather than being clipped to the space actually granted. */
+    align-items: stretch;
+    grid-template-areas:
+      'clu3 clu3'
+      'console console'
+      'weather nav';
+  }
   .pip-clu3-panel {
-    order: -1;
+    grid-area: clu3;
     max-width: 900px;
-    flex: 0 0 auto;
   }
   .pip-console {
-    order: 0;
-    flex: 1 1 auto;
+    grid-area: console;
     min-height: 0;
   }
   .pip-wx-panel {
-    order: 1;
-    flex: 0 0 auto;
+    grid-area: weather;
   }
-  /* Nav is the one thing worth reaching for one-handed — pinned to the
-     bottom edge regardless of how tall Clu3/weather are above it, the way a
-     bottom tab bar works, rather than just sitting wherever it falls in
-     the stack. margin-top: auto eats whatever slack space remains. */
+  /* Nav is the one thing worth reaching for one-handed, which is why it
+     stays pinned to the bottom edge (the same row as the forecast, which is
+     already the last thing above the screen) rather than wherever it would
+     otherwise fall. */
   .pip-controls-panel {
-    order: 2;
-    flex: 0 0 auto;
-    margin-top: auto;
-  }
-
-  /* Stays horizontal on mobile — stacking made the panel tall enough to
-     squeeze the work area, and the work area is the point of the screen.
-     But the scene was a 56px thumbnail, which made the one genuinely
-     expressive thing on screen the smallest: it's ~2x that now, which reads
-     properly while keeping the panel short. The stage is 144x88, so width
-     alone sets the height. */
-  .pip-clu3-widget {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-areas:
-      'face header'
-      'face speech';
-    column-gap: 10px;
-    row-gap: 4px;
-    align-items: start;
-  }
-  .pip-clu3-header {
-    grid-area: header;
-  }
-  .pip-clu3-face {
-    grid-area: face;
-    align-self: center;
-  }
-  .pip-clu3-speech {
-    grid-area: speech;
-  }
-  .pip-clu3-face svg {
-    width: 124px;
-    height: auto;
-  }
-
-  /* Today's card fills whatever height the panel has, so the forecast and
-     Clu3 read as a matched pair rather than one being visibly stunted.
-     (The rule hiding the other two days has to live in the later mobile
-     block — the base `.pip-wx-rest` declaration sits below this one in the
-     file, and a media query adds no specificity, so from here it would lose
-     on source order.) */
-  .pip-wx-body {
-    flex: 1 1 auto;
-    display: flex;
-  }
-  .pip-wx-today {
-    flex: 1 1 auto;
-    justify-content: center;
+    grid-area: nav;
+    align-self: end;
   }
 }
 
@@ -1004,33 +1032,107 @@
   letter-spacing: 0.3px;
 }
 
-/* Compact on mobile: today's conditions only, at a glance — the 3-day
-   breakdown is desktop real estate the phone doesn't have to spare. Placed
-   after the base .pip-wx-* rules above so it actually wins the cascade
-   (same specificity, later source order) rather than being overridden by
-   them. */
+/* ===== compact Clu3 + forecast =====
+   The same compact treatment, triggered two different ways:
+
+   1. Below the mobile breakpoint: unconditional, pure CSS. There's never a
+      reason to show the full-size version on a phone, so this must not
+      depend on JS having run. Both companions compact together here — there
+      is no intermediate step, since the whole column is about to be
+      reordered around the work area rather than sized against search.
+
+   2. On a short but wide DESKTOP window: driven by src/app/companionLayout.js,
+      which sets data-companions to '', 'weather', or 'compact' on .pip-side.
+      This can't be a CSS breakpoint on viewport height, because the actual
+      trigger condition — "would leaving things as they are push search
+      below where it's still useful" — depends on how tall Clu3's panel
+      currently is, which varies with the length of whatever message it's
+      showing. A fixed max-height either compacts too early for a short
+      message or too late for a long one; measuring the real content height
+      against the real available height is the only way to hit the actual
+      trigger point instead of guessing at it. (An earlier version tried a
+      fixed max-height, tuned against whatever message happened to be
+      showing during testing — it compacted far more often than necessary
+      for everyone else's messages and window sizes. Before that, an even
+      earlier version jumped straight from full size to both-compact in one
+      step — see the desktop block further down for why that became two
+      steps instead.)
+
+   Search is the flexible panel in the column (see its min-height below), so
+   it's the one that loses first if nothing else gives way — squeezed to a
+   couple of results, then to nothing. Compacting the forecast, and then Clu3
+   if that alone isn't enough, is what keeps that from happening; search only
+   gives up height once both are already as small as they get, and only ever
+   scrolls (`.pip-side`'s own overflow-y:auto) in the extreme case even that
+   isn't enough.
+
+   The mobile block below and the desktop block further down describe the
+   SAME final ('compact') appearance from two different triggers — same
+   declarations, just re-scoped, kept in sync by comment cross-reference
+   since there's no preprocessor here to share them for real. */
 @media (max-width: 859px) {
-  /* Every row the forecast gives up here is a row the work area gets, so the
-     today card is squeezed hard: the day name shares the stats row instead of
-     owning one, and the divider goes. Readability is preserved by keeping the
-     temperature large — that's the one number worth a glance. */
+  /* Stays horizontal rather than stacked — stacking made the panel tall
+     enough to squeeze whatever shares the column with it, and the scene was
+     a 56px thumbnail at that size, which made the one genuinely expressive
+     thing on screen the smallest. The stage is 144x88, so width alone sets
+     the height. */
+  .pip-clu3-widget {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'face header'
+      'face speech';
+    column-gap: 10px;
+    row-gap: 4px;
+    align-items: start;
+  }
+  .pip-clu3-header {
+    grid-area: header;
+  }
+  .pip-clu3-face {
+    grid-area: face;
+    align-self: center;
+  }
+  .pip-clu3-speech {
+    grid-area: speech;
+  }
+  .pip-clu3-face svg {
+    width: 124px;
+    height: auto;
+  }
+
+  /* Today's card fills whatever height the panel has, so the forecast and
+     Clu3 read as a matched pair rather than one being visibly stunted. */
+  .pip-wx-body {
+    flex: 1 1 auto;
+    display: flex;
+  }
+  .pip-wx-today {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* Every row the forecast gives up here is a row something else in the
+     column gets, so the today card is squeezed hard: the day name shares
+     the stats row instead of owning one, and the divider goes. Readability
+     is preserved by keeping the temperature large — that's the one number
+     worth a glance. */
   .pip-wx-widget {
     padding: 7px 9px 8px;
     gap: 5px;
   }
-  /* Today only below desktop. The forecast is the secondary panel here — it
-     shares a row (tablet) or the stack (mobile) with Clu3, and matching
-     Clu3's height matters more than a third day of lookahead. The full
-     3-day view is one breakpoint away. */
+  /* Today only. The forecast is the secondary panel here — it shares a row
+     (tablet) or the stack (mobile) with Clu3, and matching Clu3's height
+     matters more than a third day of lookahead. */
   .pip-wx-rest {
     display: none;
   }
 
-  /* Clu3 and the forecast are a matched pair below desktop: one explicit
-     height for both. Left to their content they landed 9px apart, which is
-     close enough to look like a mistake rather than a choice — and stacked
-     flex siblings can't equalise themselves. Every pixel here is a pixel the
-     work area doesn't get, so this is deliberately tight. */
+  /* Clu3 and the forecast are a matched pair: one explicit height for both.
+     Left to their content they landed 9px apart, which is close enough to
+     look like a mistake rather than a choice — and stacked flex siblings
+     can't equalise themselves. Every pixel here is a pixel something else in
+     the column doesn't get, so this is deliberately tight. */
   .pip-clu3-panel,
   .pip-wx-panel {
     height: 120px;
@@ -1083,6 +1185,138 @@
   .pip-clu3-updated {
     font-size: 8px;
     padding-top: 0;
+  }
+}
+
+/* Desktop version of the block above, staged in two independent steps rather
+   than jumping straight to the mobile treatment for both at once — Clu3
+   compacting to a thumbnail is the bigger visual change of the two, so it's
+   held in reserve. watchCompanionLayout's recheck() measures both steps and
+   only reaches for the next one once the previous one genuinely isn't
+   enough:
+
+     ''         full size — the default.
+     'weather'  the forecast alone drops to today-only, tighter padding, no
+                fixed height (nothing to match yet — Clu3 is still full size).
+     'compact'  both compact, matched to the same height — identical to what
+                mobile always shows.
+
+   Weather's rules are written once and shared by 'weather' AND 'compact'
+   (a plain selector list, not a media query, so no third copy is needed);
+   the height-matching pair-up and Clu3's own compacting are 'compact' only.
+   Wrapped in min-width:860px purely as documentation of intent (JS never
+   sets the attribute below that width — see the early return in
+   watchCompanionLayout's recheck()), not because anything depends on it. */
+@media (min-width: 860px) {
+  /* ---- stage 1: weather alone (shared by 'weather' and 'compact') ---- */
+  .pip-side[data-companions='weather'] .pip-wx-widget,
+  .pip-side[data-companions='compact'] .pip-wx-widget {
+    padding: 7px 9px 8px;
+    gap: 5px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-rest,
+  .pip-side[data-companions='compact'] .pip-wx-rest {
+    display: none;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-today,
+  .pip-side[data-companions='compact'] .pip-wx-today {
+    padding: 5px 8px;
+    gap: 2px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-today .pip-wx-dayname,
+  .pip-side[data-companions='compact'] .pip-wx-today .pip-wx-dayname {
+    display: none;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-today-head,
+  .pip-side[data-companions='compact'] .pip-wx-today-head {
+    justify-content: flex-end;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-today-main,
+  .pip-side[data-companions='compact'] .pip-wx-today-main {
+    gap: 7px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-art--lg,
+  .pip-side[data-companions='compact'] .pip-wx-art--lg {
+    width: 34px;
+    height: 34px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-today-temp,
+  .pip-side[data-companions='compact'] .pip-wx-today-temp {
+    font-size: 28px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-today-cond,
+  .pip-side[data-companions='compact'] .pip-wx-today-cond {
+    font-size: 13px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-today-stats,
+  .pip-side[data-companions='compact'] .pip-wx-today-stats {
+    padding-top: 0;
+    border-top: none;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-today-hl,
+  .pip-side[data-companions='compact'] .pip-wx-today-hl {
+    font-size: 14px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-aqi,
+  .pip-side[data-companions='compact'] .pip-wx-aqi {
+    font-size: 13px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-aqi-value,
+  .pip-side[data-companions='compact'] .pip-wx-aqi-value {
+    font-size: 14px;
+  }
+  .pip-side[data-companions='weather'] .pip-wx-updated,
+  .pip-side[data-companions='compact'] .pip-wx-updated {
+    font-size: 8px;
+    padding-top: 0;
+  }
+
+  /* ---- stage 2: Clu3 too, and the two are pinned to a matched height ---- */
+  .pip-side[data-companions='compact'] .pip-clu3-widget {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'face header'
+      'face speech';
+    column-gap: 10px;
+    row-gap: 4px;
+    align-items: start;
+  }
+  .pip-side[data-companions='compact'] .pip-clu3-header {
+    grid-area: header;
+  }
+  .pip-side[data-companions='compact'] .pip-clu3-face {
+    grid-area: face;
+    align-self: center;
+  }
+  .pip-side[data-companions='compact'] .pip-clu3-speech {
+    grid-area: speech;
+  }
+  .pip-side[data-companions='compact'] .pip-clu3-face svg {
+    width: 124px;
+    height: auto;
+  }
+  .pip-side[data-companions='compact'] .pip-clu3-updated {
+    font-size: 8px;
+    padding-top: 0;
+  }
+
+  .pip-side[data-companions='compact'] .pip-wx-body {
+    flex: 1 1 auto;
+    display: flex;
+  }
+  .pip-side[data-companions='compact'] .pip-wx-today {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .pip-side[data-companions='compact'] .pip-clu3-panel,
+  .pip-side[data-companions='compact'] .pip-wx-panel {
+    height: 120px;
+  }
+  .pip-side[data-companions='compact'] .pip-clu3-widget,
+  .pip-side[data-companions='compact'] .pip-wx-widget {
+    height: 100%;
+    overflow: hidden;
   }
 }
 
@@ -2302,6 +2536,9 @@
    frame before src/index.js measures the bar. */
 body.pip-is-static .pip-layout {
   height: calc(100vh - var(--pip-static-bar, 28px));
+  /* Same dvh layering as the base .pip-layout rule, applied on top of the
+     banner's own offset rather than instead of it. */
+  height: calc(100dvh - var(--pip-static-bar, 28px));
   margin-top: var(--pip-static-bar, 28px);
 }
 
@@ -2311,69 +2548,13 @@ body.pip-is-static .pip-layout {
   }
 }
 
-/* ===== short desktop windows =====
-   The right column has to fit Clu3, the forecast and search into whatever
-   height exists. Search is the flexible one, so it's the one that was losing
-   — squeezed to a couple of results, then to nothing. Rather than let that
-   happen, the two companion panels give up their own space first, in tiers.
-
-   Same idea as the mobile compaction, but triggered by HEIGHT: on a short
-   wide window the layout is still the desktop one, just vertically starved. */
-
-/* Tier 1 — trim the scene and tighten the forecast. */
-@media (min-width: 860px) and (max-height: 900px) {
-  .pip-clu3-face svg {
-    max-height: 132px;
-    width: auto;
-  }
-  .pip-wx-day {
-    padding: 5px 7px;
-  }
-  .pip-wx-daylabel {
-    display: none;
-  }
-  .pip-wx-high {
-    font-size: 20px;
-  }
-  .pip-wx-low {
-    font-size: 13px;
-  }
-  .pip-clu3-widget,
-  .pip-wx-widget {
-    padding: 8px 10px 9px;
-    gap: 6px;
-  }
-}
-
-/* Tier 2 — drop to today only and shrink the scene further. Below this the
-   forecast is a single card and Clu3 is a thumbnail, which is the point:
-   search stays usable. */
-@media (min-width: 860px) and (max-height: 760px) {
-  .pip-clu3-face svg {
-    max-height: 96px;
-  }
-  .pip-wx-rest {
-    display: none;
-  }
-  .pip-wx-today-head {
-    display: none;
-  }
-  .pip-wx-today-stats {
-    padding-top: 0;
-    border-top: none;
-  }
-  .pip-wx-today-temp {
-    font-size: 30px;
-  }
-  .pip-wx-art--lg {
-    width: 38px;
-    height: 38px;
-  }
-  .pip-clu3-updated,
-  .pip-wx-updated {
-    display: none;
-  }
-}
+/* Short desktop windows compact Clu3 and the forecast to the same treatment
+   mobile uses, driven by measurement (src/app/companionLayout.js) rather
+   than a viewport-height breakpoint — see the two "compact Clu3 + forecast"
+   blocks a few hundred lines up, next to the base weather rules they have to
+   win the cascade against. There used to be a two-tier shrink triggered by
+   max-height here, and before that a single fixed breakpoint; see that
+   comment for why both were replaced rather than just retuned. */
 
 /* Search's own floor. It's the flexible panel in the column, so without a
    minimum it absorbs every shortfall and collapses to a header. */
