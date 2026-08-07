@@ -104,6 +104,25 @@ function writeJson(urlPath, data) {
   return file;
 }
 
+// Strip anything that describes THIS MACHINE rather than the workspace.
+// /api/health reports absolute paths, which is useful over a loopback-only
+// connection and is a small privacy leak the moment it's published — it names
+// the user's home directory and layout to anyone who opens the snapshot. The
+// static client doesn't read these; only `ok` and `demo` matter to it.
+function redact(urlPath, data) {
+  if (urlPath !== '/api/health') return data;
+  const { dbPath: _dbPath, dropsDir: _dropsDir, ...safe } = data;
+  return safe;
+}
+
+// Read a response back out of the snapshot that was just written, so decisions
+// made afterwards are based on what was actually captured rather than on a
+// second live request that could disagree with it.
+function readCaptured(urlPath) {
+  const file = fileFor(urlPath);
+  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+}
+
 function copyDir(from, to) {
   if (!fs.existsSync(from)) return 0;
   fs.mkdirSync(to, { recursive: true });
@@ -151,7 +170,7 @@ async function main() {
       log(`  skip ${ep.path} (${err.message})`);
       continue;
     }
-    writeJson(ep.path, data);
+    writeJson(ep.path, redact(ep.path, data));
     count += 1;
 
     const rows = Array.isArray(data) ? data : [];
@@ -218,18 +237,37 @@ async function main() {
   // 4. the flag that puts the app in read-only mode. Injected into index.html
   //    rather than probed at runtime, so there's no request race and a local
   //    dev load never pays for it.
-  const gate = readGateHash();
+  // Whether this is fictional data is the server's answer, not a flag passed
+  // to this script — /api/health reads it out of the database that was
+  // actually captured (stamped by scripts/demo-data/index.js). So a demo
+  // snapshot cannot be published without saying it is one, and a real
+  // snapshot cannot be mislabelled as a demo.
+  const demo = readCaptured('/api/health').demo === true;
+
+  // The gate exists to stop a shared link opening straight into Key's real
+  // workspace. A demo has no real workspace in it — the password would be
+  // friction guarding nothing, and the demo's whole purpose is being handed
+  // to people freely — so it never gets one, full stop.
+  const gate = demo ? null : readGateHash();
   const indexFile = path.join(OUT, 'index.html');
   let html = fs.readFileSync(indexFile, 'utf8');
   html = html.replace(
     '<head>',
     `<head><script>window.__PIP_STATIC__ = ${JSON.stringify({
       generatedAt: new Date().toISOString(),
+      ...(demo ? { demo: true } : {}),
       ...(gate ? { gate } : {})
     })};</script>`
   );
   fs.writeFileSync(indexFile, html);
-  log(gate ? 'gate: enabled (password from .env)' : 'gate: none (no PIP_SNAPSHOT_PASSWORD in .env)');
+  log(
+    gate
+      ? 'gate: enabled (password from .env)'
+      : demo
+        ? 'gate: none (demo data needs no password)'
+        : 'gate: none (no PIP_SNAPSHOT_PASSWORD in .env)'
+  );
+  log(demo ? 'data: FICTIONAL (banner shown)' : 'data: real');
 
   // Netlify: serve the SPA for real routes, but never rewrite /api/*, or the
   // snapshot JSON would come back as index.html.

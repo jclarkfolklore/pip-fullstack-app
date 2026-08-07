@@ -10,10 +10,12 @@ work in is this one.
 
 ![PIP dashboard](docs/screens/dashboard.png)
 
-**[Live read-only snapshot →](https://pip-workspace-snapshot.netlify.app)**
-A static, point-in-time copy of the real workspace, behind a password. Ask
-Key for it. Everything works — including search — but nothing saves, and it
-says so at the top.
+**[Live demo →](https://pip-workspace-snapshot.netlify.app)**
+A static build running three months of entirely fictional data — invented
+clients, tickets, notes and metrics, generated to look like a real workspace
+in daily use. Everything works — including search — but nothing saves, and a
+banner says up top that none of it is real. No password: there's no real
+client work in it to protect.
 
 It's a real full-stack app — Express + better-sqlite3 on the backend, a
 webpack-bundled frontend talking to it over `fetch()` and Server-Sent Events.
@@ -228,37 +230,86 @@ removal is one directory, every delete path calls `deleteForEntity()`, and
 
 ## Sharing a static snapshot
 
+Two flavors, both produced by the same underlying capture (`pip-snapshot.js`
+runs the real bundle against a real server and freezes what the API returns —
+see below):
+
 ```bash
-npm run snapshot          # build -> ./snapshot
-npm run snapshot:deploy   # build, then deploy to Netlify
+npm run snapshot:demo     # seed fictional data -> capture it -> ./snapshot
+npm run snapshot          # capture whatever server is on :4288 right now
+npm run snapshot:deploy   # snapshot, then deploy to Netlify
 ```
 
-Produces a serverless, read-only copy that runs anywhere — for handing someone
-a link without standing up infrastructure. It's clearly labelled read-only,
-and nothing in it can write back. The current one is live at
+**`snapshot:demo` is the one to hand someone outside the team.** It seeds a
+throwaway database (`scripts/demo-data/index.js`) with three months of invented
+work — fictional clients, tickets, people, notes, metrics — on a scratch port,
+captures that, and tears the server down. It never opens the real
+`data/pip.sqlite`, so there's no path by which real client work could end up
+in the output; the safety is structural, not a matter of remembering to scrub
+something. The served database has to identify itself as fictional
+(`app_meta.demo_data`, checked by `/api/health`) before the snapshot will
+proceed — the script refuses rather than silently publishing whatever happens
+to be listening on the port. The result says so on screen: a banner across
+the top, plus a Clu3 message on load.
+
+**`npm run snapshot` captures whatever is actually running** — point it at the
+real server for a genuine read-only mirror. Nothing about it distinguishes
+real data from fake in the output, so it's on whoever runs it to know which
+database is live at the time. This is the one worth putting a password in
+front of (below); the demo has no need of one.
+
+The current live link is the demo. It's live at
 **[pip-workspace-snapshot.netlify.app](https://pip-workspace-snapshot.netlify.app)**;
-re-run the command to refresh it.
+re-run `npm run snapshot:demo` and redeploy to refresh it with a new three
+months of invented history.
+
+### Keeping the demo data current
+
+`scripts/demo-data/` is a module, not a one-off script — it's organized as
+one file per entity type (`seedProjects.js`, `seedTasks.js`, ...) plus shared
+pieces (`rng.js`, `timeline.js`, `world.js`), because it gets touched every
+time the data model changes or the demo needs new realism tuning, not just
+once.
+
+```bash
+npm run demo:check   # is scripts/demo-data still current? no seeding needed
+npm run seed:demo    # rebuild data/demo.sqlite in isolation, without deploying
+```
+
+The risk this guards against: a migration adds a table or column, every repo
+call in `scripts/demo-data` keeps working without error, and the demo quietly
+stops exercising whatever the change was for — nothing throws, so nothing
+tells you. `demo:check` (`scripts/demo-data/freshnessCheck.js`) catches that
+two ways: a **schema-version pin**, bumped only after actually reviewing a
+migration against the seed modules, and a **table-coverage** scan that flags
+any real table with zero rows in the seeded output. `snapshot:demo` runs both
+automatically — once before seeding (fast, catches drift without spending
+time on a seed run that's doomed anyway) and once after (catches a table the
+seeder silently leaves empty) — and refuses to proceed if either fails.
 
 ### The gate
 
 Set `PIP_SNAPSHOT_PASSWORD` in a local `.env` (gitignored — see
-`.env.example`) and the snapshot ships with a password screen in front of the
-dashboard. Only a SHA-256 of the password is embedded, so the plaintext never
-appears in the built output.
+`.env.example`) and a real (non-demo) snapshot ships with a password screen in
+front of the dashboard. Only a SHA-256 of the password is embedded, so the
+plaintext never appears in the built output. `snapshot:demo` never gates,
+regardless of that setting — there's no real client work in a demo for a
+password to protect.
 
-Be clear-eyed about what that is: **a deterrent, not access control.** The
+Be clear-eyed about what the gate is: **a deterrent, not access control.** The
 check runs in the browser, and the captured JSON under `/api/` stays fetchable
 directly by anyone who knows a URL. It stops a shared link opening straight
 into someone's workspace; it does not protect the contents. Netlify's own
-site-level password protection is the real answer if that matters.
+site-level password protection is the real answer if that matters for a real
+snapshot.
 
-It survives change because it doesn't reimplement the app: it runs the real
-bundle and captures the real API's responses. Search is the exception — a
-query can't be captured as a fixed response — so the snapshot ships the
-server's own shaped search index and filters it in the browser. Clu3's and the
-forecast's polling are switched off in a snapshot, since the data is frozen by
-definition and re-fetching a captured file on a timer only risks breaking the
-widget.
+The capture survives change because it doesn't reimplement the app: it runs
+the real bundle and captures the real API's responses. Search is the
+exception — a query can't be captured as a fixed response — so the snapshot
+ships the server's own shaped search index and filters it in the browser.
+Clu3's and the forecast's polling are switched off in a snapshot, since the
+data is frozen by definition and re-fetching a captured file on a timer only
+risks breaking the widget.
 
 ---
 

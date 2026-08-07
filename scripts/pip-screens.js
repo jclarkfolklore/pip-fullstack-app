@@ -42,7 +42,10 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
   // Project detail — the view that ties everything together.
   await go('#/projects');
-  const project = page.locator('.pip-card', { hasText: 'PIP' }).first();
+  // .pip-card was the class before the cards redesign (see README's "Projects"
+  // section) — it's been .pip-project-card since, and this silently matched
+  // nothing and skipped the shot rather than failing loudly.
+  const project = page.locator('.pip-project-card', { hasText: 'PIP' }).first();
   if (await project.count()) {
     await project.click();
     await page.waitForTimeout(1400);

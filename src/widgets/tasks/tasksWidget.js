@@ -1,4 +1,4 @@
-import { h, fmtDate } from '../../lib/dom.js';
+import { h, fmtDate, readPrefList, writePrefList } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
 import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
@@ -6,6 +6,7 @@ import { onChange } from '../../api/client.js';
 import { listTasks, createTask, setTaskStatus, deleteTask, taskCounts } from '../../api/tasksRepo.js';
 import { listProjects } from '../../api/projectsRepo.js';
 import { openTicketModal } from '../../app/ticketModal.js';
+import { projectLink } from '../../app/projectModal.js';
 import { confirmDestructive } from '../../app/modal.js';
 import { consumeHighlight, applyHighlight } from '../../lib/highlight.js';
 
@@ -66,12 +67,48 @@ const SOURCE_ICON = {
   screenshot: 'camera'
 };
 
+// A button that opens a checkbox list rather than a native multi-select —
+// checking/unchecking reads as "include this in the view", which is the
+// actual mental model (a native multi-select's Cmd/Ctrl-click-to-select
+// reads as the opposite, and isn't discoverable without a tooltip).
+function checklistDropdown({ label, options, isChecked, onToggle }) {
+  const btn = h('button', { class: 'pip-chip-select pip-checklist-btn' }, label());
+  const panel = h('div', { class: 'pip-checklist-panel' });
+  const wrap = h('div', { class: 'pip-checklist' }, [btn, panel]);
+
+  for (const opt of options) {
+    const checkbox = h('input', { type: 'checkbox' });
+    checkbox.checked = isChecked(opt.id);
+    checkbox.addEventListener('change', () => {
+      onToggle(opt.id, checkbox.checked);
+      btn.textContent = label();
+    });
+    panel.appendChild(h('label', { class: 'pip-checklist-row' }, [checkbox, h('span', {}, opt.label)]));
+  }
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    wrap.classList.toggle('is-open');
+  });
+  function onOutsideClick(e) {
+    if (!wrap.contains(e.target)) wrap.classList.remove('is-open');
+  }
+  document.addEventListener('click', onOutsideClick);
+
+  return { el: wrap, destroy: () => document.removeEventListener('click', onOutsideClick) };
+}
+
 export function renderFull(ctx) {
   // Done work is history — it's the biggest group and the least actionable, so
   // it stays collapsed until asked for.
-  const filters = { project: null };
+  // hiddenProjects persists across sessions — a project that isn't active
+  // yet (or is done and out of mind) can be hidden from the board without
+  // losing the ability to see everything else at once, which a single
+  // "isolate to one project" filter can't do.
+  const filters = { project: null, hiddenProjects: readPrefList('pip:tasks:hiddenProjects') };
   let showDone = false;
   let projectsById = {};
+  let projectChecklistHandle = null;
 
   // A search-result click deep-links here for one specific task — consumed
   // once, at mount, so a later re-render (onChange) doesn't re-scroll/flash.
@@ -115,7 +152,27 @@ export function renderFull(ctx) {
       renderList();
     });
 
-    toolbarHost.appendChild(h('div', { class: 'pip-toolbar' }, [projectSelect, doneToggle]));
+    // A checklist rather than the single "isolate to one project" dropdown
+    // above — the use case is the opposite: keep everything visible except
+    // one or two projects (a new one not active yet, a closed one you're
+    // done thinking about), checking/unchecking any combination.
+    projectChecklistHandle = checklistDropdown({
+      label: () =>
+        filters.hiddenProjects.length ? `PROJECTS (${filters.hiddenProjects.length} hidden)` : 'PROJECTS',
+      options: projects.map((p) => ({ id: p.id, label: p.name })),
+      isChecked: (id) => !filters.hiddenProjects.includes(id),
+      onToggle: (id, included) => {
+        filters.hiddenProjects = included
+          ? filters.hiddenProjects.filter((x) => x !== id)
+          : [...filters.hiddenProjects, id];
+        writePrefList('pip:tasks:hiddenProjects', filters.hiddenProjects);
+        renderList();
+      }
+    });
+
+    toolbarHost.appendChild(
+      h('div', { class: 'pip-toolbar' }, [projectSelect, projectChecklistHandle.el, doneToggle])
+    );
   }
 
   function openComposeSheet() {
@@ -179,7 +236,7 @@ export function renderFull(ctx) {
     const overdue = task.status !== 'done' && task.due_at && new Date(task.due_at) < new Date();
 
     const metaParts = [task.due_at ? `due ${fmtDate(task.due_at)}` : `added ${fmtDate(task.created_at)}`];
-    if (project) metaParts.push(project.name);
+    if (project) metaParts.push(' · ', projectLink(project));
 
     // Synced tickets lead with their number, linked back to the source system.
     // Clicking the ref is the fastest path from "I'll do this" to the ticket.
@@ -202,11 +259,7 @@ export function renderFull(ctx) {
         ref,
         h('div', { class: 'pip-task-card-title' }, task.title),
         task.notes_md ? h('div', { class: 'pip-task-card-notes' }, task.notes_md) : null,
-        h(
-          'div',
-          { class: `pip-task-card-meta ${overdue ? 'is-overdue' : ''}`.trim() },
-          metaParts.join(' · ')
-        ),
+        h('div', { class: `pip-task-card-meta ${overdue ? 'is-overdue' : ''}`.trim() }, metaParts),
         h('div', { class: 'pip-task-card-actions' }, [
           ...(STATUS_MOVES[task.status] || []).map((move) =>
             h(
@@ -258,7 +311,7 @@ export function renderFull(ctx) {
       openTicketModal(task, {
         extra: {
           status: task.status,
-          project: project ? project.name : null,
+          project: project ? projectLink(project) : null,
           due: task.due_at ? fmtDate(task.due_at) : null
         }
       });
@@ -271,7 +324,7 @@ export function renderFull(ctx) {
   async function renderList() {
     // Fetch everything and group locally — the sections need all three
     // statuses at once, and one request is cheaper than three.
-    const items = await listTasks({ project: filters.project });
+    const items = await listTasks({ project: filters.project, excludeProjects: filters.hiddenProjects });
     listContainer.innerHTML = '';
 
     const byStatus = { doing: [], open: [], done: [] };
@@ -333,5 +386,11 @@ export function renderFull(ctx) {
   buildToolbar().then(renderList);
   const unsubscribe = onChange(renderList);
 
-  return { el, destroy: unsubscribe };
+  return {
+    el,
+    destroy: () => {
+      unsubscribe();
+      if (projectChecklistHandle) projectChecklistHandle.destroy();
+    }
+  };
 }

@@ -138,6 +138,62 @@ test('repo entity types match the schema CHECK constraint', async () => {
   });
 });
 
+test('repo kinds match the schema CHECK constraint', async () => {
+  // Same drift risk as entity_type above, now for `kind`: migration v12
+  // widened the DB constraint to admit 'file', and this pins the repo's own
+  // KINDS list to match rather than trusting the two were edited together.
+  await withDb(async ({ db, load }) => {
+    const att = load('server/repo/attachmentsRepo.js');
+    const sql = db.prepare("SELECT sql FROM sqlite_master WHERE name='attachments'").get().sql;
+    const inCheck = [...sql.matchAll(/kind IN \(([^)]*)\)/g)][0][1]
+      .split(',')
+      .map((s) => s.trim().replace(/'/g, ''))
+      .sort();
+    assert.deepEqual([...att.KINDS].sort(), inCheck, 'repo list matches the DB constraint');
+  });
+});
+
+test('a file attachment requires data and an explicit mime', async () => {
+  // Unlike images, there's no sensible default mime for an arbitrary
+  // document, and no url-fetch path (the documents this exists for sit
+  // behind auth PIP doesn't hold) — both must be caught, not silently
+  // defaulted.
+  await withDb(async ({ load }) => {
+    const att = load('server/repo/attachmentsRepo.js');
+    const id = load('server/repo/tasksRepo.js').createTask({ title: 'T' });
+    await assert.rejects(() => att.addAttachment({ entityType: 'task', entityId: id, kind: 'file' }));
+    await assert.rejects(() =>
+      att.addAttachment({ entityType: 'task', entityId: id, kind: 'file', data: 'AAAA' })
+    );
+  });
+});
+
+test('a file attachment stores bytes and is retrievable, separate from images', async () => {
+  await withDb(async ({ load }) => {
+    const att = load('server/repo/attachmentsRepo.js');
+    const id = load('server/repo/tasksRepo.js').createTask({ title: 'T' });
+    const pdfBytes = Buffer.from('%PDF-1.4 fake', 'utf8').toString('base64');
+    const res = await att.addAttachment({
+      entityType: 'task',
+      entityId: id,
+      kind: 'file',
+      data: pdfBytes,
+      mime: 'application/pdf',
+      title: 'Data definitions'
+    });
+    assert.equal(res.attachment.kind, 'file');
+    assert.equal(res.attachment.mime, 'application/pdf');
+
+    const raw = att.rawFileFor(res.attachment.id);
+    assert.ok(raw, 'file is retrievable');
+    assert.match(raw.filename, /\.pdf$/, 'filename carries the right extension');
+
+    const rows = att.listFor('task', id);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].kind, 'file');
+  });
+});
+
 test('an unknown entity type is rejected', async () => {
   await withDb(async ({ load }) => {
     const att = load('server/repo/attachmentsRepo.js');

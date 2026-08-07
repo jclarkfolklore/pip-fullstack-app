@@ -6,14 +6,15 @@ const { allTagNames } = require('../repo/tagsRepo');
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  const { stage, tag, project, search, sort } = req.query;
+  const { stage, tag, project, search, sort, showResolved } = req.query;
   res.json(
     inboxRepo.listInboxItems({
       stage: stage || null,
       tag: tag || null,
       project: project || null,
       search: search || '',
-      sort: sort || 'created_desc'
+      sort: sort || 'created_desc',
+      showResolved: showResolved === 'true'
     })
   );
 });

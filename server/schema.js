@@ -4,7 +4,7 @@
 // file on disk (server/db.js opens it with better-sqlite3), plus a first-
 // class Project entity and a standalone Notes table.
 
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 13;
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS attachments (
   id TEXT PRIMARY KEY,
   entity_type TEXT NOT NULL CHECK (entity_type IN ('inbox','task','note','journal','project')),
   entity_id TEXT NOT NULL,
-  kind TEXT NOT NULL CHECK (kind IN ('image','link')),
+  kind TEXT NOT NULL CHECK (kind IN ('image','link','file')),
   rel TEXT,
   title TEXT,
   url TEXT,
@@ -218,8 +218,7 @@ const SEED_WIDGETS = [
     sort_order: 5,
     group_name: 'insights'
   },
-  { id: 'overview', kind: 'overview', title: 'STATUS', glyph: 'link', sort_order: 6, group_name: 'insights' },
-  { id: 'settings', kind: 'settings', title: 'SETTINGS', glyph: 'theme', sort_order: 7, group_name: 'system' }
+  { id: 'settings', kind: 'settings', title: 'SETTINGS', glyph: 'theme', sort_order: 6, group_name: 'system' }
 ];
 
 // No default/seed project — Projects starts genuinely empty until the
@@ -415,6 +414,51 @@ const MIGRATIONS = [
          created_at TEXT NOT NULL
        )`,
       `CREATE INDEX IF NOT EXISTS idx_project_contacts ON project_contacts(project_id)`
+    ]
+  },
+  {
+    // A third attachment kind: 'file' — arbitrary documents (PDF, DOCX, XLSX,
+    // ...) that arrive as email attachments or manual uploads. Images stay
+    // their own kind rather than folding into 'file' because the UI treats
+    // them very differently (inline thumbnail + lightbox vs. an icon card +
+    // viewer/download), and that distinction is worth keeping explicit in
+    // the data rather than re-deriving it from mime every time.
+    //
+    // kind's CHECK has to be rebuilt to admit it; SQLite can't ALTER a
+    // constraint in place — same rebuild-and-copy shape as migration v11.
+    version: 12,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS attachments_v12 (
+         id TEXT PRIMARY KEY,
+         entity_type TEXT NOT NULL CHECK (entity_type IN ('inbox','task','note','journal','project')),
+         entity_id TEXT NOT NULL,
+         kind TEXT NOT NULL CHECK (kind IN ('image','link','file')),
+         rel TEXT,
+         title TEXT,
+         url TEXT,
+         file_path TEXT,
+         mime TEXT,
+         bytes INTEGER,
+         sort_order INTEGER NOT NULL DEFAULT 0,
+         source TEXT NOT NULL DEFAULT 'manual',
+         created_at TEXT NOT NULL
+       )`,
+      `INSERT INTO attachments_v12 SELECT * FROM attachments`,
+      `DROP TABLE attachments`,
+      `ALTER TABLE attachments_v12 RENAME TO attachments`,
+      `CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type, entity_id)`
+    ]
+  },
+  {
+    // Status/Overview is gone — every number it showed already existed in
+    // Metrics' own data (stageCounts/taskCounts/noteCounts/project count),
+    // just duplicated across two dead-plain tiles. Deleting the seed row
+    // rather than leaving a widget entry pointing at a kind the registry no
+    // longer has; settings shifts into the sort_order slot it vacates.
+    version: 13,
+    statements: [
+      `DELETE FROM widgets WHERE id = 'overview'`,
+      `UPDATE widgets SET sort_order = 6 WHERE id = 'settings'`
     ]
   }
 ];

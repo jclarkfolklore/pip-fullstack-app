@@ -19,6 +19,14 @@
   --lcd-green: #4e8f3f;
   --lcd-glow: rgba(60, 74, 53, 0.18);
   --lcd-line: rgba(60, 74, 53, 0.14);
+  /* Clu3's body fill. Its own token rather than --lcd-ink so a theme can
+     recolour the character without touching every other inked pixel — which
+     only became possible once the fill was solid instead of blotchy
+     (see clu3Quantize.js). Alpha lives in the token, not in a separate
+     opacity rule, so one value controls both hue and strength.
+     The default is exactly .pip-clu3-chip's background, so Clu3's body and
+     the METRICS chip beside them are the same colour. */
+  --clu3-body: rgba(255, 255, 255, 0.32);
 
   /* ---- Buttons ---- */
   --btn-face: #f4f1fb;
@@ -60,16 +68,22 @@
   --lcd-green: #4a7a45;
 }
 
-[data-theme='night'] {
-  --lcd-bg: #182a1e;
-  --lcd-bg-2: #0f2015;
-  --lcd-ink: #7fe0a0;
-  --lcd-ink-dim: #4c9c68;
-  --lcd-ink-faint: #34724a;
-  --lcd-accent: #ff8a7a;
-  --lcd-accent-2: #7fd8e8;
-  --lcd-accent-3: #e8cf7f;
-  --lcd-green: #7fe0a0;
-  --lcd-glow: rgba(127, 224, 160, 0.14);
-  --lcd-line: rgba(127, 224, 160, 0.1);
+/* Psychic — the one dark theme. Deep indigo panel, luminous lavender ink,
+   and a warm gold reserved for the "third eye" accent so the three semantic
+   accents stay as distinguishable here as they are on the light themes. */
+[data-theme='psychic'] {
+  --lcd-bg: #251b3d;
+  --lcd-bg-2: #191030;
+  --lcd-ink: #dcc7ff;
+  --lcd-ink-dim: #a289d6;
+  --lcd-ink-faint: #6f5aa8;
+  --lcd-accent: #ff5fa2;
+  --lcd-accent-2: #7de3ff;
+  --lcd-accent-3: #ffd166;
+  --lcd-green: #7cf5c0;
+  --lcd-glow: rgba(190, 140, 255, 0.16);
+  --lcd-line: rgba(190, 140, 255, 0.16);
+  /* Clu3 reads as a violet familiar here rather than a pale cut-out — the
+     one theme where the body is tinted rather than simply lightened. */
+  --clu3-body: rgba(185, 139, 255, 0.42);
 }

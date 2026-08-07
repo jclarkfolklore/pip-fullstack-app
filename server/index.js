@@ -1,6 +1,6 @@
 const path = require('path');
 const express = require('express');
-const { DB_PATH } = require('./db');
+const { db, DB_PATH } = require('./db');
 const { startDropsWatcher, DROPS_DIR } = require('./dropsWatcher');
 const { startWeatherPoller } = require('./weather/service');
 const changeBus = require('./lib/changeBus');
@@ -53,7 +53,11 @@ app.use('/api/export', require('./routes/export'));
 app.use('/api/events', require('./routes/events'));
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, dbPath: DB_PATH, dropsDir: DROPS_DIR });
+  // `demo` is stamped into the database by scripts/demo-data/index.js, so a
+  // fictional workspace announces itself wherever it's served from. The
+  // snapshot reads this to decide what its banner says — see pip-snapshot.js.
+  const demo = db.prepare("SELECT value FROM app_meta WHERE key = 'demo_data'").get();
+  res.json({ ok: true, dbPath: DB_PATH, dropsDir: DROPS_DIR, demo: demo?.value === '1' });
 });
 
 // Static frontend build (webpack outputs here — see webpack.config.js).
@@ -83,7 +87,14 @@ const server = app.listen(PORT, HOST, () => {
 });
 
 const stopDropsWatcher = startDropsWatcher();
-const stopWeatherPoller = startWeatherPoller();
+// The demo pipeline (scripts/pip-snapshot-demo.js) sets this: scripts/demo-data
+// seeds a fabricated forecast directly into app_meta specifically so nothing
+// has to be fetched, but the poller ticks once immediately on startup
+// regardless of cache freshness — left running, it would overwrite that fake,
+// deterministic forecast with a real live one for made-up ocean coordinates on
+// every snapshot build. A real server never sets this, so its behavior is
+// unchanged.
+const stopWeatherPoller = process.env.PIP_DISABLE_WEATHER_POLL === '1' ? () => {} : startWeatherPoller();
 
 function shutdown() {
   console.log('[pip] shutting down...');

@@ -31,15 +31,24 @@
      inside (a URL, say) then gets its own horizontal scrollbar here rather
      than wrapping. The main display area should never scroll sideways. */
   overflow-x: hidden;
-  /* Room between the content and the scrollbar. At 2px the cards sat right
-     against the track and the column read as cramped; the scrollbar is 6px,
-     so this clears it with breathing space either side. */
-  padding-right: 14px;
   /* Momentum scrolling on older iOS; harmless everywhere else. */
   -webkit-overflow-scrolling: touch;
-  /* Keep the gutter reserved whether or not the bar is showing, so content
-     doesn't shift horizontally the moment a list gets long enough to scroll. */
-  scrollbar-gutter: stable;
+  /* `both-edges` reserves the gutter on BOTH sides, so the content column is
+     centred in the frame instead of sitting 20px further from the right edge
+     than the left. `stable` keeps it reserved whether or not the bar is
+     showing, so nothing shifts horizontally when a list grows long enough to
+     scroll. This replaced a padding-right that stacked on top of the gutter
+     and over-reserved for a 6px scrollbar — measured 12px left vs 32px
+     right; now 18/18, and 8px wider for content into the bargain. */
+  scrollbar-gutter: stable both-edges;
+  /* Centre the scrollbar in the gap rather than letting it sit flush against
+     the content. The negative margin lets the body reach 6px into .pip-app's
+     own padding, and the matching padding puts the content back where it
+     was — so the 6px bar ends up with 6px of clear space on either side,
+     and the content column doesn't move. Only the body is pulled over, so
+     the view header above it stays aligned. */
+  margin-right: -6px;
+  padding-right: 6px;
 }
 
 .pip-back {
@@ -192,6 +201,52 @@
   gap: 6px;
   flex-wrap: wrap;
   margin-bottom: 8px;
+}
+
+/* A button + checkbox popover, standing in for a native multi-select — see
+   checklistDropdown() in tasksWidget.js. Checking a row reads as "include
+   this in the view", which a native multi-select's ctrl/cmd-click-to-select
+   does not, and isn't discoverable without a tooltip either. */
+.pip-checklist {
+  position: relative;
+}
+
+.pip-checklist-btn {
+  cursor: pointer;
+}
+
+.pip-checklist-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 180px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--lcd-line);
+  background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+.pip-checklist.is-open .pip-checklist-panel {
+  display: block;
+}
+
+.pip-checklist-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--lcd-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pip-checklist-row:hover {
+  background: var(--lcd-line);
 }
 
 .pip-chip-select,
@@ -640,62 +695,681 @@
   color: var(--lcd-ink-faint);
 }
 
-/* ===== metrics: pixel bar chart ===== */
-.pip-metrics-section-title {
-  font-family: var(--font-pixel);
-  font-size: 8px;
-  letter-spacing: 0.5px;
-  color: var(--lcd-ink-dim);
-  margin: 12px 0 6px;
-}
-.pip-metrics-section-title:first-child {
-  margin-top: 0;
-}
-
-.pip-bar-chart {
+/* ===== metrics: sticky sub-nav =====
+   The view is split into pages rather than one long scroll — this bar stays
+   pinned to the top of .pip-view-body (the scroll container) while you move
+   between them. */
+.pip-metrics-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 6px;
-  height: 96px;
-  padding: 4px 2px 0;
+  gap: 4px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  background: linear-gradient(180deg, var(--lcd-bg) 0%, var(--lcd-bg) 78%, transparent 100%);
+  border-bottom: 1px dashed var(--lcd-line);
+}
+.pip-metrics-tab {
+  flex: 1 1 0;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  padding: 8px 4px;
+  border-radius: 7px;
+  color: var(--lcd-ink-dim);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--lcd-line);
+}
+.pip-metrics-tab.is-active {
+  color: #fff;
+  background: var(--lcd-accent-2);
+  border-color: var(--lcd-accent-2);
 }
 
-.pip-bar-col {
-  flex: 1 1 0;
+.pip-metrics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Pairs two compact cards across the panel width, collapsing to a stack
+   when there isn't room for both — the screen is a fixed device frame, so
+   a card that only needs half the width shouldn't take all of it. */
+.pip-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+/* ===== metrics: card — the container every section lives in.
+   Title row, an info affordance that says in plain language what you are
+   looking at, an optional live subtitle carrying the scale, then the chart.
+   A floating SVG with a tiny label above it reads as a disconnected
+   fragment; this is the boundary that says "this is one thing". */
+.pip-ch-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 12px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.pip-ch-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pip-ch-card-title {
+  flex: 1 1 auto;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.4px;
+  color: var(--lcd-ink);
+}
+.pip-ch-card-info-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--lcd-ink-faint);
+  border: 1px solid var(--lcd-line);
+  background: rgba(255, 255, 255, 0.3);
+}
+.pip-ch-card-info-btn.is-active {
+  color: #fff;
+  background: var(--lcd-accent-2);
+  border-color: var(--lcd-accent-2);
+}
+/* A popover, not an expanding panel: absolutely positioned so opening one
+   overlays the chart it describes instead of pushing every card below it
+   down the page. Dismissed by its own close button, a click anywhere
+   outside, or Escape — see ensureInfoDismisser() in metricsWidget.js. */
+.pip-ch-card-info {
+  display: none;
+  position: absolute;
+  top: 34px;
+  right: 10px;
+  left: 10px;
+  z-index: 12;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lcd-ink);
+  padding: 10px 30px 11px 11px;
+  border-radius: 8px;
+  background: linear-gradient(175deg, var(--lcd-bg) 0%, var(--lcd-bg-2) 100%);
+  border: 1px solid var(--lcd-line);
+  border-left: 3px solid var(--lcd-accent-2);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+}
+.pip-ch-card-info.is-open {
+  display: block;
+}
+.pip-ch-card-info-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-card-info-close:active {
+  background: var(--lcd-line);
+}
+.pip-ch-card-subtitle {
+  font-size: 12px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-card-subtitle:empty {
+  display: none;
+}
+
+.pip-ch-empty {
+  font-size: 13px;
+  color: var(--lcd-ink-faint);
+  padding: 6px 0;
+}
+
+/* ===== metrics: pie ===== */
+.pip-ch-pie-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.pip-ch-pie-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  width: 128px;
+  height: 128px;
+}
+.pip-ch-pie-wrap svg {
+  width: 100%;
+  height: 100%;
+}
+.pip-ch-pie-centre {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 100%;
+  justify-content: center;
+  pointer-events: none;
+}
+.pip-ch-pie-total {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--lcd-ink);
+}
+.pip-ch-pie-total-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-pie-cell {
+  fill: var(--lcd-line);
 }
 
-.pip-bar-track {
-  flex: 1 1 auto;
-  width: 100%;
-  max-width: 20px;
+/* ===== metrics: legend ===== */
+.pip-ch-legend {
   display: flex;
-  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 13px;
+  color: var(--lcd-ink-dim);
+}
+.pip-ch-legend--stack {
+  flex: 1 1 150px;
+  flex-direction: column;
+  gap: 6px;
+}
+.pip-ch-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.pip-ch-legend-label {
+  flex: 1 1 auto;
+}
+.pip-ch-legend-item strong {
+  color: var(--lcd-ink);
+  font-size: 14px;
+}
+.pip-ch-legend-pct {
+  min-width: 34px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-legend-dot {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+}
+
+/* ===== metrics: counters ===== */
+.pip-ch-counter-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+}
+.pip-ch-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 11px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-counter-icon {
+  color: var(--lcd-ink-dim);
+}
+.pip-ch-counter-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--lcd-ink);
+  line-height: 1.1;
+}
+.pip-ch-counter-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ===== metrics: labelled bar rows (project load, activity mix) ===== */
+.pip-ch-load-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.pip-ch-load-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 30px 38px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.pip-ch-load-label {
+  color: var(--lcd-ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pip-ch-load-track {
+  height: 12px;
   background: var(--lcd-line);
-  border-radius: 3px;
   overflow: hidden;
 }
-
-.pip-bar-fill {
-  width: 100%;
+.pip-ch-load-fill {
+  height: 100%;
   background: var(--lcd-accent-2);
-  border-radius: 3px 3px 0 0;
-  transition: height 0.3s var(--ease-pip);
+  transition: width 0.3s var(--ease-pip);
 }
-
-.pip-bar-value {
-  font-size: 10px;
-  color: var(--lcd-ink-dim);
-  margin-top: 3px;
+.pip-ch-fill-accent {
+  background: var(--lcd-accent);
 }
-
-.pip-bar-label {
-  font-size: 9px;
+.pip-ch-fill-accent-2 {
+  background: var(--lcd-accent-2);
+}
+.pip-ch-fill-accent-3 {
+  background: var(--lcd-accent-3);
+}
+.pip-ch-fill-green {
+  background: var(--lcd-green);
+}
+.pip-ch-load-value {
+  text-align: right;
+  font-weight: 700;
+  color: var(--lcd-ink);
+}
+.pip-ch-load-pct {
+  text-align: right;
+  font-size: 12px;
   color: var(--lcd-ink-faint);
+}
+
+/* ===== metrics: chart primitives (src/lib/charts.js) ===== */
+.pip-chart {
+  display: block;
+}
+.pip-ch-chart-wrap {
+  width: 100%;
+}
+.pip-ch-chart-wrap svg {
+  width: 100%;
+  height: auto;
+}
+
+/* `fill` paints the SVG marks, `background` paints the HTML legend swatch
+   that names them — one class per tone so a chart and its legend can never
+   drift out of sync. Each property is simply ignored by the element type it
+   doesn't apply to. */
+.pip-ch-tone-accent {
+  fill: var(--lcd-accent);
+  background: var(--lcd-accent);
+}
+.pip-ch-tone-accent-2 {
+  fill: var(--lcd-accent-2);
+  background: var(--lcd-accent-2);
+}
+.pip-ch-tone-accent-3 {
+  fill: var(--lcd-accent-3);
+  background: var(--lcd-accent-3);
+}
+.pip-ch-tone-green {
+  fill: var(--lcd-green);
+  background: var(--lcd-green);
+}
+
+/* Structure: the baseline a bar grows from, and the half/full-scale marks.
+   Without these a chart is just marks floating in blank space — nothing
+   says where zero is or how far the axis reaches. */
+.pip-ch-axis {
+  fill: var(--lcd-ink-faint);
+  opacity: 0.55;
+}
+.pip-ch-gridline {
+  fill: var(--lcd-ink-faint);
+  opacity: 0.22;
+}
+
+/* A day before activity_log existed — a fixed faint tick, never an animated
+   real zero-bar, so "nothing happened" and "we weren't recording" can't be
+   mistaken for one another. */
+.pip-ch-ghost {
+  fill: var(--lcd-ink-faint);
+  opacity: 0.3;
+}
+
+/* Relative 5-step heat ramp, cool to hot. Recomputed against the data's own
+   maximum on every update — the app can't know how much work a given week
+   holds, so a fixed ceiling would clip a busy week and flatten a quiet one.
+   fill-opacity (not opacity) because the boot sweep animates opacity. */
+.pip-ch-heat-0 {
+  fill: var(--lcd-ink-faint);
+  fill-opacity: 0.12;
+}
+.pip-ch-heat-1 {
+  fill: var(--lcd-accent-2);
+  fill-opacity: 0.35;
+}
+.pip-ch-heat-2 {
+  fill: var(--lcd-accent-2);
+  fill-opacity: 0.65;
+}
+.pip-ch-heat-3 {
+  fill: var(--lcd-accent-2);
+  fill-opacity: 1;
+}
+.pip-ch-heat-4 {
+  fill: var(--lcd-accent-3);
+  fill-opacity: 1;
+}
+.pip-ch-heat-5 {
+  fill: var(--lcd-accent);
+  fill-opacity: 1;
+}
+.pip-ch-now {
+  stroke: var(--lcd-ink);
+  stroke-width: 1;
+}
+
+/* Names both axes under a chart, so the vertical scale is a measurement
+   rather than a shape. */
+.pip-ch-axis-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 11px;
+  color: var(--lcd-ink-faint);
+}
+
+.pip-ch-scale {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-scale-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+}
+.pip-ch-scale-swatch.pip-ch-heat-1 {
+  background: var(--lcd-accent-2);
+  opacity: 0.35;
+}
+.pip-ch-scale-swatch.pip-ch-heat-2 {
+  background: var(--lcd-accent-2);
+  opacity: 0.65;
+}
+.pip-ch-scale-swatch.pip-ch-heat-3 {
+  background: var(--lcd-accent-2);
+}
+.pip-ch-scale-swatch.pip-ch-heat-4 {
+  background: var(--lcd-accent-3);
+}
+.pip-ch-scale-swatch.pip-ch-heat-5 {
+  background: var(--lcd-accent);
+}
+
+/* Ambient life on the throughput chart's tallest bar — a peak marker that
+   breathes once it has finished growing in. Compositor-only and scoped
+   under its own name, since this isn't a Clu3 sprite. */
+@keyframes pip-ch-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+.pip-ch-bob {
+  animation: pip-ch-bob 2.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pip-ch-bob {
+    animation: none;
+  }
+}
+
+.pip-ch-day-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+  font-size: 11px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-day-labels span {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+/* ===== metrics: contribution calendar =====
+   Axis labels are drawn inside the SVG (see calendarHeat) so they scale with
+   the grid and stay aligned with their own row or column at any width, which
+   side-by-side HTML labels cannot guarantee. The wrapper scrolls rather than
+   shrinking: 26 weeks squeezed into a narrow frame would collapse the cells
+   into unreadable slivers. */
+.pip-ch-cal-wrap {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.pip-ch-cal-wrap svg {
+  width: 100%;
+  min-width: 320px;
+  height: auto;
+}
+.pip-ch-axis-label {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  fill: var(--lcd-ink-faint);
+}
+/* A day before the log existed — outlined rather than filled, so it can't be
+   mistaken for a real quiet day. */
+.pip-ch-cal-ghost {
+  fill: none;
+  stroke: var(--lcd-line);
+  stroke-width: 1;
+}
+
+/* ===== metrics: per-project small multiples ===== */
+.pip-ch-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.pip-ch-project-spark {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+}
+.pip-ch-project-spark-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.pip-ch-project-spark-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--lcd-ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pip-ch-project-total {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lcd-ink);
+}
+.pip-ch-project-spark svg {
+  width: 100%;
+  height: auto;
+}
+
+/* ===== metrics: time-to-close histogram ===== */
+.pip-ch-histo {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.pip-ch-histo-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-histo .pip-ch-chart-wrap {
+  flex: 1 1 auto;
+}
+
+/* ===== metrics: tag network ===== */
+.pip-ch-graph-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-graph-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pip-ch-graph-slider {
+  width: 92px;
+  accent-color: var(--lcd-accent-2);
+}
+.pip-ch-graph-slider-value {
+  min-width: 22px;
+  color: var(--lcd-ink);
+}
+.pip-ch-graph {
+  background: var(--lcd-glow);
+  border-radius: 8px;
+}
+.pip-ch-graph-link {
+  stroke: var(--lcd-ink-dim);
+  opacity: 0.5;
+}
+.pip-ch-linkw-4,
+.pip-ch-linkw-5 {
+  stroke: var(--lcd-accent-2);
+  opacity: 0.75;
+}
+.pip-ch-graph-node {
+  stroke: var(--lcd-bg);
+  stroke-width: 1;
+}
+.pip-ch-graph-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--lcd-ink-dim);
+}
+
+/* ===== metrics: activity log feed ===== */
+.pip-ch-feed-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pip-ch-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pip-ch-feed-row {
+  display: grid;
+  grid-template-columns: 52px 16px 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--lcd-line);
+}
+.pip-ch-feed-row:last-child {
+  border-bottom: none;
+}
+.pip-ch-feed-time {
+  font-size: 12px;
+  color: var(--lcd-ink-faint);
+  white-space: nowrap;
+}
+.pip-ch-feed-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1px;
+  color: var(--lcd-ink-dim);
+}
+.pip-ch-feed-main {
+  min-width: 0;
+}
+.pip-ch-feed-title {
+  font-size: 13px;
+  color: var(--lcd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pip-ch-feed-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--lcd-ink-faint);
+}
+.pip-ch-feed-badge {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: var(--lcd-line);
+  color: var(--lcd-ink-dim);
+}
+.pip-ch-feed-detail {
+  color: var(--lcd-accent-2);
+}
+.pip-ch-feed-project {
+  color: var(--lcd-ink-dim);
+}
+
+/* Confetti particles are appended straight into a chart's own <svg> by
+   confettiBurst() and removed when the burst finishes — no layout rules
+   needed beyond a fill, since position/size are set inline per-particle. */
+.pip-ch-confetti {
+  fill: var(--lcd-accent-3);
 }
 
 /* ===== content cards (Notes, Journal) =====
@@ -706,6 +1380,26 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 8px;
+}
+
+/* Project cards carry four action buttons (OPEN/RENAME/CLOSE/DELETE) plus a
+   status badge — wider than the default content card, which only needs to
+   fit two or three. */
+.pip-project-grid {
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+}
+
+.pip-project-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pip-project-card-title > span:first-of-type {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pip-content-card {
@@ -769,6 +1463,15 @@
   color: var(--lcd-ink-faint);
 }
 
+.pip-content-card-meta-link {
+  color: var(--lcd-accent-2);
+  text-decoration: none;
+  cursor: pointer;
+}
+.pip-content-card-meta-link:active {
+  opacity: 0.7;
+}
+
 .pip-content-card-actions {
   display: flex;
   align-items: center;
@@ -799,7 +1502,8 @@
 }
 
 .pip-att-more,
-.pip-att-links {
+.pip-att-links,
+.pip-att-files {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -828,6 +1532,60 @@
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.35);
   image-rendering: auto;
+}
+
+/* Same grid cell as an image thumbnail so a mixed gallery of images and
+   documents stays rectangular instead of one row of oddly-sized cards. */
+.pip-att-file-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
+.pip-att-file-card {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--lcd-ink);
+  overflow: hidden;
+}
+
+.pip-att-file-icon {
+  opacity: 0.8;
+}
+
+.pip-att-file-kind {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-ink-faint);
+}
+
+.pip-att-file-title {
+  font-size: 11px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.25;
+}
+
+.pip-att-file-bytes {
+  font-size: 9px;
+  color: var(--lcd-ink-faint);
 }
 
 .pip-att-linklist {
@@ -874,6 +1632,61 @@
 .pip-att-link-host {
   flex: 0 0 auto;
   font-size: 10px;
+  color: var(--lcd-ink-faint);
+}
+
+/* Non-image attachments (PDF, DOCX, ...) — same grid cell as an image thumb
+   so a mixed gallery of screenshots and documents still lines up, but an
+   icon + kind + title card instead of a preview no browser can render for
+   free. */
+.pip-att-file-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
+.pip-att-file-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.18);
+  text-align: center;
+  overflow: hidden;
+}
+
+.pip-att-file-icon {
+  color: var(--lcd-ink-dim);
+}
+
+.pip-att-file-kind {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: var(--lcd-ink-faint);
+}
+
+.pip-att-file-title {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--lcd-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pip-att-file-bytes {
+  font-size: 9px;
   color: var(--lcd-ink-faint);
 }
 

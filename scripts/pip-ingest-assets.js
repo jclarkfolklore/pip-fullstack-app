@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-// Attach downloaded images to a PIP entity and place them inline in its prose.
+// Attach downloaded images or documents to a PIP entity, inlining images at
+// the right place in its prose. Documents (PDF, DOCX, XLSX, ...) attach the
+// same way but are never inlined — there's no markdown embed for a document
+// that renders, so they stay gallery attachments (see the FILES section in
+// attachmentViews.js) instead.
 //
 // This exists to take judgement OUT of the sync skills. Attaching a file,
 // captioning it, inlining it at the right place and not doing any of that
@@ -17,7 +21,8 @@
 //       "entityId":   "ado-183767",
 //       "file":       "/tmp/ado-imgs/pip-ado-183767-1.png",
 //       "title":      "State dropdown open — option list at ~2x the type scale",
-//       "placement":  "description"      // description | end   (default description)
+//       "placement":  "description",     // description | end   (default description)
+//       "mime":       "image/png"        // optional — guessed from the extension if omitted
 //     }
 //   ]
 //
@@ -30,6 +35,38 @@ const path = require('path');
 
 const API = process.env.PIP_API || 'http://127.0.0.1:4288';
 const DRY = process.argv.includes('--dry-run');
+
+// Used only when a record doesn't say `mime` itself — good enough to route
+// "is this an image" correctly, which is all this script needs it for.
+const EXT_MIME = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.txt': 'text/plain',
+  '.csv': 'text/csv',
+  '.zip': 'application/zip'
+};
+
+function mimeFor(r) {
+  return r.mime || EXT_MIME[path.extname(r.file).toLowerCase()] || 'application/octet-stream';
+}
+
+// Images get an inline thumbnail + lightbox; every other document type gets
+// an icon card + viewer/download instead — see attachmentViews.js. Only
+// images are candidates for inlining into the entity's prose below.
+function kindFor(mime) {
+  return mime.startsWith('image/') ? 'image' : 'file';
+}
 
 // Where the prose lives differs by entity; the caller shouldn't have to know.
 const PROSE_FIELD = {
@@ -153,19 +190,24 @@ async function main() {
         continue;
       }
       const buf = fs.readFileSync(r.file);
+      const mime = mimeFor(r);
+      const kind = kindFor(mime);
       const out = await send('POST', `${API}/api/attachments`, {
         entityType,
         entityId,
-        kind: 'image',
+        kind,
         data: buf.toString('base64'),
-        mime: r.mime || 'image/png',
+        mime,
         title,
         source: r.source || 'sync'
       });
       const a = out.attachment;
-      fresh.push({ title, src: `/api/attachments/${a.id}/raw` });
+      // Only images are candidates for inline placement in the prose — a PDF
+      // or docx has no markdown embed that renders, so it stays a gallery
+      // attachment (see the FILES section in attachmentViews.js) instead.
+      if (kind === 'image') fresh.push({ title, src: `/api/attachments/${a.id}/raw` });
       attached += 1;
-      console.log(`  + ${entityId}  ${String(buf.length).padStart(8)}b  ${title.slice(0, 52)}`);
+      console.log(`  + ${entityId}  ${String(buf.length).padStart(8)}b  [${kind}]  ${title.slice(0, 52)}`);
     }
 
     const field = PROSE_FIELD[entityType];

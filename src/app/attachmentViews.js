@@ -34,8 +34,32 @@ function hostOf(url) {
 export function splitAttachments(list = []) {
   return {
     images: list.filter((a) => a.kind === 'image' && a.src),
-    links: list.filter((a) => a.kind === 'link')
+    links: list.filter((a) => a.kind === 'link'),
+    files: list.filter((a) => a.kind === 'file' && a.src)
   };
+}
+
+// Mime family -> which icon/label a file card shows. Anything not listed
+// falls back to a generic document glyph rather than guessing.
+const FILE_KIND_LABEL = [
+  [/^application\/pdf$/, 'PDF'],
+  [/wordprocessingml|msword/, 'DOC'],
+  [/spreadsheetml|ms-excel/, 'XLS'],
+  [/presentationml|ms-powerpoint/, 'PPT'],
+  [/^text\/plain$/, 'TXT'],
+  [/^text\/csv$/, 'CSV'],
+  [/^application\/zip$/, 'ZIP']
+];
+
+function fileLabel(mime = '') {
+  return (FILE_KIND_LABEL.find(([re]) => re.test(mime)) || [null, 'FILE'])[1];
+}
+
+function humanBytes(n) {
+  if (!n) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 // Which attachments are already rendered inline in a body of markdown.
@@ -62,7 +86,7 @@ export function referencedInline(list = [], md = '') {
 // Compact strip for a card: a few thumbnails and a count of everything else.
 export function attachmentStrip(list = []) {
   if (!list.length) return null;
-  const { images, links } = splitAttachments(list);
+  const { images, links, files } = splitAttachments(list);
   const shown = images.slice(0, 3);
   const extra = images.length - shown.length;
 
@@ -70,6 +94,9 @@ export function attachmentStrip(list = []) {
     h('img', { class: 'pip-att-thumb', src: a.src, alt: a.title || '', loading: 'lazy' })
   );
   if (extra > 0) bits.push(h('span', { class: 'pip-att-more' }, `+${extra}`));
+  if (files.length) {
+    bits.push(h('span', { class: 'pip-att-files' }, [icon('note', { size: 10 }), ` ${files.length}`]));
+  }
   if (links.length) {
     bits.push(h('span', { class: 'pip-att-links' }, [icon('link', { size: 10 }), ` ${links.length}`]));
   }
@@ -82,10 +109,10 @@ export function attachmentStrip(list = []) {
 // `inlineIn` is the markdown the modal is also rendering; any image already
 // referenced there is skipped, so it appears once — in position — rather than
 // twice.
-export function attachmentSections(list = [], { onOpenImage = null, inlineIn = '' } = {}) {
+export function attachmentSections(list = [], { onOpenImage = null, onOpenFile = null, inlineIn = '' } = {}) {
   const inline = referencedInline(list, inlineIn);
   const visible = list.filter((a) => !inline.has(a.id));
-  const { images, links } = splitAttachments(visible);
+  const { images, links, files } = splitAttachments(visible);
   const out = [];
 
   if (images.length) {
@@ -107,6 +134,31 @@ export function attachmentSections(list = [], { onOpenImage = null, inlineIn = '
           { class: 'pip-ticket-section-label' },
           inline.size ? `MORE IMAGES (${images.length})` : `IMAGES (${images.length})`
         ),
+        grid
+      ])
+    );
+  }
+
+  if (files.length) {
+    const grid = h(
+      'div',
+      { class: 'pip-att-gallery' },
+      files.map((a) => {
+        const card = h('div', { class: 'pip-att-file-card' }, [
+          icon('note', { size: 22, className: 'pip-att-file-icon' }),
+          h('span', { class: 'pip-att-file-kind' }, fileLabel(a.mime)),
+          h('span', { class: 'pip-att-file-title' }, a.title || 'Untitled'),
+          a.bytes ? h('span', { class: 'pip-att-file-bytes' }, humanBytes(a.bytes)) : null
+        ]);
+        if (!onOpenFile) return card;
+        const btn = h('button', { class: 'pip-att-file-btn', title: a.title || 'Open' }, [card]);
+        btn.addEventListener('click', () => onOpenFile(a));
+        return btn;
+      })
+    );
+    out.push(
+      h('div', { class: 'pip-ticket-section' }, [
+        h('div', { class: 'pip-ticket-section-label' }, `FILES (${files.length})`),
         grid
       ])
     );

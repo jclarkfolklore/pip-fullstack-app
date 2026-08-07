@@ -76,7 +76,14 @@ function importTask({
   return { id, created: true };
 }
 
-function listTasks({ status = null, project = null, tag = null, search = '', sort = 'created_desc' } = {}) {
+function listTasks({
+  status = null,
+  project = null,
+  excludeProjects = [],
+  tag = null,
+  search = '',
+  sort = 'created_desc'
+} = {}) {
   const where = [];
   const params = [];
   if (status) {
@@ -86,6 +93,14 @@ function listTasks({ status = null, project = null, tag = null, search = '', sor
   if (project) {
     where.push('project_id = ?');
     params.push(project);
+  }
+  if (excludeProjects.length) {
+    // `NOT IN` alone would also drop unassigned tasks, since comparing NULL
+    // against anything (including NOT IN) is NULL, not true — an "unassigned"
+    // task must stay visible regardless of which projects are hidden.
+    const holes = excludeProjects.map(() => '?').join(',');
+    where.push(`(project_id IS NULL OR project_id NOT IN (${holes}))`);
+    params.push(...excludeProjects);
   }
   if (search) {
     where.push('(title LIKE ? OR notes_md LIKE ?)');

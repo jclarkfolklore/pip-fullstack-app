@@ -39,9 +39,29 @@ export function renderFull(ctx) {
     h('div', { class: 'pip-view-title' }, 'PROJECTS')
   ]);
   const body = h('div', { class: 'pip-view-body' });
+  const toolbarHost = h('div');
   const listContainer = h('div');
   el.append(header, body);
-  body.appendChild(listContainer);
+  body.append(toolbarHost, listContainer);
+
+  // Loaded once per mount and filtered client-side — this is a small,
+  // fully-loaded list (no pagination), so a server round-trip per keystroke
+  // would just be slower for no benefit.
+  let allProjects = [];
+  let search = '';
+
+  function buildToolbar() {
+    const searchInput = h('input', {
+      class: 'pip-search',
+      type: 'search',
+      placeholder: 'search projects…',
+      oninput: (e) => {
+        search = e.target.value;
+        renderCards();
+      }
+    });
+    toolbarHost.appendChild(h('div', { class: 'pip-toolbar' }, [searchInput]));
+  }
 
   function openComposeSheet(existing = null) {
     const nameInput = h('input', {
@@ -94,7 +114,7 @@ export function renderFull(ctx) {
 
   function card(project) {
     const cardEl = h('div', {
-      class: 'pip-card is-clickable',
+      class: 'pip-content-card pip-project-card is-clickable',
       dataset: { status: project.status || 'open' }
     });
     cardEl.addEventListener('click', (e) => {
@@ -103,23 +123,21 @@ export function renderFull(ctx) {
     });
     const c = project.counts;
     cardEl.append(
-      h('div', { class: 'pip-card-top' }, [
-        h('div', { class: 'pip-card-title', style: 'display:flex;align-items:center;gap:6px;' }, [
-          icon('folder', { size: 12 }),
-          project.name,
-          h(
-            'span',
-            { class: 'pip-project-status', dataset: { status: project.status || 'open' } },
-            (project.status || 'open').toUpperCase()
-          )
-        ])
+      h('div', { class: 'pip-content-card-title pip-project-card-title' }, [
+        icon('folder', { size: 12 }),
+        h('span', {}, project.name),
+        h(
+          'span',
+          { class: 'pip-project-status', dataset: { status: project.status || 'open' } },
+          (project.status || 'open').toUpperCase()
+        )
       ]),
       h(
         'div',
-        { class: 'pip-card-meta' },
+        { class: 'pip-content-card-meta' },
         `${c.inbox} inbox · ${c.tasks} tasks · ${c.notes} notes · ${c.journal || 0} journal`
       ),
-      h('div', { class: 'pip-card-actions' }, [
+      h('div', { class: 'pip-content-card-actions' }, [
         h(
           'button',
           {
@@ -166,10 +184,12 @@ export function renderFull(ctx) {
     return cardEl;
   }
 
-  async function renderList() {
-    const projects = await listProjects();
+  function renderCards() {
+    const q = search.trim().toLowerCase();
+    const projects = q ? allProjects.filter((p) => p.name.toLowerCase().includes(q)) : allProjects;
+
     listContainer.innerHTML = '';
-    if (!projects.length) {
+    if (!allProjects.length) {
       listContainer.appendChild(
         h('div', { class: 'pip-empty' }, [
           icon('folder', { size: 24, className: 'pip-empty-glyph' }),
@@ -178,9 +198,18 @@ export function renderFull(ctx) {
       );
       return;
     }
-    const list = h('div', { class: 'pip-card-list' }, projects.map(card));
-    listContainer.appendChild(list);
-    staggerIn(list.children);
+    if (!projects.length) {
+      listContainer.appendChild(h('div', { class: 'pip-empty' }, [h('div', {}, 'No projects match.')]));
+      return;
+    }
+    const grid = h('div', { class: 'pip-content-grid pip-project-grid' }, projects.map(card));
+    listContainer.appendChild(grid);
+    staggerIn(grid.children);
+  }
+
+  async function renderList() {
+    allProjects = await listProjects();
+    renderCards();
   }
 
   const fab = h('button', { class: 'pip-fab', title: 'New project', onClick: () => openComposeSheet() }, [
@@ -188,6 +217,7 @@ export function renderFull(ctx) {
   ]);
   el.appendChild(fab);
 
+  buildToolbar();
   renderList();
   const unsubscribe = onChange(renderList);
 

@@ -30,6 +30,34 @@ const DEFAULT_TONE_MAP = { K: 'ink', B: 'dim', A: 'faint', H: 'cut' };
 // outline beats blush beats body beats highlight beats background.
 const DEFAULT_WEIGHTS = { K: 1.7, A: 1.25, B: 1.0, H: 0.85, '.': 1.0 };
 
+// How the body mass is decided.
+//
+//   'solid'  TWO layers, nothing else: the dark pixels are the character, and
+//            everything they enclose is fill. The source is a JPEG, so only
+//            the outline survived sampling cleanly — the interior channels
+//            (highlight, blush, body) are noise. Measured on the real sheet:
+//            the highlight channel alone is 2,276 blobs averaging under 4px,
+//            and because that tone paints the panel colour it was punching
+//            ~70px of holes per sprite straight through the character. That
+//            is the blotchiness, and it crawled between frames because the
+//            noise differs per frame.
+//
+//            Deriving the mass from the outline instead makes it exact and
+//            stable: all 121 sprites have a closed outline, so the flood
+//            never leaks, and the same pose always yields the same fill. It
+//            also leaves the interior as one flat region, which is the only
+//            reason recolouring Clu3 is possible (--clu3-body).
+//   'source' trust the extracted colour channels. Kept so the change stays
+//            reversible and the sheet preview can show the difference.
+//   'none'   line art only.
+const BODY_FILL_MODES = ['solid', 'source', 'none'];
+
+// Pose numbers (sheet order, see allSprites) whose fill is opaque white
+// rather than the themed body colour. 55/56 are the outline-only ghost
+// frames that end the spinOut run — as a flash they read as vanishing,
+// which is what that run is for.
+const PURE_WHITE_POSES = new Set([55, 56]);
+
 const DEFAULTS = {
   // Target grid edge in pixels. 32 is native (finest); lower is chunkier.
   // Any value works, not just integer divisors of 32 — resampleGrid boxes the
@@ -40,6 +68,7 @@ const DEFAULTS = {
   // thin line of a mouth) along with the JPEG specks, and the specks are
   // barely visible at render size anyway. Toggleable in the sheet preview.
   denoise: false,
+  bodyFill: 'solid',
   toneMap: DEFAULT_TONE_MAP,
   weights: DEFAULT_WEIGHTS
 };
@@ -108,8 +137,51 @@ function resampleGrid(grid, target, weights) {
   return out;
 }
 
+// Everything the outline encloses, as a boolean mask.
+//
+// Flood inward from all four borders through anything that is NOT outline;
+// whatever the flood cannot reach is inside the character. Deriving the mass
+// from the outline rather than from sampled colour is what makes it stable:
+// the outline is crisp in the source, so the same pose always yields the
+// same fill, and adjacent frames stop shimmering.
+function enclosedMask(grid, outlineChars) {
+  const h = grid.length;
+  const w = grid[0].length;
+  const outside = Array.from({ length: h }, () => new Array(w).fill(false));
+  const stack = [];
+  for (let x = 0; x < w; x++) {
+    stack.push([x, 0], [x, h - 1]);
+  }
+  for (let y = 0; y < h; y++) {
+    stack.push([0, y], [w - 1, y]);
+  }
+  while (stack.length) {
+    const [x, y] = stack.pop();
+    if (x < 0 || y < 0 || x >= w || y >= h) continue;
+    if (outside[y][x]) continue;
+    if (outlineChars.includes(grid[y][x])) continue;
+    outside[y][x] = true;
+    stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+  }
+
+  const mask = Array.from({ length: h }, () => new Array(w).fill(false));
+  let filled = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!outside[y][x] && !outlineChars.includes(grid[y][x])) {
+        mask[y][x] = true;
+        filled++;
+      }
+    }
+  }
+  // A broken outline would let the flood swallow the character; rather than
+  // render an empty ghost, say so and let the caller fall back.
+  return filled > 0 ? mask : null;
+}
+
 // Splits one multi-colour grid into a mask per tone, because the stage draws
-// a layer at a time.
+// a layer at a time. Only used by bodyFill:'source' — the 'solid' path builds
+// its two layers directly.
 function toLayers(grid, toneMap) {
   const byTone = new Map();
   for (const [ch, tone] of Object.entries(toneMap)) {
@@ -128,14 +200,19 @@ function toLayers(grid, toneMap) {
   return layers;
 }
 
+function maskToRows(mask) {
+  return mask.map((row) => row.map((on) => (on ? '#' : '.')).join(''));
+}
+
 const cache = new Map();
 
 export function quantizeSprite(id, options = {}) {
   const opts = { ...DEFAULTS, ...options };
-  const key = `${id}|${opts.size}|${opts.denoise}|${JSON.stringify(opts.toneMap)}`;
+  const key = `${id}|${opts.size}|${opts.denoise}|${opts.bodyFill}|${JSON.stringify(opts.toneMap)}`;
   if (cache.has(key)) return cache.get(key);
 
-  const sprite = rawData.sprites.find((s) => s.id === id);
+  const spriteIndex = rawData.sprites.findIndex((s) => s.id === id);
+  const sprite = spriteIndex === -1 ? null : rawData.sprites[spriteIndex];
   if (!sprite) {
     console.warn(`[clu3] unknown sprite cell "${id}"`);
     return { w: 0, h: 0, layers: [] };
@@ -145,7 +222,31 @@ export function quantizeSprite(id, options = {}) {
   if (opts.denoise) grid = denoiseGrid(grid);
   grid = resampleGrid(grid, opts.size, opts.weights);
 
-  const result = { id, w: grid[0].length, h: grid.length, layers: toLayers(grid, opts.toneMap) };
+  const mode = BODY_FILL_MODES.includes(opts.bodyFill) ? opts.bodyFill : 'solid';
+  const outlineChars = Object.entries(opts.toneMap)
+    .filter(([, tone]) => tone === 'ink')
+    .map(([ch]) => ch);
+
+  let layers;
+  if (mode === 'source') {
+    layers = toLayers(grid, opts.toneMap);
+  } else {
+    // Two layers, and only two: the dark pixels, and whatever they enclose.
+    // Every other channel in the source is sampling noise (see above), so
+    // there is deliberately no knockout or accent layer here — that is what
+    // makes the interior flat, stable and recolourable.
+    //
+    // Derived after resampling, so the fill matches the outline actually
+    // being drawn rather than the one at source resolution.
+    const inkMask = grid.map((row) => row.map((ch) => outlineChars.includes(ch)));
+    const bodyMask = mode === 'solid' ? enclosedMask(grid, outlineChars) : null;
+    const bodyTone = PURE_WHITE_POSES.has(spriteIndex) ? 'bodyBright' : 'dim';
+    layers = [];
+    if (bodyMask) layers.push({ tone: bodyTone, grid: maskToRows(bodyMask) });
+    layers.push({ tone: 'ink', grid: maskToRows(inkMask) });
+  }
+
+  const result = { id, w: grid[0].length, h: grid.length, layers };
   cache.set(key, result);
   return result;
 }

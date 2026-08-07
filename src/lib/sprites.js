@@ -16,6 +16,8 @@
 // Tones:
 //   'ink'   full-strength foreground
 //   'dim'   background mass (walls, furniture)
+//   'bodyBright' an opaque-white body, for the frames that should read as a
+//           flash rather than as the character's usual translucent mass
 //   'faint' barely-there detail (stars, distant texture)
 //   'cut'   paints the panel background colour — use this to punch holes in an
 //           ink shape (eyes on a dark cat). A translucent tone can't lighten
@@ -27,6 +29,9 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const TONE_CLASS = {
   ink: 'pip-clu3-px-ink',
   dim: 'pip-clu3-px-body',
+  // Same role as 'dim' but opaque white — see PURE_WHITE_POSES in
+  // clu3Quantize.js. Only the two ghost frames use it.
+  bodyBright: 'pip-clu3-px-body-bright',
   faint: 'pip-clu3-px-faint',
   cut: 'pip-clu3-px-cut'
 };

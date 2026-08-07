@@ -11,7 +11,7 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function listEntries({ search = '', project = null } = {}) {
+function listEntries({ search = '', project = null, sort = 'created_desc' } = {}) {
   const where = [];
   const params = [];
   if (search) {
@@ -22,9 +22,15 @@ function listEntries({ search = '', project = null } = {}) {
     where.push('project_id = ?');
     params.push(project);
   }
+  const orderBy =
+    {
+      created_desc: 'created_at DESC',
+      created_asc: 'created_at ASC',
+      updated_desc: 'updated_at DESC'
+    }[sort] || 'created_at DESC';
   return db
     .prepare(
-      `SELECT * FROM journal_entries ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC`
+      `SELECT * FROM journal_entries ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY ${orderBy}`
     )
     .all(...params);
 }

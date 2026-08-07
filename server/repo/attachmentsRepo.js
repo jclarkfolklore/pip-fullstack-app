@@ -25,7 +25,7 @@ const { db, DB_PATH } = require('../db');
 const { logEvent } = require('./activityRepo');
 
 const ENTITY_TYPES = ['inbox', 'task', 'note', 'journal', 'project'];
-const KINDS = ['image', 'link'];
+const KINDS = ['image', 'link', 'file'];
 
 // Well-known link relationships, mostly so synced tickets can carry their
 // design/testing links as first-class things rather than buried in prose.
@@ -33,6 +33,10 @@ const RELS = ['design', 'testing', 'spec', 'source', 'reference'];
 
 const ATTACHMENTS_DIR = path.resolve(path.dirname(DB_PATH), 'attachments');
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+// Documents run bigger than screenshots (a Confluence export or a slide deck
+// easily clears 8MB) but this is still a personal tool on a local disk, not
+// a file host — 25MB catches the real cases without becoming one.
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 10000;
 
 const MIME_EXT = {
@@ -41,8 +45,25 @@ const MIME_EXT = {
   'image/gif': '.gif',
   'image/webp': '.webp',
   'image/svg+xml': '.svg',
-  'image/bmp': '.bmp'
+  'image/bmp': '.bmp',
+  'application/pdf': '.pdf',
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.ms-powerpoint': '.ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  'text/plain': '.txt',
+  'text/csv': '.csv',
+  'application/zip': '.zip'
 };
+
+// kind:'image' still gets the strict "must actually be an image" check on
+// fetchImage's content-type; kind:'file' has no single expected prefix, so a
+// mime is required up front instead of sniffed from the response.
+function extensionFor(mime) {
+  return MIME_EXT[mime] || '';
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -73,6 +94,10 @@ function shape(row) {
     // route; link-only images keep their remote URL.
     src: row.file_path ? `/api/attachments/${row.id}/raw` : row.url
   };
+}
+
+function totalCount() {
+  return db.prepare('SELECT COUNT(*) AS n FROM attachments').get().n;
 }
 
 function listFor(entityType, entityId) {
@@ -116,7 +141,9 @@ function rawFileFor(id) {
   if (!row || !row.file_path) return null;
   const abs = absPathFor(row);
   if (!fs.existsSync(abs)) return null;
-  return { path: abs, mime: row.mime || 'application/octet-stream' };
+  const mime = row.mime || 'application/octet-stream';
+  const base = (row.title || 'attachment').replace(/[^A-Za-z0-9._-]+/g, '_');
+  return { path: abs, mime, filename: `${base}${extensionFor(mime)}` };
 }
 
 function insert({ entityType, entityId, kind, rel, title, url, filePath, mime, bytes, source, sortOrder }) {
@@ -167,7 +194,7 @@ async function fetchImage(url) {
 function writeFile(entityType, entityId, buf, mime) {
   const dir = entityDir(entityType, entityId);
   fs.mkdirSync(dir, { recursive: true });
-  const name = `${crypto.randomUUID()}${MIME_EXT[mime] || ''}`;
+  const name = `${crypto.randomUUID()}${extensionFor(mime)}`;
   const abs = path.join(dir, name);
   fs.writeFileSync(abs, buf);
   return path.relative(ATTACHMENTS_DIR, abs);
@@ -179,6 +206,12 @@ function writeFile(entityType, entityId, buf, mime) {
 //   kind:'image'  -> `data` (base64) is stored; otherwise `url` is fetched and
 //                    stored, and if that fails we fall back to keeping the URL
 //                    rather than losing the reference entirely
+//   kind:'file'   -> `data` (base64) is stored, same as image, but always
+//                    with an explicit `mime` — there's no sensible default to
+//                    fall back to for an arbitrary document, and no url-fetch
+//                    path: the documents this exists for (email attachments)
+//                    sit behind auth we don't hold, so the caller downloads
+//                    the bytes itself and hands them over as data.
 async function addAttachment({
   entityType,
   entityId,
@@ -196,6 +229,8 @@ async function addAttachment({
   if (!KINDS.includes(kind)) throw new Error(`kind must be one of ${KINDS.join(', ')}`);
   if (kind === 'link' && !url) throw new Error('a link attachment needs a url');
   if (kind === 'image' && !url && !data) throw new Error('an image attachment needs a url or data');
+  if (kind === 'file' && !data) throw new Error('a file attachment needs base64 data');
+  if (kind === 'file' && !mime) throw new Error('a file attachment needs a mime type');
 
   if (kind === 'link') {
     return { attachment: insert({ entityType, entityId, kind, rel, title, url, source, sortOrder }) };
@@ -203,8 +238,10 @@ async function addAttachment({
 
   if (data) {
     const buf = Buffer.from(data, 'base64');
-    if (buf.length > MAX_IMAGE_BYTES) throw new Error(`image too large (${buf.length} bytes)`);
-    const filePath = writeFile(entityType, entityId, buf, mime || 'image/png');
+    const maxBytes = kind === 'file' ? MAX_FILE_BYTES : MAX_IMAGE_BYTES;
+    if (buf.length > maxBytes) throw new Error(`${kind} too large (${buf.length} bytes)`);
+    const fileMime = mime || 'image/png';
+    const filePath = writeFile(entityType, entityId, buf, fileMime);
     return {
       attachment: insert({
         entityType,
@@ -214,7 +251,7 @@ async function addAttachment({
         title,
         url,
         filePath,
-        mime: mime || 'image/png',
+        mime: fileMime,
         bytes: buf.length,
         source,
         sortOrder
@@ -348,6 +385,7 @@ module.exports = {
   KINDS,
   RELS,
   ATTACHMENTS_DIR,
+  totalCount,
   listFor,
   listForMany,
   getAttachment,

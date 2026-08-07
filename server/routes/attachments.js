@@ -26,14 +26,21 @@ router.get('/', (req, res) => {
   }
 });
 
-// The bytes of a stored image. Streamed from disk rather than served
+// The bytes of a stored image or file. Streamed from disk rather than served
 // statically so the file layout stays an implementation detail and nothing
 // outside data/attachments/ is reachable by guessing a path.
+//
+// `?download=1` swaps the disposition to `attachment` so a document viewer's
+// "Download" control saves it under a real name instead of opening inline —
+// the default (`inline`) is what lets a PDF render in the browser's own
+// viewer, which is the whole point of the in-modal preview.
 router.get('/:id/raw', (req, res) => {
   const file = attachments.rawFileFor(req.params.id);
   if (!file) return res.status(404).json({ error: 'not found' });
   res.type(file.mime);
   res.setHeader('Cache-Control', 'private, max-age=86400');
+  const disposition = req.query.download ? 'attachment' : 'inline';
+  res.setHeader('Content-Disposition', `${disposition}; filename="${file.filename}"`);
   fs.createReadStream(file.path).pipe(res);
 });
 

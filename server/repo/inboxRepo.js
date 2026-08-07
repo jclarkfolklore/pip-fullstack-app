@@ -108,7 +108,8 @@ function listInboxItems({
   tag = null,
   project = null,
   search = '',
-  sort = 'created_desc'
+  sort = 'created_desc',
+  showResolved = false
 } = {}) {
   const where = [];
   const params = [];
@@ -121,6 +122,14 @@ function listInboxItems({
   } else if (stage) {
     where.push('i.stage = ? AND i.deactivated_at IS NULL');
     params.push(stage);
+  }
+  // Resolved is done — it belongs out of the default view the same way
+  // completed tasks default to collapsed, not deleted from sight. Excluded
+  // here rather than left to the caller so "All stages" doesn't quietly mean
+  // "all stages including the ones you're finished with." An explicit
+  // `stage: 'resolved'` filter (looking at them on purpose) always wins.
+  if (!showResolved && stage !== 'resolved') {
+    where.push("i.stage != 'resolved'");
   }
   if (project) {
     where.push('i.project_id = ?');
@@ -147,9 +156,11 @@ function listInboxItems({
   // Inactive items always sort last, whatever the chosen sort. Being on hold
   // is orthogonal to the lifecycle, but it does mean "not what you're working
   // on" — so it belongs out of the way rather than interleaved by date.
+  // Resolved sorts just above that (when shown at all) — done, but not on
+  // hold, so it doesn't belong in the same bucket as something parked.
   const sql = `SELECT i.* FROM inbox_items i ${
     where.length ? 'WHERE ' + where.join(' AND ') : ''
-  } ORDER BY (i.deactivated_at IS NOT NULL), ${orderBy}`;
+  } ORDER BY (i.deactivated_at IS NOT NULL), (i.stage = 'resolved'), ${orderBy}`;
 
   return db
     .prepare(sql)

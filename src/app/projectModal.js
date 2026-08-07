@@ -16,6 +16,7 @@ import { icon } from '../lib/icons.js';
 import { openModal, confirmDestructive } from './modal.js';
 import { openTicketModal } from './ticketModal.js';
 import { attachmentSections } from './attachmentViews.js';
+import { openFileModal } from './fileViewerModal.js';
 import { listAttachments } from '../api/attachmentsRepo.js';
 import { projectContents, listContacts, deleteContact } from '../api/projectsRepo.js';
 
@@ -96,6 +97,18 @@ function contactRow(contact, onRemoved) {
     ),
     remove
   ]);
+}
+
+// A project's name, wherever it's referenced from a card or a detail grid,
+// rendered as one real link rather than five hand-rolled anchors — every
+// entity that carries a project_id (inbox, task, note, journal) shows up
+// here eventually, and they should all behave the same way when clicked.
+export function projectLink(project) {
+  return h(
+    'a',
+    { class: 'pip-content-card-meta-link', onClick: () => openProjectModal(project) },
+    project.name
+  );
 }
 
 export function openProjectModal(project, { onChanged = null } = {}) {
@@ -242,7 +255,8 @@ export function openProjectModal(project, { onChanged = null } = {}) {
     .then((list) => {
       if (!attachHost.isConnected || !list.length) return;
       for (const node of attachmentSections(list, {
-        onOpenImage: (a) => window.open(a.src, '_blank', 'noopener')
+        onOpenImage: (a) => window.open(a.src, '_blank', 'noopener'),
+        onOpenFile: (a) => openFileModal(a)
       })) {
         attachHost.appendChild(node);
       }

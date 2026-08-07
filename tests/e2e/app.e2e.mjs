@@ -22,17 +22,7 @@ after(async () => {
   if (app) await app.stop();
 });
 
-const VIEWS = [
-  'dashboard',
-  'inbox',
-  'tasks',
-  'notes',
-  'journal',
-  'projects',
-  'metrics',
-  'overview',
-  'settings'
-];
+const VIEWS = ['dashboard', 'inbox', 'tasks', 'notes', 'journal', 'projects', 'metrics', 'settings'];
 
 describe('every view renders', () => {
   for (const view of VIEWS) {

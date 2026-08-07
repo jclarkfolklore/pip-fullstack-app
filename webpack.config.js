@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
@@ -19,7 +20,16 @@ module.exports = (env, argv) => {
     },
     optimization: {
       splitChunks: false,
-      runtimeChunk: false
+      runtimeChunk: false,
+      // TerserPlugin's default `test` matches every emitted .js/.mjs asset,
+      // including pdf.worker.mjs (pulled in via `new URL(..., import.meta.url)`
+      // in fileViewerModal.js), not just the app's own compiled modules. Both
+      // pdfjs-dist's own pre-minified build AND webpack re-minifying the
+      // unminified one hit the same Terser bug — a real SyntaxError at
+      // runtime ("Private field must be declared in an enclosing class"),
+      // reproduced by dynamically importing the emitted file directly. The
+      // worker has to ship un-minified; excluding it is the only lever here.
+      minimizer: [new TerserPlugin({ exclude: /pdf\.worker/ })]
     },
     module: {
       rules: [
@@ -30,6 +40,15 @@ module.exports = (env, argv) => {
         {
           test: /\.(woff2?|ttf|eot)$/,
           type: 'asset/inline'
+        },
+        {
+          // Pulled in via `new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url)`
+          // in fileViewerModal.js. Named explicitly (rather than the default
+          // content-hash-only asset filename) so the minimizer's `exclude`
+          // below can actually match it by name.
+          test: /pdf\.worker\.mjs$/,
+          type: 'asset/resource',
+          generator: { filename: 'pdf.worker.[contenthash][ext]' }
         }
       ]
     },

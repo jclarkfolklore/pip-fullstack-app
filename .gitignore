@@ -6,5 +6,10 @@ data/pip.sqlite-wal
 data/pip.sqlite-shm
 snapshot/
 
+# throwaway, regenerable by `npm run seed:demo` — never the real workspace
+data/demo.sqlite
+data/demo.sqlite-wal
+data/demo.sqlite-shm
+
 # local secrets — see .env.example
 .env

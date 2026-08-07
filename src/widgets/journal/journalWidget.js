@@ -1,5 +1,5 @@
 import { marked } from 'marked';
-import { h, fmtDateTime } from '../../lib/dom.js';
+import { h, fmtDateTime, wrapProseTables, readPref, writePref } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
 import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
@@ -7,6 +7,7 @@ import { onChange } from '../../api/client.js';
 import { listEntries, createEntry, updateEntry, deleteEntry, entryCount } from '../../api/journalRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
 import { attachmentSections } from '../../app/attachmentViews.js';
+import { openFileModal } from '../../app/fileViewerModal.js';
 import { listAttachmentsForMany } from '../../api/attachmentsRepo.js';
 
 export const kind = 'journal';
@@ -25,7 +26,7 @@ export async function renderTile(ctx) {
 }
 
 export function renderFull(ctx) {
-  const filters = { search: '' };
+  const filters = { search: '', sort: readPref('pip:journal:sort', 'created_desc') };
 
   const el = h('div', { class: 'pip-view' });
   const header = h('div', { class: 'pip-view-header' }, [
@@ -38,6 +39,24 @@ export function renderFull(ctx) {
   el.append(header, body);
 
   function buildToolbar() {
+    const sortSelect = h(
+      'select',
+      {
+        class: 'pip-chip-select',
+        onChange: (e) => {
+          filters.sort = e.target.value;
+          writePref('pip:journal:sort', e.target.value);
+          renderList();
+        }
+      },
+      [
+        h('option', { value: 'created_desc' }, 'Newest'),
+        h('option', { value: 'created_asc' }, 'Oldest'),
+        h('option', { value: 'updated_desc' }, 'Recently edited')
+      ]
+    );
+    sortSelect.value = filters.sort;
+
     const search = h('input', {
       class: 'pip-search',
       type: 'search',
@@ -47,7 +66,7 @@ export function renderFull(ctx) {
         renderList();
       }
     });
-    toolbarHost.appendChild(h('div', { class: 'pip-toolbar' }, [search]));
+    toolbarHost.appendChild(h('div', { class: 'pip-toolbar' }, [sortSelect, search]));
   }
 
   function openComposeSheet(existing = null) {
@@ -115,13 +134,16 @@ export function renderFull(ctx) {
               : null
           ].filter(Boolean)
         ),
-        h('div', { class: 'pip-journal-body', html: marked.parse(entry.body_md || '') }),
+        wrapProseTables(
+          h('div', { class: 'pip-journal-body pip-prose', html: marked.parse(entry.body_md || '') })
+        ),
         (attachmentsById[entry.id] || []).length
           ? h(
               'div',
               { class: 'pip-journal-att' },
               attachmentSections(attachmentsById[entry.id], {
-                onOpenImage: (a) => window.open(a.src, '_blank', 'noopener')
+                onOpenImage: (a) => window.open(a.src, '_blank', 'noopener'),
+                onOpenFile: (a) => openFileModal(a)
               })
             )
           : null,

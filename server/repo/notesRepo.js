@@ -99,6 +99,7 @@ function listNotes({ project = null, tag = null, search = '', pinned = null, sor
     {
       updated_desc: 'pinned DESC, updated_at DESC',
       created_desc: 'pinned DESC, created_at DESC',
+      created_asc: 'pinned DESC, created_at ASC',
       title_asc: 'title COLLATE NOCASE ASC'
     }[sort] || 'pinned DESC, updated_at DESC';
 

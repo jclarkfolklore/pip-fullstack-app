@@ -4,7 +4,9 @@ const journalRepo = require('../repo/journalRepo');
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  res.json(journalRepo.listEntries({ search: req.query.search || '' }));
+  res.json(
+    journalRepo.listEntries({ search: req.query.search || '', sort: req.query.sort || 'created_desc' })
+  );
 });
 
 router.get('/counts', (req, res) => {

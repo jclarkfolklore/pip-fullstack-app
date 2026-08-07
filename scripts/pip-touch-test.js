@@ -16,17 +16,7 @@ const { chromium } = require('playwright-core');
 
 const BASE = process.env.PIP_BASE || 'http://127.0.0.1:4288';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const VIEWS = [
-  'dashboard',
-  'inbox',
-  'tasks',
-  'notes',
-  'journal',
-  'projects',
-  'metrics',
-  'overview',
-  'settings'
-];
+const VIEWS = ['dashboard', 'inbox', 'tasks', 'notes', 'journal', 'projects', 'metrics', 'settings'];
 
 async function touchDrag(cdp, x, fromY, toY) {
   const step = fromY > toY ? -12 : 12;

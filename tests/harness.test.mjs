@@ -21,7 +21,7 @@ test('fresh database is created at the current schema', async () => {
       assert.ok(tables.includes(t), `has table ${t}`);
     }
     const v = db.prepare("SELECT value FROM app_meta WHERE key='schema_version'").get();
-    assert.equal(v.value, '11');
+    assert.equal(v.value, '13');
   });
 });
 

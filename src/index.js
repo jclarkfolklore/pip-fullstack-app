@@ -32,22 +32,38 @@ async function main() {
   // A snapshot looks exactly like the live app, which is precisely why it has
   // to say it isn't. Buttons still respond; their writes are dropped. Without
   // this banner that reads as the app being broken.
+  //
+  // A DEMO snapshot has a second, more important thing to disclose. The data
+  // is invented (scripts/demo-data/index.js) but every client name, ticket and
+  // metric on screen looks exactly as real as the genuine article — so the
+  // notice has to lead with "not real", not with "read only". Someone shown
+  // this link should never be left wondering whether they're looking at
+  // somebody's actual client work.
   if (isStatic()) {
     document.body.classList.add('pip-is-static');
     const info = staticInfo() || {};
     const when = info.generatedAt ? new Date(info.generatedAt) : null;
-    root.appendChild(
-      h('div', { class: 'pip-readonly-bar' }, [
-        h('span', { class: 'pip-readonly-tag' }, 'READ ONLY'),
-        h(
-          'span',
-          { class: 'pip-readonly-text' },
-          when
-            ? `Static snapshot of PIP — ${when.toLocaleString()}. Nothing here saves.`
-            : 'Static snapshot of PIP. Nothing here saves.'
-        )
-      ])
-    );
+    const stamped = when ? ` Built ${when.toLocaleDateString()}.` : '';
+    const bar = h('div', { class: `pip-readonly-bar${info.demo ? ' pip-readonly-bar-demo' : ''}` }, [
+      h('span', { class: 'pip-readonly-tag' }, info.demo ? 'DEMO DATA' : 'READ ONLY'),
+      h(
+        'span',
+        { class: 'pip-readonly-text' },
+        info.demo
+          ? `Every project, ticket, person and number here is fictional — generated to show what PIP looks like in use. Nothing saves.${stamped}`
+          : `Static snapshot of PIP. Nothing here saves.${stamped}`
+      )
+    ]);
+    root.appendChild(bar);
+
+    // The layout is pushed down by the bar's height. That used to be a
+    // hardcoded 28px, which holds only while the text fits on one line — the
+    // demo notice is longer and wraps on a narrow screen, and the bar then
+    // covered the top of the app. Measuring keeps the two in step at any width.
+    const syncBarHeight = () =>
+      document.body.style.setProperty('--pip-static-bar', `${bar.offsetHeight}px`);
+    syncBarHeight();
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncBarHeight).observe(bar);
   }
 
   root.appendChild(layout);

@@ -20,6 +20,22 @@ export function h(tag, attrs = {}, children = []) {
   return node;
 }
 
+// A rendered table (markdown or a mammoth DOCX conversion) can be wider than
+// its container — a wide Confluence export table is the case that motivated
+// this. `<table>` can't scroll itself without breaking column layout, so it
+// needs a wrapper with its own overflow-x, applied once after the HTML is
+// injected rather than duplicated at every markdown/prose render call site.
+export function wrapProseTables(container) {
+  for (const table of container.querySelectorAll('table')) {
+    if (table.parentElement?.classList.contains('pip-prose-table-wrap')) continue;
+    const wrap = document.createElement('div');
+    wrap.className = 'pip-prose-table-wrap';
+    table.parentNode.insertBefore(wrap, table);
+    wrap.appendChild(table);
+  }
+  return container;
+}
+
 export function clear(node) {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
@@ -56,6 +72,43 @@ export function fmtDateTime(iso) {
     hour: 'numeric',
     minute: '2-digit'
   });
+}
+
+// A widget's chosen sort order (or any small per-widget preference) should
+// survive a reload — otherwise "pick a sort" is something you do every
+// session instead of once. Falls back to `fallback` on first run, private
+// browsing, or any other reason localStorage isn't available.
+export function readPref(key, fallback) {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+export function writePref(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (_) {
+    /* private browsing, storage disabled, or quota — losing the preference
+       is fine, breaking the widget over it is not */
+  }
+}
+
+// Same idea as readPref/writePref, for a list rather than a single value —
+// e.g. which projects are toggled off in a filter. A corrupted or missing
+// stored value degrades to "nothing hidden" rather than breaking the widget.
+export function readPrefList(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+export function writePrefList(key, list) {
+  writePref(key, JSON.stringify(list));
 }
 
 export function debounce(fn, wait) {

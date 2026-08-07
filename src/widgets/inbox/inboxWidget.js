@@ -1,5 +1,5 @@
 import { marked } from 'marked';
-import { h, fmtDate } from '../../lib/dom.js';
+import { h, fmtDate, wrapProseTables } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
 import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
@@ -18,6 +18,7 @@ import {
 import { allTagNames } from '../../api/tagsRepo.js';
 import { consumeHighlight, applyHighlight } from '../../lib/highlight.js';
 import { listProjects } from '../../api/projectsRepo.js';
+import { projectLink } from '../../app/projectModal.js';
 
 export const kind = 'inbox';
 
@@ -76,7 +77,14 @@ export async function renderTile(ctx) {
 const STAGE_LABEL = { new: 'NEW', active: 'ACTIVE', resolved: 'RESOLVED', archived: 'ARCHIVED' };
 
 export function renderFull(ctx) {
-  const filters = { stage: null, tag: null, project: null, search: '', sort: 'created_desc' };
+  const filters = {
+    stage: null,
+    tag: null,
+    project: null,
+    search: '',
+    sort: 'created_desc',
+    showResolved: false
+  };
   let projectsById = {};
 
   // A search-result click deep-links here for one specific item — consumed
@@ -174,8 +182,25 @@ export function renderFull(ctx) {
     projectSelect.value = filters.project || '';
     sortSelect.value = filters.sort;
 
+    // Resolved is done — hidden by default the same way Tasks collapses
+    // completed work, with the same toggle-button pattern to bring it back.
+    const resolvedToggle = h('button', { class: 'pip-chip-toggle' }, 'SHOW RESOLVED');
+    resolvedToggle.addEventListener('click', () => {
+      filters.showResolved = !filters.showResolved;
+      resolvedToggle.textContent = filters.showResolved ? 'HIDE RESOLVED' : 'SHOW RESOLVED';
+      resolvedToggle.dataset.on = filters.showResolved ? 'true' : 'false';
+      renderList();
+    });
+
     toolbarHost.appendChild(
-      h('div', { class: 'pip-toolbar' }, [stageSelect, projectSelect, tagSelect, sortSelect, search])
+      h('div', { class: 'pip-toolbar' }, [
+        stageSelect,
+        projectSelect,
+        tagSelect,
+        sortSelect,
+        resolvedToggle,
+        search
+      ])
     );
   }
 
@@ -449,7 +474,7 @@ export function renderFull(ctx) {
         sourceIcon,
         ` ${SOURCE_LABEL[item.source_type] || item.source_type}`
       ]),
-      project ? ` · ${project.name}` : '',
+      ...(project ? [' · ', projectLink(project)] : []),
       ` · ${fmtDate(item.created_at)}`
     ];
     const metaEl = h('div', { class: 'pip-card-meta' }, metaParts);
@@ -476,7 +501,9 @@ export function renderFull(ctx) {
               : h('div', { class: 'pip-stage', dataset: { stage: item.stage } }, STAGE_LABEL[item.stage])
           ])
         ]),
-        h('div', { class: 'pip-card-body', html: marked.parse(item.body_md || '') }),
+        wrapProseTables(
+          h('div', { class: 'pip-card-body pip-prose', html: marked.parse(item.body_md || '') })
+        ),
         item.outcome_md
           ? h('div', {
               class: 'pip-card-body',

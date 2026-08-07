@@ -17,13 +17,14 @@ import { icon } from '../lib/icons.js';
 
 let openCount = 0;
 
-export function openModal({ title = '', body = null, footer = null, onClose = null } = {}) {
+export function openModal({ title = '', body = null, footer = null, onClose = null, size = 'default' } = {}) {
   const content = h('div', { class: 'pip-modal-body' });
   if (body) content.append(...(Array.isArray(body) ? body : [body]).filter(Boolean));
 
   const closeBtn = h('button', { class: 'pip-modal-close', title: 'Close' }, [icon('close', { size: 10 })]);
 
-  const dialog = h('div', { class: 'pip-modal', role: 'dialog', 'aria-modal': 'true' }, [
+  const dialogClass = size === 'large' ? 'pip-modal pip-modal--lg' : 'pip-modal';
+  const dialog = h('div', { class: dialogClass, role: 'dialog', 'aria-modal': 'true' }, [
     h('div', { class: 'pip-modal-header' }, [h('div', { class: 'pip-modal-title' }, title), closeBtn]),
     content,
     footer ? h('div', { class: 'pip-modal-footer' }, footer) : null

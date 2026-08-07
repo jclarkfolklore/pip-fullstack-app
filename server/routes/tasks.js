@@ -4,11 +4,12 @@ const tasksRepo = require('../repo/tasksRepo');
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  const { status, project, tag, search, sort } = req.query;
+  const { status, project, excludeProjects, tag, search, sort } = req.query;
   res.json(
     tasksRepo.listTasks({
       status: status || null,
       project: project || null,
+      excludeProjects: excludeProjects ? excludeProjects.split(',') : [],
       tag: tag || null,
       search: search || '',
       sort: sort || 'created_desc'

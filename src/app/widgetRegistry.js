@@ -9,7 +9,6 @@ import * as notes from '../widgets/notes/notesWidget.js';
 import * as journal from '../widgets/journal/journalWidget.js';
 import * as projects from '../widgets/projects/projectsWidget.js';
 import * as metrics from '../widgets/metrics/metricsWidget.js';
-import * as overview from '../widgets/overview/overviewWidget.js';
 import * as settings from '../widgets/settings/settingsWidget.js';
 
 const registry = {
@@ -19,7 +18,6 @@ const registry = {
   journal,
   projects,
   metrics,
-  overview,
   settings
 };
 

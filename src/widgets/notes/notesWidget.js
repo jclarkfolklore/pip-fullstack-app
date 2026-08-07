@@ -1,5 +1,5 @@
 import { marked } from 'marked';
-import { h, fmtDate } from '../../lib/dom.js';
+import { h, fmtDate, readPref, writePref } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
 import { tile } from '../../app/tile.js';
 import { staggerIn, collapseOut } from '../../lib/animations.js';
@@ -16,6 +16,7 @@ import { allTagNames } from '../../api/tagsRepo.js';
 import { listProjects } from '../../api/projectsRepo.js';
 import { confirmDestructive } from '../../app/modal.js';
 import { openTicketModal } from '../../app/ticketModal.js';
+import { projectLink } from '../../app/projectModal.js';
 import { contentCard, contentGrid } from '../../app/contentCard.js';
 import { listAttachmentsForMany } from '../../api/attachmentsRepo.js';
 import { consumeHighlight, applyHighlight } from '../../lib/highlight.js';
@@ -56,7 +57,7 @@ export async function renderTile(ctx) {
 }
 
 export function renderFull(ctx) {
-  const filters = { project: null, tag: null, search: '', sort: 'updated_desc' };
+  const filters = { project: null, tag: null, search: '', sort: readPref('pip:notes:sort', 'updated_desc') };
   let projectsById = {};
 
   // A search-result click deep-links here for one specific note — consumed
@@ -102,6 +103,24 @@ export function renderFull(ctx) {
       },
       [h('option', { value: '' }, 'All tags'), ...tags.map((t) => h('option', { value: t }, `#${t}`))]
     );
+    const sortSelect = h(
+      'select',
+      {
+        class: 'pip-chip-select',
+        onChange: (e) => {
+          filters.sort = e.target.value;
+          writePref('pip:notes:sort', e.target.value);
+          renderList();
+        }
+      },
+      [
+        h('option', { value: 'updated_desc' }, 'Newest'),
+        h('option', { value: 'created_asc' }, 'Oldest'),
+        h('option', { value: 'title_asc' }, 'Title A–Z')
+      ]
+    );
+    sortSelect.value = filters.sort;
+
     const search = h('input', {
       class: 'pip-search',
       type: 'search',
@@ -112,7 +131,9 @@ export function renderFull(ctx) {
       }
     });
 
-    toolbarHost.appendChild(h('div', { class: 'pip-toolbar' }, [projectSelect, tagSelect, search]));
+    toolbarHost.appendChild(
+      h('div', { class: 'pip-toolbar' }, [projectSelect, tagSelect, sortSelect, search])
+    );
   }
 
   function openComposeSheet(existing = null) {
@@ -202,11 +223,17 @@ export function renderFull(ctx) {
 
   function card(note) {
     const project = note.project_id ? projectsById[note.project_id] : null;
+    // A note's project is its one first-class cross-reference — worth a real
+    // link rather than inert text, since "what else is in this project" is
+    // exactly what you'd want after reading a note about it. `.closest('a')`
+    // in contentCard's click handler keeps this from also opening the note.
     const metaBits = [
       SOURCE_LABEL[note.source_type] || note.source_type,
-      project ? project.name : null,
+      project ? projectLink(project) : null,
       fmtDate(note.updated_at)
-    ].filter(Boolean);
+    ]
+      .filter(Boolean)
+      .flatMap((bit, i) => (i === 0 ? [bit] : [' · ', bit]));
 
     const cardEl = contentCard({
       id: note.id,
@@ -215,7 +242,7 @@ export function renderFull(ctx) {
         : null,
       title: note.title || '(untitled)',
       bodyMd: note.body_md,
-      meta: metaBits.join(' · '),
+      meta: metaBits,
       tags: note.tags || [],
       attachments: attachmentsById[note.id] || [],
       // Notes have no lifecycle, so there's nothing to colour-code by state.
@@ -225,7 +252,7 @@ export function renderFull(ctx) {
       onOpen: () =>
         openTicketModal(note, {
           entityType: 'note',
-          extra: { project: project ? project.name : null, updated: fmtDate(note.updated_at) }
+          extra: { project: project ? projectLink(project) : null, updated: fmtDate(note.updated_at) }
         }),
       actions: [
         h('button', { class: 'pip-action-btn', onClick: () => openComposeSheet(note) }, 'EDIT'),

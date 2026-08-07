@@ -1,8 +1,12 @@
 // Shared theme state — read/written by both the nav-bar cycle button
 // (shell.js) and the Settings widget, so the two stay in sync.
-export const THEMES = ['default', 'amber', 'mono', 'night'];
+export const THEMES = ['default', 'amber', 'mono', 'psychic'];
 
-const THEME_LABEL = { default: 'Sage', amber: 'Amber', mono: 'Mono', night: 'Night' };
+const THEME_LABEL = { default: 'Sage', amber: 'Amber', mono: 'Mono', psychic: 'Psychic' };
+
+// 'night' was replaced by 'psychic'. Anyone still holding the old value gets
+// moved to its replacement rather than silently reset to Sage.
+const RENAMED = { night: 'psychic' };
 
 export function themeLabel(name) {
   return THEME_LABEL[name] || name;
@@ -12,6 +16,7 @@ export function getTheme() {
   try {
     const saved = localStorage.getItem('pip-theme');
     if (THEMES.includes(saved)) return saved;
+    if (RENAMED[saved]) return RENAMED[saved];
   } catch (_) {
     /* ignore — falls through to default */
   }
