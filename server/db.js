@@ -26,10 +26,19 @@ db.pragma('foreign_keys = ON');
 function seedIfEmpty() {
   const widgetCount = db.prepare('SELECT COUNT(*) AS n FROM widgets').get().n;
   if (widgetCount === 0) {
+    // group_name has to be written explicitly — the column's own DEFAULT is
+    // 'work', so leaving it out doesn't merely lose the METRICS/SETTINGS
+    // grouping, it silently produces it wrong: every widget lands in one
+    // section instead of three. On the real database this went unnoticed
+    // because the row values had already been patched by a migration
+    // (`UPDATE widgets SET group_name = ...`) before this bug mattered; a
+    // brand new database — a fresh install, or the demo seeder — never runs
+    // that migration and goes straight through this INSERT instead.
     const insertWidget = db.prepare(
-      'INSERT INTO widgets (id, kind, title, glyph, sort_order) VALUES (?,?,?,?,?)'
+      'INSERT INTO widgets (id, kind, title, glyph, sort_order, group_name) VALUES (?,?,?,?,?,?)'
     );
-    for (const w of SEED_WIDGETS) insertWidget.run(w.id, w.kind, w.title, w.glyph, w.sort_order);
+    for (const w of SEED_WIDGETS)
+      insertWidget.run(w.id, w.kind, w.title, w.glyph, w.sort_order, w.group_name || 'work');
   }
   const projectCount = db.prepare('SELECT COUNT(*) AS n FROM projects').get().n;
   if (projectCount === 0) {
@@ -171,10 +180,14 @@ function runMigrations() {
 }
 
 db.exec(SCHEMA_SQL);
-seedIfEmpty();
 runMigrations();
-// After migrations, so an index can safely reference a column a migration
-// added. See the note on SCHEMA_INDEXES in schema.js.
+// After migrations, for the same reason SCHEMA_INDEXES runs after them (see
+// the note there): seedIfEmpty's widget insert writes group_name, and on a
+// database old enough to predate that column, SCHEMA_SQL's `CREATE TABLE IF
+// NOT EXISTS` leaves the existing (older-shaped) table alone — only
+// runMigrations() actually adds the column. Seeding first was fine right up
+// until the insert needed a column migrations hadn't added yet.
+seedIfEmpty();
 db.exec(SCHEMA_INDEXES);
 
 // PRAGMA data_version bumps whenever ANY connection to this file — including

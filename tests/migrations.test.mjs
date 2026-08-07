@@ -160,9 +160,16 @@ test('existing rows survive migration', () => {
 // all, SCHEMA_SQL's CREATE TABLE IF NOT EXISTS creates it complete, the index
 // succeeds, and the test passes for the wrong reason. Caught by
 // scripts/pip-mutation-check.js, which is exactly what that script is for.
+//
+// widgets.group_name is added here too, not in V1_SQL — v3 already added it
+// by the time a real database reaches v10, so a v10 fixture without it is
+// its own small inaccuracy (found when seedIfEmpty started writing that
+// column: this fixture's widgets table didn't have it, which no genuine v10
+// database would be missing).
 const V10_SQL =
   V1_SQL +
-  `CREATE TABLE journal_entries (
+  `ALTER TABLE widgets ADD COLUMN group_name TEXT NOT NULL DEFAULT 'work';
+   CREATE TABLE journal_entries (
      id TEXT PRIMARY KEY, body_md TEXT NOT NULL DEFAULT '',
      created_at TEXT NOT NULL, updated_at TEXT NOT NULL
    );`;

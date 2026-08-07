@@ -131,6 +131,14 @@ const MUTATIONS = [
     expect: 'tests/metrics.test.mjs'
   },
   {
+    name: 'a fresh database drops group_name when seeding widgets',
+    guards: 'every dashboard tile silently landing in one section on a new install',
+    file: 'server/db.js',
+    find: 'insertWidget.run(w.id, w.kind, w.title, w.glyph, w.sort_order, w.group_name',
+    replace: 'insertWidget.run(w.id, w.kind, w.title, w.glyph, w.sort_order, "work"',
+    expect: 'tests/widget-seed.test.mjs'
+  },
+  {
     name: 'a failing migration is swallowed instead of aborting',
     guards: 'a half-applied migration recorded as complete',
     file: 'server/db.js',
